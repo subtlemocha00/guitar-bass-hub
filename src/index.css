@@ -1,0 +1,41 @@
+:root {
+	--color-bg: #01012b;
+	--color-surface: #0a0a3a;
+	--color-text: #d1f7ff;
+	--color-text-muted: rgba(209, 247, 255, 0.7);
+	--color-accent: #05d9e8;
+	--color-accent-deep: #005678;
+	--color-highlight: #ff8c00;
+
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		"Helvetica Neue", Arial, sans-serif;
+	color: var(--color-text);
+	background-color: var(--color-bg);
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+	margin: 0;
+	padding: 0;
+	min-height: 100vh;
+	background-color: var(--color-bg);
+}
+
+a {
+	color: var(--color-accent);
+}
+
+a:hover {
+	color: var(--color-highlight);
+}
+
+.theme-guitar {
+	--color-highlight: #ff2a6d;
+}

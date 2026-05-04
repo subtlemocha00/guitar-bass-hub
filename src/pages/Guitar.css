@@ -1,0 +1,66 @@
+.guitar-page {
+	padding: 1rem 0 3rem;
+}
+
+.guitar-header {
+	margin-bottom: 2.5rem;
+	text-align: center;
+}
+
+.guitar-title {
+	margin: 0 0 0.5rem;
+	color: var(--color-accent);
+	font-size: 2.25rem;
+	letter-spacing: 0.04em;
+	text-shadow: 0 0 14px rgba(5, 217, 232, 0.35);
+}
+
+.guitar-subtitle {
+	margin: 0 auto;
+	max-width: 520px;
+	color: var(--color-text-muted);
+	font-size: 0.95rem;
+}
+
+.guitar-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 1.5rem;
+	max-width: 720px;
+	margin: 0 auto;
+}
+
+.guitar-card {
+	display: block;
+	padding: 2rem 1.25rem;
+	border: 1px solid var(--color-accent-deep);
+	border-radius: 12px;
+	background: var(--color-surface);
+	color: var(--color-text);
+	text-decoration: none;
+	transition: transform 0.15s ease, box-shadow 0.2s ease,
+		border-color 0.15s ease, color 0.15s ease;
+}
+
+.guitar-card h2 {
+	margin: 0 0 0.5rem;
+	font-size: 1.4rem;
+	color: var(--color-accent);
+	letter-spacing: 0.03em;
+}
+
+.guitar-card p {
+	margin: 0;
+	color: var(--color-text-muted);
+	font-size: 0.95rem;
+}
+
+.guitar-card:hover {
+	transform: translateY(-3px);
+	border-color: var(--color-highlight);
+	box-shadow: 0 8px 24px rgba(5, 217, 232, 0.18);
+}
+
+.guitar-card:hover h2 {
+	color: var(--color-highlight);
+}

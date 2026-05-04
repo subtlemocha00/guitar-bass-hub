@@ -1,0 +1,67 @@
+.home {
+	text-align: center;
+	padding: 3rem 1rem;
+}
+
+.home-title {
+	font-size: 3rem;
+	margin: 0 0 0.75rem;
+	color: var(--color-accent);
+	letter-spacing: 0.04em;
+	text-shadow: 0 0 18px rgba(5, 217, 232, 0.45);
+}
+
+.home-subtitle {
+	font-size: 1.1rem;
+	color: var(--color-text-muted);
+	margin: 0 auto 3rem;
+	max-width: 520px;
+}
+
+.home-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 1.5rem;
+	max-width: 600px;
+	margin: 0 auto;
+}
+
+.home-card {
+	display: block;
+	padding: 2rem 1.25rem;
+	border: 1px solid var(--color-accent-deep);
+	border-radius: 12px;
+	background: var(--color-surface);
+	color: var(--color-text);
+	text-decoration: none;
+	transition: transform 0.15s ease, box-shadow 0.2s ease,
+		border-color 0.15s ease, color 0.15s ease;
+}
+
+.home-card h2 {
+	margin: 0 0 0.5rem;
+	font-size: 1.5rem;
+	color: var(--color-accent);
+	letter-spacing: 0.03em;
+}
+
+.home-card p {
+	margin: 0;
+	color: var(--color-text-muted);
+	font-size: 0.95rem;
+}
+
+.home-card:hover {
+	transform: translateY(-3px);
+	border-color: var(--color-highlight);
+	box-shadow: 0 8px 24px rgba(5, 217, 232, 0.18),
+		0 0 0 1px color-mix(in srgb, var(--color-highlight) 35%, transparent) inset;
+}
+
+.home-card:hover h2 {
+	color: var(--color-highlight);
+}
+
+.home-card:hover p {
+	color: var(--color-text);
+}
