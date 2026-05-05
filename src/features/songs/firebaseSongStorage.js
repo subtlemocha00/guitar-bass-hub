@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
 
 const STATUSES = ["planned", "learning", "completed"];
@@ -37,5 +37,26 @@ export async function setNote(uid, songId, note) {
 		userDoc(uid),
 		{ notes: { [songId]: note } },
 		{ merge: true }
+	);
+}
+
+export function subscribeToUserData(uid, callback) {
+	return onSnapshot(
+		userDoc(uid),
+		(snap) => {
+			if (snap.metadata.hasPendingWrites) return;
+			if (!snap.exists()) {
+				callback({ statuses: {}, notes: {} });
+				return;
+			}
+			const data = snap.data() ?? {};
+			callback({
+				statuses: data.statuses ?? {},
+				notes: data.notes ?? {},
+			});
+		},
+		(err) => {
+			console.error("[firebaseSongStorage] subscription error:", err);
+		}
 	);
 }

@@ -3,8 +3,9 @@ import { useAuth } from "../auth/useAuth";
 import SongCard from "./SongCard";
 import {
 	getCachedStatus,
-	getStatus,
 	setStatus as persistStatus,
+	STATUSES,
+	subscribeToUserData,
 } from "./songStorage";
 import "./SongList.css";
 
@@ -31,22 +32,23 @@ function SongList({ songs, filter = "all" }) {
 
 	useEffect(() => {
 		if (!uid) return undefined;
-		let cancelled = false;
-		Promise.all(
-			songs.map(async (song) => [song.id, await getStatus(uid, song.id)])
-		).then((entries) => {
-			if (cancelled) return;
-			setStatuses((prev) => {
-				const next = { ...prev };
-				for (const [id, value] of entries) {
-					next[id] = value;
-				}
-				return next;
-			});
-		});
-		return () => {
-			cancelled = true;
-		};
+		const unsubscribe = subscribeToUserData(
+			uid,
+			({ statuses: remoteStatuses }) => {
+				setStatuses((prev) => {
+					const next = { ...prev };
+					for (const song of songs) {
+						if (!(song.id in remoteStatuses)) continue;
+						const value = remoteStatuses[song.id];
+						if (STATUSES.includes(value)) {
+							next[song.id] = value;
+						}
+					}
+					return next;
+				});
+			}
+		);
+		return unsubscribe;
 	}, [uid, songs]);
 
 	const updateStatus = (songId, next) => {

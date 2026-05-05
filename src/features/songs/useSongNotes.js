@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../auth/useAuth";
 import {
 	getCachedNote,
-	getNote,
 	setNote as persistNote,
+	subscribeToUserData,
 } from "./songStorage";
 
 export function useSongNotes(songId) {
@@ -14,14 +14,12 @@ export function useSongNotes(songId) {
 
 	useEffect(() => {
 		if (!uid) return undefined;
-		let cancelled = false;
-		getNote(uid, songId).then((value) => {
-			if (cancelled) return;
-			setNoteState(value);
+		const unsubscribe = subscribeToUserData(uid, ({ notes }) => {
+			if (!(songId in notes)) return;
+			const value = notes[songId];
+			setNoteState(typeof value === "string" ? value : "");
 		});
-		return () => {
-			cancelled = true;
-		};
+		return unsubscribe;
 	}, [uid, songId]);
 
 	const setNote = useCallback(

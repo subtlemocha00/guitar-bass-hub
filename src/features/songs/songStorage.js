@@ -105,3 +105,13 @@ export async function setNote(uid, songId, note) {
 		console.warn("[songStorage] Firebase setNote failed:", err);
 	}
 }
+
+export function subscribeToUserData(uid, callback) {
+	return remote.subscribeToUserData(uid, ({ statuses, notes }) => {
+		const cachedStatuses = readMap(STATUS_KEY);
+		const cachedNotes = readMap(NOTES_KEY);
+		writeMap(STATUS_KEY, { ...cachedStatuses, ...statuses });
+		writeMap(NOTES_KEY, { ...cachedNotes, ...notes });
+		callback({ statuses, notes });
+	});
+}
