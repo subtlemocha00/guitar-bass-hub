@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PitchDetector } from "pitchy";
 
 const NOTE_NAMES = [
@@ -20,7 +20,7 @@ const A4_FREQ = 440;
 const A4_MIDI = 69;
 const FFT_SIZE = 2048;
 const MIN_CLARITY = 0.9;
-const MIN_FREQUENCY = 30;
+const MIN_FREQUENCY = 28;
 const MAX_FREQUENCY = 2000;
 const MIN_VOLUME_DB = -50;
 const IN_TUNE_CENTS = 5;
@@ -34,6 +34,10 @@ function freqToNoteInfo(frequency) {
 	const name = NOTE_NAMES[((nearestMidi % 12) + 12) % 12];
 	const octave = Math.floor(nearestMidi / 12) - 1;
 	return { note: `${name}${octave}`, cents };
+}
+
+function centsFromTarget(freq, targetFreq) {
+	return 1200 * Math.log2(freq / targetFreq);
 }
 
 function classify(cents) {
@@ -71,8 +75,27 @@ const INITIAL_STATE = {
 	error: null,
 };
 
-export function useTuner({ strings = [] } = {}) {
+export function useTuner({
+	strings = [],
+	mode = "auto",
+	lockedString = null,
+} = {}) {
 	const [state, setState] = useState(INITIAL_STATE);
+
+	// Live refs so the mic loop sees updated config without re-acquiring the
+	// AudioContext/MediaStream when these change between renders.
+	const stringsRef = useRef(strings);
+	const modeRef = useRef(mode);
+	const lockedStringRef = useRef(lockedString);
+	useEffect(() => {
+		stringsRef.current = strings;
+	}, [strings]);
+	useEffect(() => {
+		modeRef.current = mode;
+	}, [mode]);
+	useEffect(() => {
+		lockedStringRef.current = lockedString;
+	}, [lockedString]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -141,13 +164,25 @@ export function useTuner({ strings = [] } = {}) {
 						if (buffer.length > SMOOTHING_BUFFER_SIZE) buffer.shift();
 
 						const smoothed = median(buffer);
-						const { note, cents } = freqToNoteInfo(smoothed);
-						const targetString = findClosestString(smoothed, strings);
+						const noteInfo = freqToNoteInfo(smoothed);
+						const currentMode = modeRef.current;
+						const currentLocked = lockedStringRef.current;
+						const currentStrings = stringsRef.current;
+
+						let targetString;
+						let cents;
+						if (currentMode === "lock" && currentLocked) {
+							targetString = currentLocked;
+							cents = centsFromTarget(smoothed, currentLocked.freq);
+						} else {
+							targetString = findClosestString(smoothed, currentStrings);
+							cents = noteInfo.cents;
+						}
 
 						setState((prev) => ({
 							...prev,
 							frequency: smoothed,
-							note,
+							note: noteInfo.note,
 							cents,
 							status: classify(cents),
 							targetString,
@@ -178,7 +213,7 @@ export function useTuner({ strings = [] } = {}) {
 				audioContext.close().catch(() => {});
 			}
 		};
-	}, [strings]);
+	}, []);
 
 	return state;
 }

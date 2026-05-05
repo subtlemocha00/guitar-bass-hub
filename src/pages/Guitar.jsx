@@ -1,43 +1,108 @@
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
-import "./Guitar.css";
+import BackLink from "../components/BackLink";
+import { guitarSongs } from "../data/guitarSongs";
+import { useSongStatus } from "../features/songs/useSongStatus";
+import "./Bass.css";
 
-const features = [
-	{
-		to: "/guitar/songs",
-		title: "Song List",
-		description: "Track songs and update practice status.",
-	},
-	{
-		to: "/guitar/tuner",
-		title: "Tuner",
-		description: "Tune your guitar.",
-	},
-	{
-		to: "/guitar/exercises",
-		title: "Exercises",
-		description: "Drills, scales, and warm-ups.",
-	},
+const TOOLS = [
+	{ to: "/guitar/tuner", code: "MOD_01", name: "Tuner", tag: "PITCH·LOCK", desc: "Standard 6-string EADGBE via mic. Median-smoothed pitch detect.", live: true },
+	{ to: "/guitar/songs", code: "MOD_02", name: "Songs", tag: "REPERTOIRE", desc: "Track planned, learning and completed guitar tracks. Notes per song.", live: true },
+	{ to: "/guitar/fretboard", code: "MOD_03", name: "Fretboard", tag: "SCALE·MAP", desc: "Visualize scales across the neck. 8 patterns × 12 roots.", live: true },
+	{ to: "/guitar/metronome", code: "MOD_04", name: "Metronome", tag: "TEMPO·LOCK", desc: "Web Audio click. 40–240 BPM, accented downbeat, tap tempo.", live: true },
+	{ to: "/guitar/exercises", code: "MOD_05", name: "Exercises", tag: "DRILLS", desc: "Coming soon — picking patterns and chord transitions.", live: false },
 ];
 
+function GuitarToolCard({ t, accent }) {
+	if (!t.live) {
+		return (
+			<div className="tool-block tool-block--dim hud">
+				<span className="hud-corner-tr" />
+				<span className="hud-corner-bl" />
+				<div className="tool-block-head">
+					<span className="tool-block-code">{t.code}</span>
+					<span className="tool-block-tag">{t.tag}</span>
+					<span className="tool-block-status">SOON</span>
+				</div>
+				<div className="tool-block-name">{t.name}</div>
+				<p className="tool-block-desc">{t.desc}</p>
+				<div className="tool-block-cta tool-block-cta--dim">— OFFLINE</div>
+			</div>
+		);
+	}
+	return (
+		<Link to={t.to} className="tool-block hud" style={{ "--tool-accent": accent }}>
+			<span className="hud-corner-tr" />
+			<span className="hud-corner-bl" />
+			<div className="tool-block-head">
+				<span className="tool-block-code">{t.code}</span>
+				<span className="tool-block-tag">{t.tag}</span>
+				<span className="tool-block-status tool-block-status--live"><span className="dot" /> LIVE</span>
+			</div>
+			<div className="tool-block-name">{t.name}</div>
+			<p className="tool-block-desc">{t.desc}</p>
+			<div className="tool-block-cta">ENGAGE → </div>
+		</Link>
+	);
+}
+
 function Guitar() {
+	const { statuses } = useSongStatus(guitarSongs);
+	const learning = Object.values(statuses).filter((s) => s === "learning").length;
+	const done = Object.values(statuses).filter((s) => s === "completed").length;
+
 	return (
 		<Layout theme="guitar">
-			<section className="guitar-page">
-				<header className="guitar-header">
-					<h1 className="guitar-title">Guitar</h1>
-					<p className="guitar-subtitle">Pick a tool to practice with.</p>
-				</header>
+			<div className="page bass-page">
+				<BackLink to="/" label="Back to Hub" />
 
-				<div className="guitar-cards">
-					{features.map((f) => (
-						<Link key={f.to} to={f.to} className="guitar-card">
-							<h2>{f.title}</h2>
-							<p>{f.description}</p>
-						</Link>
-					))}
-				</div>
-			</section>
+				<section className="instrument-hero hud instrument-hero--guitar">
+					<span className="hud-corner-tr" />
+					<span className="hud-corner-bl" />
+					<div className="instrument-hero-bg">
+						<div className="instrument-hero-grid" />
+						<div className="instrument-hero-sun instrument-hero-sun--guitar" />
+					</div>
+					<div className="instrument-hero-inner">
+						<span className="eyebrow">// NODE_02 · GUITAR_RIG</span>
+						<h1 className="hero-title flicker">
+							<span className="glitch" data-text="GUITAR">GUITAR</span>
+						</h1>
+						<p className="hero-subtitle">
+							Six-string circuit. Tune, train, work the catalog. Standard
+							tuning E·A·D·G·B·E with neon overlays.
+						</p>
+						<div className="hero-strip">
+							<div className="strip-cell">
+								<div className="k">Strings</div>
+								<div className="v m">06</div>
+								<div className="sub">E A D G B E</div>
+							</div>
+							<div className="strip-cell">
+								<div className="k">Catalog</div>
+								<div className="v">{guitarSongs.length}</div>
+								<div className="sub">tracks</div>
+							</div>
+							<div className="strip-cell">
+								<div className="k">Learning</div>
+								<div className="v m">{learning}</div>
+								<div className="sub">in flight</div>
+							</div>
+							<div className="strip-cell">
+								<div className="k">Cleared</div>
+								<div className="v a">{done}</div>
+								<div className="sub">completed</div>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<div className="section-stripe"><span className="label">// MODULES</span><span className="rule" /><span className="count">{String(TOOLS.length).padStart(2, "0")} LOADED</span></div>
+
+				<section className="tool-grid">
+					{TOOLS.map((t) => <GuitarToolCard key={t.code} t={t} accent="var(--neon-magenta)" />)}
+				</section>
+			</div>
 		</Layout>
 	);
 }

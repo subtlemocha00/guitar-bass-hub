@@ -1,12 +1,6 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../auth/useAuth";
+import { useState } from "react";
 import SongCard from "./SongCard";
-import {
-	getCachedStatus,
-	setStatus as persistStatus,
-	STATUSES,
-	subscribeToUserData,
-} from "./songStorage";
+import { useSongStatus } from "./useSongStatus";
 import "./SongList.css";
 
 const GROUPS = [
@@ -15,46 +9,9 @@ const GROUPS = [
 	{ key: "completed", label: "Completed" },
 ];
 
-function buildCachedStatusMap(songs) {
-	const map = {};
-	for (const song of songs) {
-		map[song.id] = getCachedStatus(song.id);
-	}
-	return map;
-}
-
 function SongList({ songs, filter = "all" }) {
-	const { user } = useAuth();
-	const uid = user?.uid;
-
-	const [statuses, setStatuses] = useState(() => buildCachedStatusMap(songs));
+	const { statuses, updateStatus } = useSongStatus(songs);
 	const [openSongId, setOpenSongId] = useState(null);
-
-	useEffect(() => {
-		if (!uid) return undefined;
-		const unsubscribe = subscribeToUserData(
-			uid,
-			({ statuses: remoteStatuses }) => {
-				setStatuses((prev) => {
-					const next = { ...prev };
-					for (const song of songs) {
-						if (!(song.id in remoteStatuses)) continue;
-						const value = remoteStatuses[song.id];
-						if (STATUSES.includes(value)) {
-							next[song.id] = value;
-						}
-					}
-					return next;
-				});
-			}
-		);
-		return unsubscribe;
-	}, [uid, songs]);
-
-	const updateStatus = (songId, next) => {
-		setStatuses((prev) => ({ ...prev, [songId]: next }));
-		persistStatus(uid, songId, next);
-	};
 
 	const toggleVideo = (songId) => {
 		setOpenSongId((prev) => (prev === songId ? null : songId));

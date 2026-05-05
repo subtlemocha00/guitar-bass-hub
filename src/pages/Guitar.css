@@ -1,4 +1,4 @@
-.guitar-page {
+/* .guitar-page {
 	padding: 1rem 0 3rem;
 }
 
@@ -63,4 +63,6 @@
 
 .guitar-card:hover h2 {
 	color: var(--color-highlight);
-}
+} */
+
+/* Guitar shares Bass.css for tool-grid + instrument-hero */

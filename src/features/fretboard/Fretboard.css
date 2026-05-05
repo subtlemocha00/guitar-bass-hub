@@ -1,0 +1,92 @@
+.fb-grid {
+	display: grid;
+	grid-template-columns: minmax(260px, 320px) 1fr;
+	gap: 1.5rem;
+	align-items: start;
+}
+@media (max-width: 900px) { .fb-grid { grid-template-columns: 1fr; } }
+
+.fb-controls { padding: 1.25rem; position: relative; }
+.fb-board { padding: 1.5rem; position: relative; overflow: hidden; }
+
+.fb-section { margin-bottom: 1.25rem; }
+.fb-section-label {
+	font-family: var(--font-mono); font-size: 0.72rem;
+	letter-spacing: 0.18em; color: var(--text-mute);
+	margin-bottom: 0.5rem;
+}
+
+.fb-roots {
+	display: grid;
+	grid-template-columns: repeat(6, 1fr);
+	gap: 0.3rem;
+}
+.fb-scales { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.fb-btn {
+	padding: 0.45rem 0;
+	background: transparent;
+	color: var(--text-dim);
+	border: 1px solid var(--line-mid);
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.06em;
+	cursor: pointer;
+	border-radius: 2px;
+	transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.fb-btn:hover { color: var(--text); border-color: var(--neon-cyan); }
+.fb-btn--scale {
+	padding: 0.4rem 0.7rem;
+	font-size: 0.72rem;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+}
+.fb-btn--active {
+	background: rgba(5, 217, 232, 0.16);
+	color: var(--neon-cyan);
+	border-color: var(--neon-cyan);
+}
+
+.fb-toggle {
+	display: flex; align-items: center; gap: 0.5rem;
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.1em;
+	color: var(--text-dim);
+	cursor: pointer;
+}
+.fb-toggle input { accent-color: var(--neon-cyan); }
+
+.fb-summary {
+	margin-top: 1.25rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--line-mid);
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	color: var(--text-dim);
+	line-height: 1.7;
+}
+
+.fb-svg-wrap { overflow: auto; }
+.fb-svg { width: 100%; min-width: 640px; height: auto; display: block; }
+
+.fb-legend {
+	display: flex;
+	gap: 1rem;
+	margin-top: 1rem;
+	flex-wrap: wrap;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	color: var(--text-mute);
+	letter-spacing: 0.12em;
+}
+.fb-legend > span {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+.fb-legend .dot {
+	width: 10px; height: 10px; border-radius: 50%;
+	display: inline-block;
+}

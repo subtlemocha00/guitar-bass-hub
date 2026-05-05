@@ -4,7 +4,7 @@ import "./BackLink.css";
 function BackLink({ to, label = "Back" }) {
 	return (
 		<Link to={to} className="back-link">
-			<span aria-hidden="true">←</span> {label}
+			<span aria-hidden="true">←</span> {label.toUpperCase()}
 		</Link>
 	);
 }
