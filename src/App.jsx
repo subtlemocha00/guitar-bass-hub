@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { useAuth } from "./features/auth/useAuth";
 import Home from "./pages/Home";
 import Bass from "./pages/Bass";
@@ -12,10 +12,12 @@ import GuitarExercises from "./pages/guitar/Exercises";
 import "./App.css";
 
 function App() {
-	useAuth();
+	const { loading } = useAuth();
+
+	if (loading) return null;
 
 	return (
-		<BrowserRouter>
+		<HashRouter>
 			<Routes>
 				<Route path="/" element={<Home />} />
 
@@ -29,7 +31,7 @@ function App() {
 				<Route path="/guitar/tuner" element={<GuitarTuner />} />
 				<Route path="/guitar/exercises" element={<GuitarExercises />} />
 			</Routes>
-		</BrowserRouter>
+		</HashRouter>
 	);
 }
 

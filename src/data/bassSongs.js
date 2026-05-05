@@ -24,6 +24,14 @@ export const bassSongs = [
 		youtubeId: "quBCjo2rUZg",
 	},
 	{
+		id: "rush-tom-sawyer",
+		title: "Tom Sawyer",
+		artist: "Rush",
+		tabUrl:
+			"https://www.songsterr.com/a/wsa/rush-tom-sawyer-bass-tab-s287",
+		youtubeId: "auLBLk4ibAk",
+	},
+	{
 		id: "muse-hysteria",
 		title: "Hysteria",
 		artist: "Muse",

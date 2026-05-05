@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
-import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import {
+	onAuthStateChanged,
+	GoogleAuthProvider,
+	signInWithPopup,
+	signOut as firebaseSignOut,
+} from "firebase/auth";
 import { auth } from "../../firebase/firebase";
+
+const provider = new GoogleAuthProvider();
 
 export function useAuth() {
 	const [user, setUser] = useState(null);
@@ -8,21 +15,29 @@ export function useAuth() {
 
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+			setUser(currentUser);
+			setLoading(false);
 			if (currentUser) {
-				setUser(currentUser);
-				setLoading(false);
-				console.log("[auth] signed in as", currentUser.uid);
-				return;
+				console.log("[auth] session restored for", currentUser.uid);
 			}
-
-			signInAnonymously(auth).catch((err) => {
-				console.error("[auth] anonymous sign-in failed:", err);
-				setLoading(false);
-			});
 		});
 
 		return unsubscribe;
 	}, []);
 
-	return { user, loading };
+	function signIn() {
+		signInWithPopup(auth, provider).catch((err) => {
+			if (err.code !== "auth/popup-closed-by-user") {
+				console.error("[auth] sign-in error:", err);
+			}
+		});
+	}
+
+	function signOut() {
+		firebaseSignOut(auth).catch((err) => {
+			console.error("[auth] sign-out error:", err);
+		});
+	}
+
+	return { user, loading, signIn, signOut };
 }

@@ -9,6 +9,37 @@
 	padding: 1.25rem 2rem;
 	border-bottom: 1px solid var(--color-accent-deep);
 	background-color: rgba(1, 1, 43, 0.85);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.layout-auth {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.auth-name {
+	font-size: 0.85rem;
+	color: var(--color-accent);
+	opacity: 0.8;
+}
+
+.auth-btn {
+	font-size: 0.8rem;
+	padding: 0.3rem 0.75rem;
+	background: transparent;
+	border: 1px solid var(--color-accent);
+	color: var(--color-accent);
+	border-radius: 4px;
+	cursor: pointer;
+	letter-spacing: 0.04em;
+}
+
+.auth-btn:hover {
+	background: var(--color-accent);
+	color: var(--color-bg);
 }
 
 .layout-brand {
