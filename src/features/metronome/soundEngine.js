@@ -5,6 +5,12 @@ export const SOUND_OPTIONS = [
 	"snare",
 	"clap",
 	"woodblock",
+	"kick",
+	"tom",
+	"floor-tom",
+	"cymbal",
+	"cowbell",
+	"claves",
 ];
 
 let cachedNoiseBuffer = null;
@@ -132,6 +138,107 @@ function playWoodblock(ctx, time, gain) {
 	osc.stop(time + 0.05);
 }
 
+function playKick(ctx, time, gain) {
+	const osc = ctx.createOscillator();
+	osc.type = "sine";
+	osc.frequency.setValueAtTime(150, time);
+	osc.frequency.exponentialRampToValueAtTime(20, time + 0.1);
+	const env = ctx.createGain();
+	env.gain.setValueAtTime(0.0001, time);
+	env.gain.exponentialRampToValueAtTime(gain * 1.5, time + 0.005);
+	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.15);
+	osc.connect(env).connect(ctx.destination);
+	osc.start(time);
+	osc.stop(time + 0.2);
+}
+
+function playTom(ctx, time, gain) {
+	const osc = ctx.createOscillator();
+	osc.type = "sine";
+	osc.frequency.setValueAtTime(250, time);
+	osc.frequency.exponentialRampToValueAtTime(80, time + 0.15);
+	const env = ctx.createGain();
+	env.gain.setValueAtTime(0.0001, time);
+	env.gain.exponentialRampToValueAtTime(gain * 1.3, time + 0.005);
+	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.2);
+	osc.connect(env).connect(ctx.destination);
+	osc.start(time);
+	osc.stop(time + 0.25);
+}
+
+function playFloorTom(ctx, time, gain) {
+	const osc = ctx.createOscillator();
+	osc.type = "sine";
+	osc.frequency.setValueAtTime(120, time);
+	osc.frequency.exponentialRampToValueAtTime(40, time + 0.15);
+	const env = ctx.createGain();
+	env.gain.setValueAtTime(0.0001, time);
+	env.gain.exponentialRampToValueAtTime(gain * 1.5, time + 0.005);
+	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.25);
+	osc.connect(env).connect(ctx.destination);
+	osc.start(time);
+	osc.stop(time + 0.3);
+}
+
+function playCymbal(ctx, time, gain) {
+	const noise = ctx.createBufferSource();
+	noise.buffer = getNoiseBuffer(ctx);
+	const filter = ctx.createBiquadFilter();
+	filter.type = "highpass";
+	filter.frequency.value = 5000;
+	const env = ctx.createGain();
+	env.gain.setValueAtTime(0.0001, time);
+	env.gain.exponentialRampToValueAtTime(gain * 0.7, time + 0.01);
+	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.3);
+	noise.connect(filter).connect(env).connect(ctx.destination);
+	noise.start(time);
+	noise.stop(time + 0.35);
+
+	const osc = ctx.createOscillator();
+	osc.type = "square";
+	osc.frequency.value = 1500;
+	const oscEnv = ctx.createGain();
+	oscEnv.gain.setValueAtTime(0.0001, time);
+	oscEnv.gain.exponentialRampToValueAtTime(gain * 0.1, time + 0.005);
+	oscEnv.gain.exponentialRampToValueAtTime(0.0001, time + 0.1);
+	osc.connect(oscEnv).connect(ctx.destination);
+	osc.start(time);
+	osc.stop(time + 0.15);
+}
+
+function playCowbell(ctx, time, gain) {
+	const osc1 = ctx.createOscillator();
+	osc1.type = "square";
+	osc1.frequency.value = 800;
+	const osc2 = ctx.createOscillator();
+	osc2.type = "square";
+	osc2.frequency.value = 540;
+	const env = ctx.createGain();
+	env.gain.setValueAtTime(0.0001, time);
+	env.gain.exponentialRampToValueAtTime(gain * 0.6, time + 0.005);
+	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.15);
+	osc1.connect(env);
+	osc2.connect(env);
+	env.connect(ctx.destination);
+	osc1.start(time);
+	osc2.start(time);
+	osc1.stop(time + 0.2);
+	osc2.stop(time + 0.2);
+}
+
+function playClaves(ctx, time, gain) {
+	const osc = ctx.createOscillator();
+	osc.type = "sine";
+	osc.frequency.value = 2500;
+	const env = ctx.createGain();
+	env.gain.setValueAtTime(0.0001, time);
+	env.gain.exponentialRampToValueAtTime(gain * 0.8, time + 0.002);
+	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.06);
+	osc.connect(env).connect(ctx.destination);
+	osc.start(time);
+	osc.stop(time + 0.08);
+}
+
 const PLAYERS = {
 	click: playClick,
 	beep: playBeep,
@@ -139,6 +246,12 @@ const PLAYERS = {
 	snare: playSnare,
 	clap: playClap,
 	woodblock: playWoodblock,
+	kick: playKick,
+	tom: playTom,
+	"floor-tom": playFloorTom,
+	cymbal: playCymbal,
+	cowbell: playCowbell,
+	claves: playClaves,
 };
 
 export function playSound(type, ctx, time, accent = false) {

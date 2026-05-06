@@ -1,16 +1,16 @@
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import BackLink from "../components/BackLink";
-import { bassSongs } from "../data/bassSongs";
 import { useSongStatus } from "../features/songs/useSongStatus";
+import { useUserSongs } from "../features/songs/useUserSongs";
 import "./Bass.css";
 
 const TOOLS = [
 	{ to: "/bass/tuner", code: "MOD_01", name: "Tuner", tag: "PITCH·LOCK", desc: "4-string EADG via mic input. Median-smoothed pitch detect.", live: true },
 	{ to: "/bass/songs", code: "MOD_02", name: "Songs", tag: "REPERTOIRE", desc: "Track planned, learning and completed bass tracks. Notes per song.", live: true },
 	{ to: "/bass/fretboard", code: "MOD_03", name: "Fretboard", tag: "SCALE·MAP", desc: "Visualize scales across the neck. 8 patterns × 12 roots.", live: true },
-	{ to: "/bass/metronome", code: "MOD_04", name: "Metronome", tag: "TEMPO·LOCK", desc: "Web Audio click. 40–240 BPM, accented downbeat, tap tempo.", live: true },
-	{ to: "/bass/scales", code: "MOD_05", name: "Exercises", tag: "DRILLS", desc: "Coming soon — guided scale drills.", live: false },
+	{ to: "/bass/metronome", code: "MOD_04", name: "Metronome", tag: "TEMPO·LOCK", desc: "Web Audio click. 40–300 BPM, accented downbeat, tap tempo.", live: true },
+	{ to: "https://www.bassbuzz.com/lessons/the-ultimate-bass-setup-guide", code: "MOD_05", name: "Bass Setup", tag: "SETUP", desc: "A well-made guide for setting up your bass.", live: true },
 ];
 
 function BassToolCard({ t, accent }) {
@@ -47,9 +47,10 @@ function BassToolCard({ t, accent }) {
 }
 
 function Bass() {
-	const { statuses } = useSongStatus(bassSongs);
-	const learning = Object.values(statuses).filter((s) => s === "learning").length;
-	const done = Object.values(statuses).filter((s) => s === "completed").length;
+	const { songs } = useUserSongs("bass");
+	const { statuses } = useSongStatus(songs);
+	const learning = songs.filter((s) => statuses[s.id] === "learning").length;
+	const done = songs.filter((s) => statuses[s.id] === "completed").length;
 
 	return (
 		<Layout theme="bass">
@@ -80,7 +81,7 @@ function Bass() {
 							</div>
 							<div className="strip-cell">
 								<div className="k">Catalog</div>
-								<div className="v">{bassSongs.length}</div>
+								<div className="v">{songs.length}</div>
 								<div className="sub">tracks</div>
 							</div>
 							<div className="strip-cell">

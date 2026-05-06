@@ -1,7 +1,6 @@
 import Layout from "../../components/Layout";
 import BackLink from "../../components/BackLink";
-import { useMemo, useState } from "react";
-import { bassSongs } from "../../data/bassSongs";
+import { useState } from "react";
 import AddSongModal from "../../features/songs/AddSongModal";
 import SongFilterTabs from "../../features/songs/SongFilterTabs";
 import SongList from "../../features/songs/SongList";
@@ -13,16 +12,12 @@ function BassSongs() {
 	const [filter, setFilter] = useState("all");
 	const [showAdd, setShowAdd] = useState(false);
 
-	const { songs: userSongs, addSong, removeSong } = useUserSongs("bass");
-	const allSongs = useMemo(
-		() => [...bassSongs, ...userSongs],
-		[userSongs]
-	);
+	const { songs, addSong, removeSong } = useUserSongs("bass");
+	const { statuses } = useSongStatus(songs);
 
-	const { statuses } = useSongStatus(allSongs);
-	const learning = Object.values(statuses).filter((s) => s === "learning").length;
-	const done = Object.values(statuses).filter((s) => s === "completed").length;
-	const planned = Object.values(statuses).filter((s) => s === "planned").length;
+	const learning = songs.filter((s) => statuses[s.id] === "learning").length;
+	const done = songs.filter((s) => statuses[s.id] === "completed").length;
+	const planned = songs.filter((s) => statuses[s.id] === "planned").length;
 
 	return (
 		<Layout theme="bass">
@@ -37,7 +32,7 @@ function BassSongs() {
 						<span className="glitch" data-text="BASS::SONGS">BASS::SONGS</span>
 					</h1>
 					<p className="songs-sub">
-						{allSongs.length} tracks tracked. Click a status badge to cycle
+						{songs.length} tracks tracked. Click a status badge to cycle
 						planned → learning → completed. Notes auto-save.
 					</p>
 					<div className="songs-counters">
@@ -58,7 +53,13 @@ function BassSongs() {
 					</button>
 				</div>
 
-				<SongList songs={allSongs} filter={filter} onRemove={removeSong} />
+				{songs.length === 0 ? (
+					<p className="songs-empty">
+						NO SONGS YET — ADD YOUR FIRST ONE.
+					</p>
+				) : (
+					<SongList songs={songs} filter={filter} onRemove={removeSong} />
+				)}
 
 				<AddSongModal
 					open={showAdd}

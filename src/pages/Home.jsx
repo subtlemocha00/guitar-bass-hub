@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
-import { bassSongs } from "../data/bassSongs";
-import { guitarSongs } from "../data/guitarSongs";
 import { useSongStatus } from "../features/songs/useSongStatus";
+import { useUserSongs } from "../features/songs/useUserSongs";
 import "./Home.css";
 
 function Stat({ k, v, c, sub }) {
@@ -133,16 +132,17 @@ function HomeTools() {
 }
 
 function Home() {
-	const bass = useSongStatus(bassSongs);
-	const guitar = useSongStatus(guitarSongs);
+	const { songs: bassSongs } = useUserSongs("bass");
+	const { songs: guitarSongs } = useUserSongs("guitar");
+	const { statuses } = useSongStatus([...bassSongs, ...guitarSongs]);
 
-	const stat = (statuses, value) =>
-		Object.values(statuses).filter((s) => s === value).length;
+	const countBy = (list, value) =>
+		list.filter((s) => statuses[s.id] === value).length;
 
-	const bassLearning = stat(bass.statuses, "learning");
-	const bassDone = stat(bass.statuses, "completed");
-	const gtrLearning = stat(guitar.statuses, "learning");
-	const gtrDone = stat(guitar.statuses, "completed");
+	const bassLearning = countBy(bassSongs, "learning");
+	const bassDone = countBy(bassSongs, "completed");
+	const gtrLearning = countBy(guitarSongs, "learning");
+	const gtrDone = countBy(guitarSongs, "completed");
 
 	const totalSongs = bassSongs.length + guitarSongs.length;
 	const totalLearning = bassLearning + gtrLearning;

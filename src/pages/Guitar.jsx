@@ -1,16 +1,17 @@
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import BackLink from "../components/BackLink";
-import { guitarSongs } from "../data/guitarSongs";
 import { useSongStatus } from "../features/songs/useSongStatus";
+import { useUserSongs } from "../features/songs/useUserSongs";
 import "./Bass.css";
 
 const TOOLS = [
 	{ to: "/guitar/tuner", code: "MOD_01", name: "Tuner", tag: "PITCH·LOCK", desc: "Standard 6-string EADGBE via mic. Median-smoothed pitch detect.", live: true },
 	{ to: "/guitar/songs", code: "MOD_02", name: "Songs", tag: "REPERTOIRE", desc: "Track planned, learning and completed guitar tracks. Notes per song.", live: true },
 	{ to: "/guitar/fretboard", code: "MOD_03", name: "Fretboard", tag: "SCALE·MAP", desc: "Visualize scales across the neck. 8 patterns × 12 roots.", live: true },
-	{ to: "/guitar/metronome", code: "MOD_04", name: "Metronome", tag: "TEMPO·LOCK", desc: "Web Audio click. 40–240 BPM, accented downbeat, tap tempo.", live: true },
-	{ to: "https://www.all-guitar-chords.com/", code: "MOD_05", name: "Chord Finder", tag: "CHORDS!", desc: "Online Chord Finder", live: true },
+	{ to: "/guitar/metronome", code: "MOD_04", name: "Metronome", tag: "TEMPO·LOCK", desc: "Web Audio click. 40–300 BPM, accented downbeat, tap tempo.", live: true },
+	{ to: "https://www.all-guitar-chords.com/", code: "MOD_05", name: "Chord Finder", tag: "CHORDS", desc: "Online Chord Finder", live: true },
+	{ to: "https://guitarpickreviews.com/how-to-set-up-a-guitar/", code: "MOD_06", name: "Guitar Setup", tag: "SETUP", desc: "A well-made guide for setting up your guitar.", live: true },
 ];
 
 function GuitarToolCard({ t, accent }) {
@@ -47,9 +48,10 @@ function GuitarToolCard({ t, accent }) {
 }
 
 function Guitar() {
-	const { statuses } = useSongStatus(guitarSongs);
-	const learning = Object.values(statuses).filter((s) => s === "learning").length;
-	const done = Object.values(statuses).filter((s) => s === "completed").length;
+	const { songs } = useUserSongs("guitar");
+	const { statuses } = useSongStatus(songs);
+	const learning = songs.filter((s) => statuses[s.id] === "learning").length;
+	const done = songs.filter((s) => statuses[s.id] === "completed").length;
 
 	return (
 		<Layout theme="guitar">
@@ -80,7 +82,7 @@ function Guitar() {
 							</div>
 							<div className="strip-cell">
 								<div className="k">Catalog</div>
-								<div className="v">{guitarSongs.length}</div>
+								<div className="v">{songs.length}</div>
 								<div className="sub">tracks</div>
 							</div>
 							<div className="strip-cell">

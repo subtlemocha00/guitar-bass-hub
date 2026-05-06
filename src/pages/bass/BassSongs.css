@@ -73,3 +73,14 @@
 	color: var(--bg-0);
 	box-shadow: 0 0 12px var(--neon-cyan-glow);
 }
+
+.songs-empty {
+	margin: 0;
+	padding: 3rem 1rem;
+	text-align: center;
+	border: 1px dashed var(--line-mid);
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+	letter-spacing: 0.22em;
+	color: var(--text-mute);
+}

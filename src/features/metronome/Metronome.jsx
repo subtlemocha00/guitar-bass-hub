@@ -163,7 +163,7 @@ function MetronomeView({ instrument }) {
 			}
 			const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
 			const newBpm = Math.round(60000 / avg);
-			if (newBpm >= 40 && newBpm <= 240) setBpm(newBpm);
+			if (newBpm >= 40 && newBpm <= 300) setBpm(newBpm);
 		}
 	};
 
@@ -175,7 +175,7 @@ function MetronomeView({ instrument }) {
 		});
 	}
 
-	const presets = [60, 80, 100, 120, 140, 160, 180, 220];
+	const presets = [60, 80, 100, 120, 140, 160, 180, 220, 260, 300];
 	const accentLabel =
 		accentPattern
 			.map((a, i) => (a ? i + 1 : null))
@@ -222,8 +222,8 @@ function MetronomeView({ instrument }) {
 									boxShadow: active
 										? `0 0 18px ${isAccent ? accentGlow : "var(--neon-cyan-glow)"}`
 										: isAccent
-										? `0 0 10px ${accentGlow}`
-										: "none",
+											? `0 0 10px ${accentGlow}`
+											: "none",
 									transform: active ? "scale(1.15)" : "scale(1)",
 								}}
 							/>
@@ -233,11 +233,11 @@ function MetronomeView({ instrument }) {
 
 				<div className="metro-slider-wrap">
 					<input
-						type="range" min="40" max="240" step="1" value={bpm}
+						type="range" min="40" max="300" step="1" value={bpm}
 						onChange={(e) => setBpm(Number(e.target.value))}
 						className="metro-slider"
 					/>
-					<div className="metro-slider-axis"><span>40</span><span>120</span><span>240</span></div>
+					<div className="metro-slider-axis"><span>40</span><span>120</span><span>300</span></div>
 				</div>
 
 				<div className="metro-presets">
@@ -262,7 +262,7 @@ function MetronomeView({ instrument }) {
 					</button>
 					<button className="btn" onClick={tap}>TAP TEMPO</button>
 					<button className="btn" onClick={() => setBpm((b) => Math.max(40, b - 5))}>−5</button>
-					<button className="btn" onClick={() => setBpm((b) => Math.min(240, b + 5))}>+5</button>
+					<button className="btn" onClick={() => setBpm((b) => Math.min(300, b + 5))}>+5</button>
 				</div>
 			</div>
 
@@ -341,7 +341,7 @@ function MetronomeView({ instrument }) {
 						<label className="metro-field">
 							<span className="metro-field-label">START BPM</span>
 							<input
-								type="number" min="40" max="240"
+								type="number" min="40" max="300"
 								value={startBpm}
 								disabled={!rampEnabled}
 								onChange={(e) => setStartBpm(Number(e.target.value))}
@@ -351,7 +351,7 @@ function MetronomeView({ instrument }) {
 						<label className="metro-field">
 							<span className="metro-field-label">END BPM</span>
 							<input
-								type="number" min="40" max="240"
+								type="number" min="40" max="300"
 								value={endBpm}
 								disabled={!rampEnabled}
 								onChange={(e) => setEndBpm(Number(e.target.value))}
