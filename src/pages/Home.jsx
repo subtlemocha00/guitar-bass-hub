@@ -71,6 +71,67 @@ function InstrumentDeck({ instrument, accent, accentVar, glowVar, count, learnin
 	);
 }
 
+const BASS_TOOLS = [
+	{ key: "01", label: "Songs", tag: "bass catalog", path: "/bass/songs" },
+	{ key: "02", label: "Metronome", tag: "metronome", path: "/bass/metronome" },
+	{ key: "03", label: "Tuner", tag: "pitch ref", path: "/bass/tuner" },
+	{ key: "04", label: "Scales", tag: "fretboard map", path: "/bass/scales" },
+];
+
+const GUITAR_TOOLS = [
+	{ key: "05", label: "Songs", tag: "guitar catalog", path: "/guitar/songs" },
+	{ key: "06", label: "Metronome", tag: "metronome", path: "/guitar/metronome" },
+	{ key: "07", label: "Tuner", tag: "pitch ref", path: "/guitar/tuner" },
+	{ key: "08", label: "Exercises", tag: "technique", path: "/guitar/exercises" },
+];
+
+function ToolCard({ keyLabel, label, tag, path, side }) {
+	return (
+		<Link to={path} className={`tool-card tool-card--${side} hud`}>
+			<span className="tool-key">{keyLabel}</span>
+			<span className="tool-label">{label}</span>
+			<span className="tool-tag">{tag}</span>
+			<span className="tool-arrow">→</span>
+		</Link>
+	);
+}
+
+function HomeTools() {
+	const [open, setOpen] = useState(false);
+	return (
+		<div className="home-tools-section">
+			<button
+				className="tools-toggle"
+				onClick={() => setOpen((o) => !o)}
+				aria-expanded={open}
+			>
+				<span className="tools-toggle-label">// QUICK ACCESS</span>
+				<span className="tools-toggle-rule" />
+				<span className="tools-toggle-right">
+					<span className="tools-toggle-count">06 ROUTES</span>
+					<span className="tools-toggle-chevron">{open ? "▲" : "▼"}</span>
+				</span>
+			</button>
+			{open && (
+				<div className="tools-dropdown hud">
+					<div className="tools-col tools-col--bass">
+						<div className="tools-col-head">BASS</div>
+						{BASS_TOOLS.map((t) => (
+							<ToolCard key={t.path} keyLabel={t.key} label={t.label} tag={t.tag} path={t.path} side="bass" />
+						))}
+					</div>
+					<div className="tools-col tools-col--guitar">
+						<div className="tools-col-head">GUITAR</div>
+						{GUITAR_TOOLS.map((t) => (
+							<ToolCard key={t.path} keyLabel={t.key} label={t.label} tag={t.tag} path={t.path} side="guitar" />
+						))}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
+
 function Home() {
 	const bass = useSongStatus(bassSongs);
 	const guitar = useSongStatus(guitarSongs);
@@ -142,10 +203,7 @@ function Home() {
 					/>
 				</section>
 
-				{/* <HomeTools
-					bassCount={bassSongs.length}
-					guitarCount={guitarSongs.length}
-				/> */}
+				<HomeTools />
 			</div>
 		</Layout>
 	);

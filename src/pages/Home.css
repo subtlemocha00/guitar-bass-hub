@@ -301,38 +301,146 @@
 	transform: translateX(6px);
 }
 
-/* Tool grid */
-.home-tools {
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 0.85rem;
+/* Quick Access dropdown */
+.home-tools-section {
+	margin-top: 0.25rem;
 }
 
-@media (max-width: 800px) {
-	.home-tools {
-		grid-template-columns: 1fr 1fr;
-	}
+.tools-toggle {
+	width: 100%;
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	gap: 0.85rem;
+	align-items: center;
+	margin: 2rem 0 0;
+	padding: 0;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.24em;
+	text-transform: uppercase;
+	color: var(--text-mute);
+	transition: color 0.15s;
+}
+
+.tools-toggle:hover {
+	color: var(--neon-cyan);
+}
+
+.tools-toggle-label {
+	color: var(--neon-cyan);
+	white-space: nowrap;
+}
+
+.tools-toggle:hover .tools-toggle-label {
+	text-shadow: 0 0 8px var(--neon-cyan-glow);
+}
+
+.tools-toggle-rule {
+	height: 1px;
+	background: linear-gradient(90deg, var(--neon-cyan), transparent);
+	opacity: 0.5;
+}
+
+.tools-toggle-right {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.tools-toggle-count {
+	border: 1px solid var(--line-mid);
+	padding: 0.18rem 0.5rem;
+	border-radius: 2px;
+	color: var(--text-mute);
+}
+
+.tools-toggle-chevron {
+	font-size: 0.6rem;
+	color: var(--neon-cyan);
+}
+
+.tools-dropdown {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0;
+	margin-top: 0.8rem;
+	padding: 0;
 }
 
 @media (max-width: 540px) {
-	.home-tools {
+	.tools-dropdown {
 		grid-template-columns: 1fr;
 	}
 }
 
+.tools-col {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	padding: 1rem 1.25rem 1.25rem;
+}
+
+.tools-col--bass {
+	border-right: 1px solid var(--line-mid);
+}
+
+@media (max-width: 540px) {
+	.tools-col--bass {
+		border-right: none;
+		border-bottom: 1px solid var(--line-mid);
+	}
+}
+
+.tools-col-head {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.28em;
+	padding-bottom: 0.75rem;
+	margin-bottom: 0.6rem;
+	border-bottom: 1px solid var(--line-mid);
+	color: var(--text-mute);
+}
+
+.tools-col--bass .tools-col-head {
+	color: var(--neon-amber);
+}
+
+.tools-col--guitar .tools-col-head {
+	color: var(--neon-magenta);
+}
+
+/* Tool cards */
 .tool-card {
 	display: grid;
 	grid-template-columns: auto 1fr auto;
 	align-items: center;
 	gap: 1rem;
-	padding: 1rem 1.1rem;
+	padding: 0.85rem 0.9rem;
+	margin-bottom: 0.6rem;
 	color: var(--text);
 	text-decoration: none;
 	transition: border-color 0.15s;
 }
 
+.tool-card:last-child {
+	margin-bottom: 0;
+}
+
 .tool-card:hover {
 	border-color: var(--neon-cyan);
+}
+
+.tool-card--bass:hover {
+	border-color: var(--neon-amber);
+	box-shadow: 0 0 12px color-mix(in srgb, var(--neon-amber) 20%, transparent);
+}
+
+.tool-card--guitar:hover {
+	border-color: var(--neon-magenta);
+	box-shadow: 0 0 12px color-mix(in srgb, var(--neon-magenta) 20%, transparent);
 }
 
 .tool-card .tool-key {
@@ -342,6 +450,14 @@
 	letter-spacing: 0.18em;
 	border: 1px solid var(--line-mid);
 	padding: 0.3rem 0.5rem;
+}
+
+.tool-card--bass .tool-key {
+	color: var(--neon-amber);
+}
+
+.tool-card--guitar .tool-key {
+	color: var(--neon-magenta);
 }
 
 .tool-card .tool-label {
@@ -366,6 +482,14 @@
 	color: var(--neon-cyan);
 	transition: transform 0.2s;
 	grid-row: span 2;
+}
+
+.tool-card--bass .tool-arrow {
+	color: var(--neon-amber);
+}
+
+.tool-card--guitar .tool-arrow {
+	color: var(--neon-magenta);
 }
 
 .tool-card:hover .tool-arrow {

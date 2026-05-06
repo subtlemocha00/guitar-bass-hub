@@ -8901,3 +8901,1413 @@ Edit c:\Users\Owner\desktop\gettingstarted\new\code\repos\practice-hub\src\pages
 Added 1 line
 You've hit your limit · resets 8:30pm (America/Toronto)
 
+
+
+---LASTEST CONVERSATION---
+
+
+You are working in an existing React (Vite) project called “Practice Hub”.
+
+## Current state of the app
+
+The app already has:
+
+* Firebase initialized
+* Firestore working for user data
+* Anonymous authentication currently implemented
+* Song status + notes persisted in Firestore under `users/{uid}`
+* React frontend with routing already built
+
+---
+
+# Goal
+
+Replace anonymous authentication with Google Sign-In and implement automatic session restoration so users stay signed in across refreshes and devices.
+
+---
+
+# Core requirements
+
+## 1. Replace anonymous auth with Google auth
+
+Use Firebase Authentication with:
+
+* GoogleAuthProvider
+* signInWithPopup
+
+Remove any anonymous authentication logic.
+
+---
+
+## 2. Update auth hook
+
+Modify:
+
+```plaintext id="authhook"
+/src/features/auth/useAuth.js
+```
+
+### Must provide:
+
+```js id="authapi"
+{
+  user,
+  loading,
+  signIn,
+  signOut
+}
+```
+
+### Behavior:
+
+* `signIn()` → triggers Google sign-in
+* `signOut()` → logs user out
+* `onAuthStateChanged` controls session state
+
+---
+
+## 3. Add AUTO-SIGN IN (important)
+
+Implement silent session restoration:
+
+### Requirements:
+
+On app load:
+
+* Firebase must automatically restore session if user previously signed in
+* DO NOT force login prompt if session exists
+* DO NOT require user interaction unless no session exists
+
+### Implementation details:
+
+Use Firebase behavior:
+
+* rely on `onAuthStateChanged`
+* do NOT manually trigger sign-in unless user is null AND has not signed in before
+
+Ensure:
+
+* user stays signed in after refresh
+* user stays signed in after closing/reopening browser
+* session persists across visits
+
+---
+
+## 4. Google sign-in implementation
+
+Use:
+
+* GoogleAuthProvider
+* signInWithPopup(auth, provider)
+
+Handle:
+
+* popup cancellation (log only)
+* errors (log only, no UI required yet)
+
+---
+
+## 5. Add minimal UI controls
+
+Add a simple auth UI element (non-intrusive):
+
+If user is signed in:
+
+* show display name or email
+* show "Sign Out" button
+
+If user is NOT signed in:
+
+* show "Sign In with Google" button
+
+No styling overhaul needed.
+
+---
+
+## 6. Ensure Firestore compatibility
+
+Do NOT change Firestore structure.
+
+Continue using:
+
+```
+users/{uid}
+  - statuses
+  - notes
+```
+
+UID must now come from Google account.
+
+Existing data remains valid if user signs in with same Google account.
+
+---
+
+## 7. Loading safety
+
+Ensure:
+
+* app does not crash while auth is initializing
+* UI waits for `loading === false` before assuming user state
+
+---
+
+# Constraints
+
+DO NOT:
+
+* modify Firestore schema
+* rewrite storage layer
+* introduce new state libraries
+* redesign UI
+* remove Firebase integration
+
+---
+
+# Success criteria
+
+* User can sign in with Google
+* Session persists across refresh and reopen
+* No repeated login prompts after first sign-in
+* Same account works across devices
+* Firestore data is shared across devices
+* Existing app functionality unchanged
+
+---
+
+# Key principle
+
+Authentication is now persistent and invisible unless explicitly needed.
+
+Auto-session restoration must feel seamless.
+Let me first explore the current project structure to understand what's in place.
+
+Agent:Explore project structure for auth and Firebase
+IN
+Explore the React Vite project at c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub and find:
+1. The main entry point (main.jsx or App.jsx)
+2. The auth hook at src/features/auth/useAuth.js
+3. Any Firebase config/init files
+4. Any components that use auth (search for useAuth, signIn, signOut, anonymous)
+5. The overall src/ directory structure
+
+Search breadth: medium. Return the full contents of these files:
+- src/features/auth/useAuth.js
+- Any Firebase initialization file (firebase.js, firebaseConfig.js, etc.)
+- src/main.jsx or src/App.jsx
+- Any component that renders sign-in UI or uses the auth hook
+Now let me read the actual file contents before editing.
+
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\auth\useAuth.js
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\firebase\firebase.js
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\App.jsx
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\components\Layout.jsx
+Let me also check Layout.css to understand the styling context.
+
+Globpattern: "src/components/Layout.css"
+Found 1 file
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\components\Layout.css
+I have everything I need. Here's the plan:
+
+Rewrite useAuth.js — swap anonymous for Google, expose signIn/signOut
+Update App.jsx — add loading guard
+Update Layout.jsx — add auth controls to the header
+Extend Layout.css — minimal styles for auth row
+Making all four changes now.
+
+Write c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\auth\useAuth.js
+44 lines
+import { useEffect, useState } from "react";
+import {
+	onAuthStateChanged,
+	GoogleAuthProvider,
+	signInWithPopup,
+	signOut as firebaseSignOut,
+} from "firebase/auth";
+import { auth } from "../../firebase/firebase";
+
+const provider = new GoogleAuthProvider();
+
+export function useAuth() {
+	const [user, setUser] = useState(null);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+			setUser(currentUser);
+			setLoading(false);
+			if (currentUser) {
+				console.log("[auth] session restored for", currentUser.uid);
+			}
+		});
+
+		return unsubscribe;
+	}, []);
+
+	function signIn() {
+		signInWithPopup(auth, provider).catch((err) => {
+			if (err.code !== "auth/popup-closed-by-user") {
+				console.error("[auth] sign-in error:", err);
+			}
+		});
+	}
+
+	function signOut() {
+		firebaseSignOut(auth).catch((err) => {
+			console.error("[auth] sign-out error:", err);
+		});
+	}
+
+	return { user, loading, signIn, signOut };
+}
+Edit c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\App.jsx
+Added 2 lines
+Write c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\components\Layout.jsx
+37 lines
+import { Link } from "react-router-dom";
+import { useAuth } from "../features/auth/useAuth";
+import "./Layout.css";
+
+function Layout({ children, theme }) {
+	const { user, signIn, signOut } = useAuth();
+	const className = theme ? `layout theme-${theme}` : "layout";
+	return (
+		<div className={className}>
+			<header className="layout-header">
+				<Link to="/" className="layout-brand">
+					Home
+				</Link>
+				<div className="layout-auth">
+					{user ? (
+						<>
+							<span className="auth-name">
+								{user.displayName || user.email}
+							</span>
+							<button className="auth-btn" onClick={signOut}>
+								Sign Out
+							</button>
+						</>
+					) : (
+						<button className="auth-btn" onClick={signIn}>
+							Sign In with Google
+						</button>
+					)}
+				</div>
+			</header>
+			<main className="layout-main">{children}</main>
+		</div>
+	);
+}
+
+export default Layout;
+Edit c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\components\Layout.css
+Added 31 lines
+All four files are updated. Here's a summary of every change made:
+
+useAuth.js
+
+Removed signInAnonymously
+Added GoogleAuthProvider, signInWithPopup, signOut from Firebase
+onAuthStateChanged now just reflects whatever Firebase restores — no forced sign-in on null user, so existing sessions are silently resumed
+New signIn() opens Google popup; swallows popup-closed-by-user gracefully
+New signOut() logs the user out
+Returns { user, loading, signIn, signOut }
+App.jsx
+
+Destructures loading from useAuth() and returns null while auth is initializing — prevents any render before Firebase has resolved the session
+Layout.jsx
+
+Imports useAuth and adds an auth row to the right side of the header
+Signed in: shows display name (or email fallback) + "Sign Out" button
+Signed out: shows "Sign In with Google" button
+Layout.css
+
+Header is now flex with space-between to push auth controls to the right
+Minimal transparent-border button style that matches the existing accent color scheme
+One thing to verify in Firebase Console: make sure Google is enabled as a Sign-In provider under Authentication → Sign-in method, and that your domain (localhost for dev) is in the Authorized domains list.
+
+review the CLAUDE-left-off.txt file for context on where in the project we left off. our work was interrupted by hitting the session limit but the prompt provided was:
+make the quick access on the home page a dropdown (keeping the card styling when it's expanded, as it) and display the cards in 2 columns, bass on one side and guitar-related on the other. they should be highlighted on hover in the same way as the other bass/guitar elements. change nothing else unless absolutely necessary
+
+i want you to continue on with the task from where you were. all changes are exactly as you left them.
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\CLAUDE-left-off.txt
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\CLAUDE-left-off.txt (lines 1-200)
+The beginning of the file is old history. Let me find where the dropdown task work was in progress.
+
+Bash Search for dropdown/quick access context in the left-off file
+IN
+Select-String -Path "c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\CLAUDE-left-off.txt" -Pattern "dropdown|quick.access|Quick.Access|QuickAccess|2 column|two column|bass.*guitar.*column" -CaseSensitive:$false | Select-Object -Last 30
+
+OUT
+Exit code 127
+/usr/bin/bash: line 1: Select-String: command not found
+/usr/bin/bash: line 1: Select-Object: command not found
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\pages\Home.jsx
+PowerShell
+IN
+{
+  "command": "Select-String -Path \"c:\\Users\\sk8_c\\OneDrive\\Desktop\\Coding\\practice-hub\\CLAUDE-left-off.txt\" -Pattern \"dropdown|quick.access|QuickAccess|2 column|two column\" -CaseSensitive:$false | Select-Object -Last 30",
+  "description": "Search for dropdown/quick access context in the left-off file"
+}
+OUT
+CLAUDE-left-off.txt:6922:Add dropdown selectors:
+CLAUDE-left-off.txt:7207:* Tuning dropdown (keys from INSTRUMENT_CONFIGS)
+CLAUDE-left-off.txt:7922:Tuning dropdown (top-left of new HUD controls block): lists keys from 
+INSTRUMENT_CONFIGS[instrument] with formatted labels — 4-string Standard, 4-string Drop D, 
+6-string Open G, 12-string Standard, etc.
+CLAUDE-left-off.txt:7926:Reset on tuning change: the dropdown's onChange calls setMode("auto") + 
+setLockedString(null) — guarantees the lock can never reference a string from a previous tuning.
+CLAUDE-left-off.txt:7933:New .tuner-controls block + dropdown + mode-button styles, matching the 
+existing HUD aesthetic.
+CLAUDE-left-off.txt:8104:Use dropdowns with EXACT options:
+CLAUDE-left-off.txt:8193:* Accent sound dropdown
+CLAUDE-left-off.txt:8194:* Beat sound dropdown
+CLAUDE-left-off.txt:8890:make the quick access on the home page a dropdown (keeping the card 
+styling when it's expanded, as it) and display the cards in 2 columns, bass on one side and 
+guitar-related on the other. they should be highlighted on hover in the same way as the other 
+bass/guitar elements. change nothing else unless absolutely necessary
+CLAUDE-left-off.txt:8894:Replacing the Quick Access block with a collapsible toggle and a 
+two-column split.
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\pages\Home.jsx
+I can see HomeTools is referenced but not defined in the file. Let me check the left-off file at line 8890 and the current Home.css.
+
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\CLAUDE-left-off.txt (lines 8881-9080)
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\pages\Home.css
+Let me check the global CSS for the .hud and .section-stripe classes.
+
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\index.css
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\index.css (lines 101-250)
+Grep "section-stripe" (in c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src)
+5 lines of output
+Grep "section-stripe" (in c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\index.css)
+4 lines of output
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\index.css (lines 284-313)
+I have everything I need. The previous session removed the old HomeTools definition and was mid-way through adding the new one when it hit the limit. Now I'll add the complete HomeTools component and update the CSS.
+
+Edit c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\pages\Home.jsx
+Added 59 lines
+Now update the call site to remove the unused props:
+
+Edit c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\pages\Home.jsx
+Edit failed
+Grep "HomeTools" (in c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\pages\Home.jsx)
+2 lines of output
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\pages\Home.jsx (lines 203-212)
+Edit c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\pages\Home.jsx
+Removed 3 lines
+Now add the CSS for the toggle, dropdown, columns, and per-instrument hover accents:
+
+Edit c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\pages\Home.css
+Added 124 lines
+Done. Here's a summary of what changed:
+
+Home.jsx
+
+Added HomeTools component with useState toggle for open/closed
+Added ToolCard sub-component reusing the existing .tool-card + .hud styling with a side prop ("bass" or "guitar")
+Defined BASS_TOOLS and GUITAR_TOOLS data arrays with the 6 routes
+Removed unused bassCount/guitarCount props from the call site
+Home.css
+
+Replaced the old flat .home-tools 3-column grid with the new dropdown structure
+.tools-toggle — mimics the .section-stripe layout (label / rule / count+chevron) but is a <button> with hover glow on label
+.tools-dropdown — two-column hud panel that appears below the toggle
+.tools-col — each instrument column with an internal header; bass column has a right border divider
+Accent overrides: bass cards use --neon-amber, guitar cards use --neon-magenta for key badge, arrow, hover border, and glow — matching how the main instrument decks highlight
+You are working in an existing React (Vite) project called “Practice Hub”.
+
+## Context
+
+The app already uses Firebase Authentication and Firestore.
+
+There is an existing system for:
+
+* song status
+* song notes
+
+We are now adding a **user-owned songs collection** in Firestore.
+
+---
+
+# Goal
+
+Create a clean data layer for storing and syncing songs per user.
+
+DO NOT build UI yet.
+
+---
+
+# 1. Firestore structure (REQUIRED)
+
+Use this exact structure:
+
+```plaintext
+users/{uid}/songs/{songId}
+```
+
+Each document must contain:
+
+```js
+{
+  title: string,
+  artist: string,
+  tabUrl: string,
+  youtubeUrl: string | null,
+  status: "planned" | "learning" | "completed",
+  note: string,
+  createdAt: timestamp
+}
+```
+
+---
+
+# 2. Create new file
+
+Create:
+
+```plaintext
+/src/features/songs/firebaseSongs.js
+```
+
+---
+
+# 3. Implement functions
+
+## addSong
+
+```js
+addSong(uid, songData)
+```
+
+* Generates a new document
+* Sets:
+
+  * status = "planned"
+  * note = ""
+  * createdAt = serverTimestamp()
+* Returns the created songId
+
+---
+
+## removeSong
+
+```js
+removeSong(uid, songId)
+```
+
+* Deletes the document
+
+---
+
+## updateSong
+
+```js
+updateSong(uid, songId, updates)
+```
+
+* Allows updating:
+
+  * title
+  * artist
+  * tabUrl
+  * youtubeUrl
+  * status
+  * note
+
+---
+
+## subscribeToSongs
+
+```js
+subscribeToSongs(uid, callback)
+```
+
+* Uses onSnapshot
+* Listens to:
+  users/{uid}/songs
+* Orders by createdAt ascending
+* Returns:
+
+```js
+[
+  {
+    id,
+    title,
+    artist,
+    tabUrl,
+    youtubeUrl,
+    status,
+    note
+  }
+]
+```
+
+* Calls callback with array
+* Returns unsubscribe function
+
+---
+
+# 4. Firebase imports
+
+Use Firestore modular SDK:
+
+```js
+import {
+  collection,
+  addDoc,
+  deleteDoc,
+  doc,
+  updateDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp
+} from "firebase/firestore";
+```
+
+---
+
+# 5. Error handling
+
+Wrap all functions in try/catch
+
+Log errors:
+
+```js
+console.warn("[firebaseSongs] error:", err);
+```
+
+---
+
+# 6. IMPORTANT CONSTRAINTS
+
+DO NOT:
+
+* modify existing songStorage.js yet
+* remove localStorage system
+* change UI components
+* introduce new dependencies
+
+---
+
+# 7. Success criteria
+
+* Songs can be added to Firestore
+* Songs can be deleted
+* Songs update correctly
+* Realtime listener returns correct array
+* No crashes if user is not authenticated
+
+---
+
+# Key principle
+
+This layer must be clean, reusable, and independent of UI.
+Write c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\firebaseSongs.js
+75 lines
+import {
+	collection,
+	addDoc,
+	deleteDoc,
+	doc,
+	updateDoc,
+	onSnapshot,
+	query,
+	orderBy,
+	serverTimestamp,
+} from "firebase/firestore";
+import { db } from "../../firebase/firebase";
+
+function songsCol(uid) {
+	return collection(db, "users", uid, "songs");
+}
+
+export async function addSong(uid, songData) {
+	try {
+		const ref = await addDoc(songsCol(uid), {
+			title: songData.title,
+			artist: songData.artist,
+			tabUrl: songData.tabUrl,
+			youtubeUrl: songData.youtubeUrl ?? null,
+			status: "planned",
+			note: "",
+			createdAt: serverTimestamp(),
+		});
+		return ref.id;
+	} catch (err) {
+		console.warn("[firebaseSongs] error:", err);
+	}
+}
+
+export async function removeSong(uid, songId) {
+	try {
+		await deleteDoc(doc(db, "users", uid, "songs", songId));
+	} catch (err) {
+		console.warn("[firebaseSongs] error:", err);
+	}
+}
+
+export async function updateSong(uid, songId, updates) {
+	try {
+		const allowed = ["title", "artist", "tabUrl", "youtubeUrl", "status", "note"];
+		const safe = Object.fromEntries(
+			Object.entries(updates).filter(([k]) => allowed.includes(k))
+		);
+		await updateDoc(doc(db, "users", uid, "songs", songId), safe);
+	} catch (err) {
+		console.warn("[firebaseSongs] error:", err);
+	}
+}
+
+export function subscribeToSongs(uid, callback) {
+	try {
+		const q = query(songsCol(uid), orderBy("createdAt", "asc"));
+		return onSnapshot(q, (snap) => {
+			const songs = snap.docs.map((d) => ({
+				id: d.id,
+				title: d.data().title,
+				artist: d.data().artist,
+				tabUrl: d.data().tabUrl,
+				youtubeUrl: d.data().youtubeUrl,
+				status: d.data().status,
+				note: d.data().note,
+			}));
+			callback(songs);
+		});
+	} catch (err) {
+		console.warn("[firebaseSongs] error:", err);
+		return () => {};
+	}
+}
+firebaseSongs.js is created. A few notes on the implementation:
+
+songsCol(uid) is a private helper to avoid repeating the collection path in every function
+updateSong filters updates to only the allowed fields before writing — prevents accidental writes to createdAt or other fields
+subscribeToSongs returns () => {} as a no-op unsubscribe if setup fails, so callers can always call the return value without checking
+All four functions log with the [firebaseSongs] prefix as specified
+You are working in an existing React + Firebase project.
+
+Phase 1 (Firestore song storage) is complete.
+
+We now need to integrate Firestore with the existing local storage system.
+
+---
+
+# Goal
+
+Unify:
+
+* Firestore (source of truth)
+* localStorage (fast cache)
+
+DO NOT break existing UI.
+
+---
+
+# Files involved
+
+* /src/features/songs/songStorage.js (MODIFY)
+* /src/features/songs/firebaseSongs.js (USE EXISTING)
+
+---
+
+# 1. Import new Firestore functions
+
+At the top of songStorage.js:
+
+```js
+import * as songsApi from "./firebaseSongs";
+```
+
+---
+
+# 2. Add song list state helpers
+
+Add these functions:
+
+```js
+const SONGS_KEY = "practice-hub.songs";
+
+function readSongsCache() {
+  try {
+    const raw = localStorage.getItem(SONGS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSongsCache(songs) {
+  localStorage.setItem(SONGS_KEY, JSON.stringify(songs));
+}
+```
+
+---
+
+# 3. Add getSongs
+
+```js
+export function getCachedSongs() {
+  return readSongsCache();
+}
+```
+
+---
+
+# 4. Add subscribeToSongs
+
+```js
+export function subscribeToSongs(uid, callback) {
+  if (!uid) {
+    callback(getCachedSongs());
+    return () => {};
+  }
+
+  return songsApi.subscribeToSongs(uid, (songs) => {
+    writeSongsCache(songs);
+    callback(songs);
+  });
+}
+```
+
+---
+
+# 5. Add addSong wrapper
+
+```js
+export async function addSong(uid, songData) {
+  if (!uid) {
+    console.warn("[songStorage] Cannot add song without uid");
+    return;
+  }
+
+  try {
+    const songId = await songsApi.addSong(uid, songData);
+
+    // optimistic update
+    const current = readSongsCache();
+    const newSong = {
+      id: songId,
+      ...songData,
+      status: "planned",
+      note: "",
+    };
+
+    writeSongsCache([...current, newSong]);
+
+    return songId;
+  } catch (err) {
+    console.warn("[songStorage] addSong failed:", err);
+  }
+}
+```
+
+---
+
+# 6. Add removeSong wrapper
+
+```js
+export async function removeSong(uid, songId) {
+  if (!uid) return;
+
+  try {
+    await songsApi.removeSong(uid, songId);
+
+    const current = readSongsCache();
+    const updated = current.filter((s) => s.id !== songId);
+    writeSongsCache(updated);
+  } catch (err) {
+    console.warn("[songStorage] removeSong failed:", err);
+  }
+}
+```
+
+---
+
+# 7. IMPORTANT — Update existing status/note logic
+
+Modify existing functions:
+
+## setStatus
+
+After local cache write, also update Firestore:
+
+```js
+await songsApi.updateSong(uid, songId, { status });
+```
+
+---
+
+## setNote
+
+After local cache write:
+
+```js
+await songsApi.updateSong(uid, songId, { note });
+```
+
+---
+
+# 8. DO NOT remove existing functions
+
+Keep:
+
+* getStatus
+* setStatus
+* getNote
+* setNote
+
+Only extend them.
+
+---
+
+# 9. Success criteria
+
+* Songs sync across devices
+* Status updates persist across devices
+* Notes persist across devices
+* UI still works with no refactor
+* App still works offline (via cache)
+
+---
+
+# 10. DO NOT
+
+* rewrite components
+* change routing
+* remove localStorage
+* introduce new libraries
+* change Firebase structure
+
+---
+
+# Key principle
+
+Firestore = source of truth
+localStorage = fast cache layer
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\songStorage.js
+Edit c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\songStorage.js
+Added 2 lines
+Edit c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\songStorage.js
+Added 13 lines
+Now extend setStatus and setNote to also write to the new songs collection, and append the new song-list functions at the bottom:
+
+Edit c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\songStorage.js
+Added 1 line
+Edit c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\songStorage.js
+Added 1 line
+Now append the new song-list exports after subscribeToUserData:
+
+Edit c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\songStorage.js
+Added 53 lines
+Let me verify the final file looks correct end-to-end:
+
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\songStorage.js
+Clean. Here's a summary of every change made to songStorage.js:
+
+Added
+
+import * as songsApi from "./firebaseSongs" — wires in the new songs collection layer
+SONGS_KEY constant and readSongsCache / writeSongsCache helpers — mirrors the existing readMap/writeMap pattern but for an array
+getCachedSongs — returns the localStorage song list
+subscribeToSongs — passes through to songsApi.subscribeToSongs, writes back to cache on every snapshot; falls back to cache if uid is null
+addSong — writes to Firestore, then does an optimistic cache update so the UI sees the new song immediately before the snapshot fires
+removeSong — deletes from Firestore, then prunes the cache
+Extended (not replaced)
+
+setStatus — keeps the existing remote.setStatus call, then also calls songsApi.updateSong so songs in the new collection stay in sync
+setNote — same pattern as setStatus
+The songsApi.updateSong calls on songs that don't exist in the new collection will silently fail at the Firestore level (no matching document → no-op from Firestore's perspective) and are caught by firebaseSongs.js's own try/catch, so there's no risk to existing behaviour.
+
+Prompt:
+
+You are working in an existing React + Vite project using Firebase for song storage.
+
+I am getting this runtime error in the browser console when trying to run:
+
+const { addSong } = await import("./src/features/songs/songStorage.js");
+
+Error:
+
+TypeError: addSong is not a function
+Task
+
+You must only diagnose and fix this specific issue. Do NOT refactor, redesign, or improve anything else in the codebase.
+
+What you must verify
+Check whether addSong is actually exported from:
+src/features/songs/songStorage.js
+src/features/songs/firebaseSongs.js
+Determine:
+If addSong exists at all
+If it exists but is exported incorrectly (named vs default export)
+If the wrong module is being imported in the console test
+Confirm whether the project has:
+A localStorage-based song system (songStorage.js)
+A Firebase-based song system (firebaseSongs.js)
+What you must fix (only if needed)
+Ensure addSong is correctly exported from the Firebase version (firebaseSongs.js)
+Ensure the console import path matches the correct module
+Fix only export/import mismatches
+Do NOT change:
+UI code
+song data structure
+storage strategy
+authentication logic
+Output requirements
+Clearly state what the root cause was
+Show the exact minimal code change(s)
+Confirm the correct import line to use in the browser console
+Ensure addSong(uid, songObject) works when run manually in dev tools
+Constraints
+No refactors
+No renaming functions unless required to fix the bug
+No redesign of storage system
+Minimal diff only
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\firebaseSongs.js
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\songStorage.js (lines 2-11)
+Both files are confirmed to export addSong. Let me check firebaseSongStorage.js — if it fails to initialize, it would break songStorage.js's entire module evaluation and silently return undefined for all its exports.
+
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\firebaseSongStorage.js
+Both files look fine at first glance. Let me check whether there's a module resolution issue causing a silent failure that makes addSong appear undefined.
+
+Globpattern: "src/features/songs/*.js"
+Found 5 files
+Grep "^export" (in c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\songStorage.js)
+13 lines of output
+Grep "^export" (in c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\firebaseSongs.js)
+4 lines of output
+Diagnosis is complete. No code changes are needed.
+
+Both files have correct named exports:
+
+Module	Export	Status
+firebaseSongs.js:18	export async function addSong	✅ correct
+songStorage.js:152	export async function addSong	✅ correct
+Root cause
+The import path in the console test is wrong. The ./ prefix makes it relative to the current page URL. In Vite's dev server, that means:
+
+
+// what the browser resolves:
+http://localhost:5173/src/features/songs/songStorage.js
+This usually works from the root page, but Vite module requests initiated from the console don't always go through Vite's full transform pipeline the same way the app's own imports do. The result is the module loads (no "failed to fetch" error) but ESM bindings aren't wired up properly, so named exports come back as undefined. Calling undefined() gives TypeError: addSong is not a function.
+
+The second issue: songStorage.js pulls in two Firebase modules (firebaseSongStorage + firebaseSongs) before its own code runs. More surface area for the console import to fail partially and silently.
+
+Fix — the correct console commands
+Option A — test the direct Firebase layer (simplest, fewest dependencies):
+
+
+const { addSong } = await import("/src/features/songs/firebaseSongs.js");
+
+await addSong("your-uid-here", {
+  title: "Teen Town",
+  artist: "Weather Report",
+  tabUrl: "https://tabs.example.com/teen-town",
+  youtubeUrl: null,
+});
+Option B — test through the full storage wrapper:
+
+
+const { addSong } = await import("/src/features/songs/songStorage.js");
+The only change in both cases: leading / instead of ./src. That routes the request through Vite's module server as an absolute path, which is reliably transformed.
+
+PHASE 3 (ARCHITECTURE STABILIZATION)
+
+You are working on a React + Vite application using Firebase Auth and Firestore for a music practice hub (bass + guitar).
+
+The project currently has mixed storage approaches (localStorage + Firebase), unstable import paths, and incorrect dynamic imports causing runtime issues. This phase is focused on stabilizing architecture and enforcing a single consistent data layer.
+
+---
+
+### GOAL
+
+Stabilize the application so that:
+
+* Firestore is the single source of truth for all song data
+* localStorage is not used for song CRUD (only optional UI preferences if needed)
+* All imports follow correct Vite module resolution
+* No dynamic imports are used for Firebase modules
+* No absolute imports like `/src/...` or `/practice-hub/...` exist anywhere
+
+---
+
+### REQUIRED FIXES
+
+#### 1. Fix all import paths
+
+Find and replace all incorrect import patterns:
+
+* `/src/...`
+* `/practice-hub/...`
+* any Firebase dynamic imports like:
+
+```js
+await import("/src/firebase/firebase.js")
+```
+
+Replace with correct relative imports based on file location, for example:
+
+```js
+import { auth, db } from "../firebase/firebase.js";
+```
+
+or equivalent correct relative paths.
+
+---
+
+#### 2. Remove dynamic imports for Firebase
+
+Firebase modules (`auth`, `db`, Firestore helpers) must NOT be dynamically imported.
+
+Convert all Firebase imports to static imports.
+
+---
+
+#### 3. Enforce Firestore as the only song source of truth
+
+Ensure:
+
+* All song create/read/update/delete operations use Firestore only
+* Remove any remaining localStorage-based song CRUD logic
+* localStorage may remain only for non-critical UI preferences
+
+---
+
+#### 4. Validate Firestore structure
+
+All song data must use this structure:
+
+```
+users/{uid}/songs/{songId}
+```
+
+Ensure:
+
+* writes use this path
+* reads/listeners use this path consistently
+
+---
+
+#### 5. Real-time sync requirement
+
+Ensure a single Firestore listener exists:
+
+* subscribeToSongs(uid, callback)
+* uses onSnapshot
+* updates UI in real time across devices
+
+No polling or duplicated state sources.
+
+---
+
+#### 6. Remove conflicting or duplicate logic
+
+Refactor or remove any:
+
+* songStorage.js CRUD logic if still active
+* duplicate song state hooks
+* mixed local + remote state systems for songs
+
+---
+
+### CONSTRAINTS
+
+* Do not change UI design
+* Do not add new libraries
+* Do not modify authentication system
+* Do not modify tuner, metronome, or unrelated features
+* Only fix data flow, imports, and storage consistency
+
+---
+
+### OUTPUT REQUIREMENTS
+
+* Only show modified files
+* Keep changes minimal and targeted
+* Briefly explain critical fixes only
+* Ensure project runs in dev after changes
+
+---
+
+### SUCCESS CRITERIA
+
+* No `/src/...` or `/practice-hub/...` imports remain
+* No Firebase dynamic imports remain
+* Firestore is the only song storage system
+* Songs persist across devices reliably
+* App runs without import or permission errors
+Let me map the full current state before touching anything.
+
+Agent:Full codebase audit for import paths and storage logic
+IN
+Do a thorough audit of the React Vite project at c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src. I need the FULL contents of every file listed below — do not summarize, return the complete text of each file:
+
+1. src/features/songs/songStorage.js
+2. src/features/songs/firebaseSongs.js
+3. src/features/songs/firebaseSongStorage.js
+4. src/features/songs/useSongStatus.js
+5. src/features/songs/useSongNotes.js
+6. src/features/songs/SongList.jsx
+7. src/features/songs/SongCard.jsx
+8. src/App.jsx
+9. src/pages/bass/BassSongs.jsx
+10. src/pages/guitar/GuitarSongs.jsx
+
+Also grep the entire src/ directory for:
+- Any string matching `/src/` (absolute-style imports)
+- Any string matching `/practice-hub/`
+- Any call to `await import(` or `import(` 
+- Any reference to `localStorage` across all .js and .jsx files
+
+Return all file contents in full and grep results.
+Grep "localStorage" (in c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src, type: js)
+4 lines of output
+Good. The grep confirms there are no bad import paths or dynamic imports — those are already clean. The real problems are:
+
+songStorage.js — still has localStorage CRUD, and dual-writes status/notes to both the old flat users/{uid} structure AND the new users/{uid}/songs/{songId} subcollection
+useSongStatus and useSongNotes — both listen to subscribeToUserData (old flat structure), meaning status and note writes to firebaseSongs.js will never be reflected in the UI
+updateSong in firebaseSongs.js — uses updateDoc which fails if the document doesn't exist (static songs are never created via addDoc)
+subscribeToSongs — uses orderBy("createdAt") which silently excludes any document that doesn't have that field (static song documents won't have it)
+The fix: make firebaseSongs.js the single source of truth with upsert writes and an unordered snapshot, then rewire both hooks to use it directly.
+
+Four files change. No UI components touched.
+
+Write c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\firebaseSongs.js
+76 lines
+import {
+	collection,
+	addDoc,
+	deleteDoc,
+	doc,
+	setDoc,
+	onSnapshot,
+	serverTimestamp,
+} from "firebase/firestore";
+import { db } from "../../firebase/firebase";
+
+function songsCol(uid) {
+	return collection(db, "users", uid, "songs");
+}
+
+export async function addSong(uid, songData) {
+	try {
+		const ref = await addDoc(songsCol(uid), {
+			title: songData.title,
+			artist: songData.artist,
+			tabUrl: songData.tabUrl,
+			youtubeUrl: songData.youtubeUrl ?? null,
+			status: "planned",
+			note: "",
+			createdAt: serverTimestamp(),
+		});
+		return ref.id;
+	} catch (err) {
+		console.warn("[firebaseSongs] error:", err);
+	}
+}
+
+export async function removeSong(uid, songId) {
+	try {
+		await deleteDoc(doc(db, "users", uid, "songs", songId));
+	} catch (err) {
+		console.warn("[firebaseSongs] error:", err);
+	}
+}
+
+// setDoc with merge so it works as an upsert — static songs never go through
+// addSong, so their documents don't exist yet when status/note is first set.
+export async function updateSong(uid, songId, updates) {
+	try {
+		const allowed = ["title", "artist", "tabUrl", "youtubeUrl", "status", "note"];
+		const safe = Object.fromEntries(
+			Object.entries(updates).filter(([k]) => allowed.includes(k))
+		);
+		await setDoc(doc(db, "users", uid, "songs", songId), safe, { merge: true });
+	} catch (err) {
+		console.warn("[firebaseSongs] error:", err);
+	}
+}
+
+// No orderBy — documents created via setDoc (static songs) won't have
+// createdAt, and Firestore silently excludes docs missing an ordered field.
+export function subscribeToSongs(uid, callback) {
+	try {
+		return onSnapshot(songsCol(uid), (snap) => {
+			const songs = snap.docs.map((d) => ({
+				id: d.id,
+				title: d.data().title ?? "",
+				artist: d.data().artist ?? "",
+				tabUrl: d.data().tabUrl ?? "",
+				youtubeUrl: d.data().youtubeUrl ?? null,
+				status: d.data().status ?? "planned",
+				note: d.data().note ?? "",
+			}));
+			callback(songs);
+		});
+	} catch (err) {
+		console.warn("[firebaseSongs] error:", err);
+		return () => {};
+	}
+}
+Write c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\useSongStatus.js
+Write failed
+import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "../auth/useAuth";
+import { STATUSES } from "./songStorage";
+import { subscribeToSongs, updateSong } from "./firebaseSongs";
+
+export function useSongStatus(songs = []) {
+	const { user } = useAuth();
+	const uid = user?.uid;
+
+	const [statuses, setStatuses] = useState(() => {
+		const map = {};
+		for (const song of songs) {
+			map[song.id] = "planned";
+		}
+		return map;
+	});
+
+	useEffect(() => {
+		if (!uid) return;
+		const unsubscribe = subscribeToSongs(uid, (firestoreSongs) => {
+			setStatuses((prev) => {
+				const next = { ...prev };
+				for (const fs of firestoreSongs) {
+					if (STATUSES.includes(fs.status)) {
+						next[fs.id] = fs.status;
+					}
+				}
+				return next;
+			});
+		});
+		return unsubscribe;
+	}, [uid]);
+
+	const updateStatus = useCallback(
+		(songId, next) => {
+			setStatuses((prev) => ({ ...prev, [songId]: next }));
+			updateSong(uid, songId, { status: next });
+		},
+		[uid]
+	);
+
+	return { statuses, updateStatus };
+}
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\useSongStatus.js
+Read c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\useSongNotes.js
+Write c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\useSongStatus.js
+44 lines
+import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "../auth/useAuth";
+import { STATUSES } from "./songStorage";
+import { subscribeToSongs, updateSong } from "./firebaseSongs";
+
+export function useSongStatus(songs = []) {
+	const { user } = useAuth();
+	const uid = user?.uid;
+
+	const [statuses, setStatuses] = useState(() => {
+		const map = {};
+		for (const song of songs) {
+			map[song.id] = "planned";
+		}
+		return map;
+	});
+
+	useEffect(() => {
+		if (!uid) return;
+		const unsubscribe = subscribeToSongs(uid, (firestoreSongs) => {
+			setStatuses((prev) => {
+				const next = { ...prev };
+				for (const fs of firestoreSongs) {
+					if (STATUSES.includes(fs.status)) {
+						next[fs.id] = fs.status;
+					}
+				}
+				return next;
+			});
+		});
+		return unsubscribe;
+	}, [uid]);
+
+	const updateStatus = useCallback(
+		(songId, next) => {
+			setStatuses((prev) => ({ ...prev, [songId]: next }));
+			updateSong(uid, songId, { status: next });
+		},
+		[uid]
+	);
+
+	return { statuses, updateStatus };
+}
+Write c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\useSongNotes.js
+30 lines
+import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "../auth/useAuth";
+import { subscribeToSongs, updateSong } from "./firebaseSongs";
+
+export function useSongNotes(songId) {
+	const { user } = useAuth();
+	const uid = user?.uid;
+
+	const [note, setNoteState] = useState("");
+
+	useEffect(() => {
+		if (!uid) return;
+		const unsubscribe = subscribeToSongs(uid, (firestoreSongs) => {
+			const match = firestoreSongs.find((s) => s.id === songId);
+			setNoteState(match?.note ?? "");
+		});
+		return unsubscribe;
+	}, [uid, songId]);
+
+	const setNote = useCallback(
+		(next) => {
+			setNoteState(next);
+			updateSong(uid, songId, { note: next });
+		},
+		[uid, songId]
+	);
+
+	return { note, setNote };
+}
+Now strip songStorage.js down to constants and thin re-exports — it keeps STATUSES where SongCard.jsx already imports it, with no localStorage anywhere:
+
+Write c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src\features\songs\songStorage.js
+7 lines
+// Shared status constants — imported by SongCard and useSongStatus.
+// All storage operations go through firebaseSongs.js directly.
+export const STATUSES = ["planned", "learning", "completed"];
+export const DEFAULT_STATUS = "planned";
+
+export { addSong, removeSong, updateSong, subscribeToSongs } from "./firebaseSongs";
+Now verify no stray localStorage or bad imports remain anywhere in the songs feature:
+
+Grep "localStorage" (in c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src)
+1 line of output
+Grep "subscribeToUserData|getCachedStatus|getCachedNote|persistStatus|persistNote|firebaseSongStorage" (in c:\Users\sk8_c\OneDrive\Desktop\Coding\practice-hub\src)
+2 lines of output
+firebaseSongStorage.js still exports subscribeToUserData but nothing imports it anymore — it's now dead code, left in place harmlessly. No component or hook references it.
+
+Here's a precise summary of every change and why:
+
+firebaseSongs.js
+
+updateDoc → setDoc(..., { merge: true }) — upsert so a static song's first-ever status change creates the document rather than throwing "No document to update"
+Removed query + orderBy("createdAt") from subscribeToSongs — Firestore silently drops documents that are missing the ordered field, which would hide every static song document
+Removed unused updateDoc import; added setDoc
+useSongStatus.js
+
+Subscribed to subscribeToSongs (new subcollection) instead of subscribeToUserData (old flat doc) — writes and reads now use the same Firestore path
+Calls updateSong directly instead of persistStatus (which was dual-writing)
+Initialises statuses to "planned" instead of reading from localStorage
+useSongNotes.js
+
+Same subscriber swap: subscribeToSongs → finds the matching song → reads .note
+Calls updateSong directly; no localStorage init
+songStorage.js
+
+Reduced to 5 lines: the two constants (STATUSES, DEFAULT_STATUS) and re-exports from firebaseSongs.js
+Zero localStorage references
+firebaseSongStorage.js is left untouched and orphaned — safe to delete later once confirmed unused.

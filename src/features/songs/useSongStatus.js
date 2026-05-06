@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../auth/useAuth";
-import {
-	getCachedStatus,
-	setStatus as persistStatus,
-	STATUSES,
-	subscribeToUserData,
-} from "./songStorage";
+import { STATUSES } from "./songStorage";
+import { subscribeToSongs, updateSong } from "./firebaseSongs";
 
 export function useSongStatus(songs = []) {
 	const { user } = useAuth();
@@ -14,20 +10,19 @@ export function useSongStatus(songs = []) {
 	const [statuses, setStatuses] = useState(() => {
 		const map = {};
 		for (const song of songs) {
-			map[song.id] = getCachedStatus(song.id);
+			map[song.id] = "planned";
 		}
 		return map;
 	});
 
 	useEffect(() => {
-		if (!uid) return undefined;
-		const unsubscribe = subscribeToUserData(uid, ({ statuses: remote }) => {
+		if (!uid) return;
+		const unsubscribe = subscribeToSongs(uid, (firestoreSongs) => {
 			setStatuses((prev) => {
 				const next = { ...prev };
-				for (const id of Object.keys(remote)) {
-					const value = remote[id];
-					if (STATUSES.includes(value)) {
-						next[id] = value;
+				for (const fs of firestoreSongs) {
+					if (STATUSES.includes(fs.status)) {
+						next[fs.id] = fs.status;
 					}
 				}
 				return next;
@@ -39,7 +34,7 @@ export function useSongStatus(songs = []) {
 	const updateStatus = useCallback(
 		(songId, next) => {
 			setStatuses((prev) => ({ ...prev, [songId]: next }));
-			persistStatus(uid, songId, next);
+			updateSong(uid, songId, { status: next });
 		},
 		[uid]
 	);

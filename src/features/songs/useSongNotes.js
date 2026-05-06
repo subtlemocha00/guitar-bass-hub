@@ -1,23 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../auth/useAuth";
-import {
-	getCachedNote,
-	setNote as persistNote,
-	subscribeToUserData,
-} from "./songStorage";
+import { subscribeToSongs, updateSong } from "./firebaseSongs";
 
 export function useSongNotes(songId) {
 	const { user } = useAuth();
 	const uid = user?.uid;
 
-	const [note, setNoteState] = useState(() => getCachedNote(songId));
+	const [note, setNoteState] = useState("");
 
 	useEffect(() => {
-		if (!uid) return undefined;
-		const unsubscribe = subscribeToUserData(uid, ({ notes }) => {
-			if (!(songId in notes)) return;
-			const value = notes[songId];
-			setNoteState(typeof value === "string" ? value : "");
+		if (!uid) return;
+		const unsubscribe = subscribeToSongs(uid, (firestoreSongs) => {
+			const match = firestoreSongs.find((s) => s.id === songId);
+			setNoteState(match?.note ?? "");
 		});
 		return unsubscribe;
 	}, [uid, songId]);
@@ -25,7 +20,7 @@ export function useSongNotes(songId) {
 	const setNote = useCallback(
 		(next) => {
 			setNoteState(next);
-			persistNote(uid, songId, next);
+			updateSong(uid, songId, { note: next });
 		},
 		[uid, songId]
 	);
