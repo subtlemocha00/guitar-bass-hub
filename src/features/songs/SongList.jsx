@@ -9,7 +9,7 @@ const GROUPS = [
 	{ key: "completed", label: "Completed" },
 ];
 
-function SongList({ songs, filter = "all", onRemove }) {
+function SongList({ songs, filter = "all", onRemove, onEdit }) {
 	const { statuses, updateStatus } = useSongStatus(songs);
 	const [openSongId, setOpenSongId] = useState(null);
 
@@ -54,6 +54,11 @@ function SongList({ songs, filter = "all", onRemove }) {
 										onRemove={
 											song.isUserCreated && onRemove
 												? () => onRemove(song.id)
+												: undefined
+										}
+										onEdit={
+											song.isUserCreated && onEdit
+												? () => onEdit(song)
 												: undefined
 										}
 									/>

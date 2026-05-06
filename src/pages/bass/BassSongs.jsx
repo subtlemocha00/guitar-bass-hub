@@ -11,8 +11,9 @@ import "./BassSongs.css";
 function BassSongs() {
 	const [filter, setFilter] = useState("all");
 	const [showAdd, setShowAdd] = useState(false);
+	const [editingSong, setEditingSong] = useState(null);
 
-	const { songs, addSong, removeSong } = useUserSongs("bass");
+	const { songs, addSong, removeSong, updateSong } = useUserSongs("bass");
 	const { statuses } = useSongStatus(songs);
 
 	const learning = songs.filter((s) => statuses[s.id] === "learning").length;
@@ -58,13 +59,35 @@ function BassSongs() {
 						NO SONGS YET — ADD YOUR FIRST ONE.
 					</p>
 				) : (
-					<SongList songs={songs} filter={filter} onRemove={removeSong} />
+					<SongList
+						songs={songs}
+						filter={filter}
+						onRemove={removeSong}
+						onEdit={setEditingSong}
+					/>
 				)}
 
 				<AddSongModal
 					open={showAdd}
 					onClose={() => setShowAdd(false)}
 					onSubmit={addSong}
+				/>
+
+				<AddSongModal
+					open={!!editingSong}
+					mode="edit"
+					initialValues={
+						editingSong
+							? {
+									title: editingSong.title,
+									artist: editingSong.artist,
+									tabUrl: editingSong.tabUrl,
+									youtubeUrl: editingSong.youtubeUrl ?? "",
+								}
+							: undefined
+					}
+					onClose={() => setEditingSong(null)}
+					onSubmit={(data) => updateSong(editingSong.id, data)}
 				/>
 			</div>
 		</Layout>

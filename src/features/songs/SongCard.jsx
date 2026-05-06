@@ -52,6 +52,7 @@ function SongCard({
 	videoOpen,
 	onToggleVideo,
 	onRemove,
+	onEdit,
 }) {
 	const handleCycle = () => onStatusChange(nextStatus(status));
 	const handleRemove = () => {
@@ -60,6 +61,9 @@ function SongCard({
 			`Delete "${song.title}" by ${song.artist}? This cannot be undone.`
 		);
 		if (ok) onRemove();
+	};
+	const handleEdit = () => {
+		if (onEdit) onEdit();
 	};
 
 	return (
@@ -119,15 +123,26 @@ function SongCard({
 				</button>
 			)}
 
-			{onRemove && (
+			{(onRemove || onEdit) && (
 				<div className="song-card-actions">
-					<button
-						type="button"
-						className="song-card-remove"
-						onClick={handleRemove}
-					>
-						🗑 DELETE
-					</button>
+					{onEdit && (
+						<button
+							type="button"
+							className="song-card-edit"
+							onClick={handleEdit}
+						>
+							✎ EDIT
+						</button>
+					)}
+					{onRemove && (
+						<button
+							type="button"
+							className="song-card-remove"
+							onClick={handleRemove}
+						>
+							🗑 DELETE
+						</button>
+					)}
 				</div>
 			)}
 		</article>

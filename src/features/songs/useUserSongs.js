@@ -3,6 +3,7 @@ import { useAuth } from "../auth/useAuth";
 import {
 	addSong as fsAddSong,
 	removeSong as fsRemoveSong,
+	updateSong as fsUpdateSong,
 	subscribeToSongs,
 } from "./firebaseSongs";
 
@@ -53,5 +54,18 @@ export function useUserSongs(instrument) {
 		[uid]
 	);
 
-	return { songs, addSong, removeSong };
+	const updateSong = useCallback(
+		(songId, updates) => {
+			if (!uid) return undefined;
+			return fsUpdateSong(uid, songId, {
+				title: updates.title,
+				artist: updates.artist,
+				tabUrl: updates.tabUrl,
+				youtubeUrl: updates.youtubeUrl ?? null,
+			});
+		},
+		[uid]
+	);
+
+	return { songs, addSong, removeSong, updateSong };
 }

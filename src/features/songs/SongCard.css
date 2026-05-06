@@ -129,6 +129,26 @@
 	grid-column: 1 / -1;
 	display: flex;
 	justify-content: flex-end;
+	gap: 0.4rem;
+}
+.song-card-edit {
+	background: transparent;
+	border: 1px solid var(--line-mid);
+	color: var(--text-mute);
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.18em;
+	padding: 0.4rem 0.75rem;
+	cursor: pointer;
+	text-transform: uppercase;
+	transition: color 0.15s, border-color 0.15s, background 0.15s,
+		box-shadow 0.15s;
+}
+.song-card-edit:hover {
+	color: var(--neon-cyan);
+	border-color: var(--neon-cyan);
+	background: rgba(0, 224, 255, 0.08);
+	box-shadow: 0 0 8px var(--neon-cyan-glow);
 }
 .song-card-remove {
 	background: transparent;

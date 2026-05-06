@@ -1,13 +1,22 @@
 import { useEffect, useState } from "react";
 import "./AddSongModal.css";
 
-function AddSongModal({ open, onClose, onSubmit }) {
+function AddSongModal({ open, onClose, onSubmit, mode = "add", initialValues }) {
 	const [title, setTitle] = useState("");
 	const [artist, setArtist] = useState("");
 	const [tabUrl, setTabUrl] = useState("");
 	const [youtubeUrl, setYoutubeUrl] = useState("");
 	const [errors, setErrors] = useState({});
 	const [submitting, setSubmitting] = useState(false);
+
+	useEffect(() => {
+		if (!open) return;
+		setTitle(initialValues?.title ?? "");
+		setArtist(initialValues?.artist ?? "");
+		setTabUrl(initialValues?.tabUrl ?? "");
+		setYoutubeUrl(initialValues?.youtubeUrl ?? "");
+		setErrors({});
+	}, [open, initialValues]);
 
 	useEffect(() => {
 		if (!open) return undefined;
@@ -20,17 +29,8 @@ function AddSongModal({ open, onClose, onSubmit }) {
 
 	if (!open) return null;
 
-	function reset() {
-		setTitle("");
-		setArtist("");
-		setTabUrl("");
-		setYoutubeUrl("");
-		setErrors({});
-	}
-
 	function handleClose() {
 		if (submitting) return;
-		reset();
 		onClose();
 	}
 
@@ -53,13 +53,17 @@ function AddSongModal({ open, onClose, onSubmit }) {
 			})
 		)
 			.then(() => {
-				reset();
 				onClose();
 			})
 			.finally(() => {
 				setSubmitting(false);
 			});
 	}
+
+	const isEdit = mode === "edit";
+	const eyebrowText = isEdit ? "// EDIT · SONG" : "// ADD · SONG";
+	const ariaLabel = isEdit ? "Edit Song" : "Add Song";
+	const submitLabel = submitting ? "SAVING…" : isEdit ? "UPDATE" : "SAVE";
 
 	return (
 		<div
@@ -71,13 +75,13 @@ function AddSongModal({ open, onClose, onSubmit }) {
 				className="add-song-modal hud"
 				onClick={(e) => e.stopPropagation()}
 				onSubmit={handleSubmit}
-				aria-label="Add Song"
+				aria-label={ariaLabel}
 			>
 				<span className="hud-corner-tr" />
 				<span className="hud-corner-bl" />
 
 				<header className="add-song-header">
-					<span className="eyebrow">// ADD · SONG</span>
+					<span className="eyebrow">{eyebrowText}</span>
 					<button
 						type="button"
 						className="add-song-close"
@@ -154,7 +158,7 @@ function AddSongModal({ open, onClose, onSubmit }) {
 						className="add-song-btn add-song-btn--solid"
 						disabled={submitting}
 					>
-						{submitting ? "SAVING…" : "SAVE"}
+						{submitLabel}
 					</button>
 				</div>
 			</form>
