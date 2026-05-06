@@ -75,14 +75,14 @@ const BASS_TOOLS = [
 	{ key: "01", label: "Songs", tag: "bass catalog", path: "/bass/songs" },
 	{ key: "02", label: "Metronome", tag: "metronome", path: "/bass/metronome" },
 	{ key: "03", label: "Tuner", tag: "pitch ref", path: "/bass/tuner" },
-	{ key: "04", label: "Scales", tag: "fretboard map", path: "/bass/scales" },
+	{ key: "04", label: "Fretboard", tag: "fretboard map", path: "/bass/fretboard" },
 ];
 
 const GUITAR_TOOLS = [
 	{ key: "05", label: "Songs", tag: "guitar catalog", path: "/guitar/songs" },
 	{ key: "06", label: "Metronome", tag: "metronome", path: "/guitar/metronome" },
 	{ key: "07", label: "Tuner", tag: "pitch ref", path: "/guitar/tuner" },
-	{ key: "08", label: "Exercises", tag: "technique", path: "/guitar/exercises" },
+	{ key: "08", label: "Fretboard", tag: "fretboard map", path: "/guitar/fretboard" },
 ];
 
 function ToolCard({ keyLabel, label, tag, path, side }) {

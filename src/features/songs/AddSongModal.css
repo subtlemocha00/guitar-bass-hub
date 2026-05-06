@@ -1,0 +1,126 @@
+.add-song-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	background: rgba(1, 1, 43, 0.75);
+	backdrop-filter: blur(4px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+}
+
+.add-song-modal {
+	width: 100%;
+	max-width: 480px;
+	padding: 1.5rem 1.5rem 1.25rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+	position: relative;
+}
+
+.add-song-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 0.25rem;
+}
+
+.add-song-close {
+	background: transparent;
+	border: 1px solid var(--line-mid);
+	color: var(--text-mute);
+	width: 1.9rem;
+	height: 1.9rem;
+	font-size: 1.1rem;
+	line-height: 1;
+	cursor: pointer;
+	font-family: var(--font-mono);
+	transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.add-song-close:hover {
+	color: var(--neon-magenta);
+	border-color: var(--neon-magenta);
+	background: rgba(255, 42, 109, 0.08);
+}
+
+.add-song-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.add-song-label {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--text-mute);
+}
+
+.add-song-input {
+	background: rgba(5, 2, 31, 0.6);
+	border: 1px solid var(--line-mid);
+	color: var(--text);
+	font: inherit;
+	font-size: 0.9rem;
+	letter-spacing: 0.04em;
+	padding: 0.55rem 0.7rem;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.add-song-input:focus {
+	outline: none;
+	border-color: var(--neon-cyan);
+	box-shadow: 0 0 10px var(--neon-cyan-glow);
+}
+
+.add-song-error {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.12em;
+	color: var(--neon-magenta);
+	text-transform: uppercase;
+}
+
+.add-song-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+}
+
+.add-song-btn {
+	background: transparent;
+	border: 1px solid var(--line-mid);
+	color: var(--text-mute);
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	padding: 0.55rem 1rem;
+	cursor: pointer;
+	transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.add-song-btn:hover:not(:disabled) {
+	color: var(--text);
+	border-color: var(--neon-cyan);
+}
+
+.add-song-btn--solid {
+	color: var(--bg-0);
+	background: var(--neon-cyan);
+	border-color: var(--neon-cyan);
+}
+
+.add-song-btn--solid:hover:not(:disabled) {
+	box-shadow: 0 0 12px var(--neon-cyan-glow);
+}
+
+.add-song-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}

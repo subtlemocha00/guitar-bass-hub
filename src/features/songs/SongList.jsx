@@ -9,7 +9,7 @@ const GROUPS = [
 	{ key: "completed", label: "Completed" },
 ];
 
-function SongList({ songs, filter = "all" }) {
+function SongList({ songs, filter = "all", onRemove }) {
 	const { statuses, updateStatus } = useSongStatus(songs);
 	const [openSongId, setOpenSongId] = useState(null);
 
@@ -51,6 +51,11 @@ function SongList({ songs, filter = "all" }) {
 										onStatusChange={(next) => updateStatus(song.id, next)}
 										videoOpen={openSongId === song.id}
 										onToggleVideo={() => toggleVideo(song.id)}
+										onRemove={
+											song.isUserCreated && onRemove
+												? () => onRemove(song.id)
+												: undefined
+										}
 									/>
 								))}
 							</div>

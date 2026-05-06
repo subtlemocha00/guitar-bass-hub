@@ -1,15 +1,25 @@
 import Layout from "../../components/Layout";
 import BackLink from "../../components/BackLink";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { bassSongs } from "../../data/bassSongs";
+import AddSongModal from "../../features/songs/AddSongModal";
 import SongFilterTabs from "../../features/songs/SongFilterTabs";
 import SongList from "../../features/songs/SongList";
 import { useSongStatus } from "../../features/songs/useSongStatus";
+import { useUserSongs } from "../../features/songs/useUserSongs";
 import "./BassSongs.css";
 
 function BassSongs() {
 	const [filter, setFilter] = useState("all");
-	const { statuses } = useSongStatus(bassSongs);
+	const [showAdd, setShowAdd] = useState(false);
+
+	const { songs: userSongs, addSong, removeSong } = useUserSongs("bass");
+	const allSongs = useMemo(
+		() => [...bassSongs, ...userSongs],
+		[userSongs]
+	);
+
+	const { statuses } = useSongStatus(allSongs);
 	const learning = Object.values(statuses).filter((s) => s === "learning").length;
 	const done = Object.values(statuses).filter((s) => s === "completed").length;
 	const planned = Object.values(statuses).filter((s) => s === "planned").length;
@@ -27,7 +37,7 @@ function BassSongs() {
 						<span className="glitch" data-text="BASS::SONGS">BASS::SONGS</span>
 					</h1>
 					<p className="songs-sub">
-						{bassSongs.length} tracks tracked. Click a status badge to cycle
+						{allSongs.length} tracks tracked. Click a status badge to cycle
 						planned → learning → completed. Notes auto-save.
 					</p>
 					<div className="songs-counters">
@@ -37,8 +47,24 @@ function BassSongs() {
 					</div>
 				</header>
 
-				<SongFilterTabs filter={filter} onChange={setFilter} />
-				<SongList songs={bassSongs} filter={filter} />
+				<div className="songs-toolbar">
+					<SongFilterTabs filter={filter} onChange={setFilter} />
+					<button
+						type="button"
+						className="songs-add-btn"
+						onClick={() => setShowAdd(true)}
+					>
+						+ ADD SONG
+					</button>
+				</div>
+
+				<SongList songs={allSongs} filter={filter} onRemove={removeSong} />
+
+				<AddSongModal
+					open={showAdd}
+					onClose={() => setShowAdd(false)}
+					onSubmit={addSong}
+				/>
 			</div>
 		</Layout>
 	);

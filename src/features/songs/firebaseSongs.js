@@ -20,6 +20,7 @@ export async function addSong(uid, songData) {
 			artist: songData.artist,
 			tabUrl: songData.tabUrl,
 			youtubeUrl: songData.youtubeUrl ?? null,
+			instrument: songData.instrument ?? null,
 			status: "planned",
 			note: "",
 			createdAt: serverTimestamp(),
@@ -42,11 +43,20 @@ export async function removeSong(uid, songId) {
 // addSong, so their documents don't exist yet when status/note is first set.
 export async function updateSong(uid, songId, updates) {
 	try {
-		const allowed = ["title", "artist", "tabUrl", "youtubeUrl", "status", "note"];
+		const allowed = [
+			"title",
+			"artist",
+			"tabUrl",
+			"youtubeUrl",
+			"status",
+			"note",
+		];
 		const safe = Object.fromEntries(
 			Object.entries(updates).filter(([k]) => allowed.includes(k))
 		);
-		await setDoc(doc(db, "users", uid, "songs", songId), safe, { merge: true });
+		await setDoc(doc(db, "users", uid, "songs", songId), safe, {
+			merge: true,
+		});
 	} catch (err) {
 		console.warn("[firebaseSongs] error:", err);
 	}
@@ -54,18 +64,25 @@ export async function updateSong(uid, songId, updates) {
 
 // No orderBy — documents created via setDoc (static songs) won't have
 // createdAt, and Firestore silently excludes docs missing an ordered field.
+// isUserCreated is derived from createdAt presence so callers can distinguish
+// real song documents from lazy status/note shadow docs for static catalog.
 export function subscribeToSongs(uid, callback) {
 	try {
 		return onSnapshot(songsCol(uid), (snap) => {
-			const songs = snap.docs.map((d) => ({
-				id: d.id,
-				title: d.data().title ?? "",
-				artist: d.data().artist ?? "",
-				tabUrl: d.data().tabUrl ?? "",
-				youtubeUrl: d.data().youtubeUrl ?? null,
-				status: d.data().status ?? "planned",
-				note: d.data().note ?? "",
-			}));
+			const songs = snap.docs.map((d) => {
+				const data = d.data();
+				return {
+					id: d.id,
+					title: data.title ?? "",
+					artist: data.artist ?? "",
+					tabUrl: data.tabUrl ?? "",
+					youtubeUrl: data.youtubeUrl ?? null,
+					instrument: data.instrument ?? null,
+					status: data.status ?? "planned",
+					note: data.note ?? "",
+					isUserCreated: !!data.createdAt,
+				};
+			});
 			callback(songs);
 		});
 	} catch (err) {

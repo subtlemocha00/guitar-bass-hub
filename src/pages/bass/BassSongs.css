@@ -45,3 +45,31 @@
 .songs-counters .cnt--c { color: var(--neon-cyan); }
 .songs-counters .cnt--m { color: var(--neon-magenta); }
 .songs-counters .cnt--l { color: var(--neon-lime); }
+
+.songs-toolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+.songs-add-btn {
+	background: transparent;
+	border: 1px solid var(--neon-cyan);
+	color: var(--neon-cyan);
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	padding: 0.55rem 1rem;
+	cursor: pointer;
+	transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.songs-add-btn:hover {
+	background: var(--neon-cyan);
+	color: var(--bg-0);
+	box-shadow: 0 0 12px var(--neon-cyan-glow);
+}

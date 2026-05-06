@@ -10,7 +10,7 @@ const TOOLS = [
 	{ to: "/bass/songs", code: "MOD_02", name: "Songs", tag: "REPERTOIRE", desc: "Track planned, learning and completed bass tracks. Notes per song.", live: true },
 	{ to: "/bass/fretboard", code: "MOD_03", name: "Fretboard", tag: "SCALE·MAP", desc: "Visualize scales across the neck. 8 patterns × 12 roots.", live: true },
 	{ to: "/bass/metronome", code: "MOD_04", name: "Metronome", tag: "TEMPO·LOCK", desc: "Web Audio click. 40–240 BPM, accented downbeat, tap tempo.", live: true },
-	{ to: "/bass/scales", code: "MOD_05", name: "Scales", tag: "DRILLS", desc: "Coming soon — guided scale drills with audio playback.", live: false },
+	{ to: "/bass/scales", code: "MOD_05", name: "Exercises", tag: "DRILLS", desc: "Coming soon — guided scale drills.", live: false },
 ];
 
 function BassToolCard({ t, accent }) {

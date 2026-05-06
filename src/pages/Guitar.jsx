@@ -10,7 +10,7 @@ const TOOLS = [
 	{ to: "/guitar/songs", code: "MOD_02", name: "Songs", tag: "REPERTOIRE", desc: "Track planned, learning and completed guitar tracks. Notes per song.", live: true },
 	{ to: "/guitar/fretboard", code: "MOD_03", name: "Fretboard", tag: "SCALE·MAP", desc: "Visualize scales across the neck. 8 patterns × 12 roots.", live: true },
 	{ to: "/guitar/metronome", code: "MOD_04", name: "Metronome", tag: "TEMPO·LOCK", desc: "Web Audio click. 40–240 BPM, accented downbeat, tap tempo.", live: true },
-	{ to: "/guitar/exercises", code: "MOD_05", name: "Exercises", tag: "DRILLS", desc: "Coming soon — picking patterns and chord transitions.", live: false },
+	{ to: "https://www.all-guitar-chords.com/", code: "MOD_05", name: "Chord Finder", tag: "CHORDS!", desc: "Online Chord Finder", live: true },
 ];
 
 function GuitarToolCard({ t, accent }) {
