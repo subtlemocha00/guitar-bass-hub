@@ -1,0 +1,1 @@
+import{n as e,p as t}from"./Layout-DSQQJ5Jk.js";var n=e();function r({to:e,label:r=`Back`}){return(0,n.jsxs)(t,{to:e,className:`back-link`,children:[(0,n.jsx)(`span`,{"aria-hidden":`true`,children:`←`}),` `,r.toUpperCase()]})}export{r as t};
