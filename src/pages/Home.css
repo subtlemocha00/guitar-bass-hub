@@ -383,6 +383,11 @@
 	padding: 1rem 1.25rem 1.25rem;
 }
 
+.tools-col--shared {
+	grid-column: 1 / -1;
+	border-bottom: 1px solid var(--line-mid);
+}
+
 .tools-col--bass {
 	border-right: 1px solid var(--line-mid);
 }
@@ -392,6 +397,23 @@
 		border-right: none;
 		border-bottom: 1px solid var(--line-mid);
 	}
+}
+
+.tools-col--shared .tools-col-head {
+	color: var(--neon-cyan);
+}
+
+.tool-card--shared:hover {
+	border-color: var(--neon-cyan);
+	box-shadow: 0 0 12px color-mix(in srgb, var(--neon-cyan) 20%, transparent);
+}
+
+.tool-card--shared .tool-key {
+	color: var(--neon-cyan);
+}
+
+.tool-card--shared .tool-arrow {
+	color: var(--neon-cyan);
 }
 
 .tools-col-head {

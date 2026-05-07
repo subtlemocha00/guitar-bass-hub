@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import Layout from "../../components/Layout";
-import BackLink from "../../components/BackLink";
 import { playSound, SOUND_OPTIONS } from "./soundEngine";
 import "./Metronome.css";
 
 const LOOKAHEAD_MS = 25;
 const SCHEDULE_AHEAD_S = 0.1;
 
-function MetronomeView({ instrument }) {
+export function MetronomeView({ instrument }) {
 	const isBass = instrument === "bass";
 	const accentColor = isBass ? "var(--neon-amber)" : "var(--neon-magenta)";
 	const accentGlow = isBass ? "var(--neon-amber-glow)" : "var(--neon-magenta-glow)";
@@ -412,25 +410,3 @@ function MetronomeView({ instrument }) {
 	);
 }
 
-export default function MetronomePage({ instrument }) {
-	const back = instrument === "bass" ? "/bass" : "/guitar";
-	const label = instrument === "bass" ? "Back to Bass" : "Back to Guitar";
-	return (
-		<Layout theme={instrument}>
-			<div className="page">
-				<BackLink to={back} label={label} />
-				<header style={{ marginBottom: "1.5rem" }}>
-					<span className="eyebrow">// MOD_04 · {instrument.toUpperCase()} · METRONOME</span>
-					<h1 className="hero-title flicker" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
-						<span className="glitch" data-text="METRONOME">METRONOME</span>
-					</h1>
-					<p className="hero-subtitle">
-						Lock the pocket. Web Audio click with accented downbeat, tap-tempo
-						calibration and 40–300 BPM range.
-					</p>
-				</header>
-				<MetronomeView instrument={instrument} />
-			</div>
-		</Layout>
-	);
-}

@@ -70,18 +70,19 @@ function InstrumentDeck({ instrument, accent, accentVar, glowVar, count, learnin
 	);
 }
 
+const SHARED_TOOLS = [
+	{ key: "00", label: "Tuner", tag: "guitar + bass · pitch ref", path: "/tuner" },
+	{ key: "01", label: "Metronome", tag: "guitar + bass · tempo lock", path: "/metronome" },
+];
+
 const BASS_TOOLS = [
-	{ key: "01", label: "Songs", tag: "bass catalog", path: "/bass/songs" },
-	{ key: "02", label: "Metronome", tag: "metronome", path: "/bass/metronome" },
-	{ key: "03", label: "Tuner", tag: "pitch ref", path: "/bass/tuner" },
-	{ key: "04", label: "Fretboard", tag: "fretboard map", path: "/bass/fretboard" },
+	{ key: "02", label: "Songs", tag: "bass catalog", path: "/bass/songs" },
+	{ key: "03", label: "Fretboard", tag: "fretboard map", path: "/bass/fretboard" },
 ];
 
 const GUITAR_TOOLS = [
-	{ key: "05", label: "Songs", tag: "guitar catalog", path: "/guitar/songs" },
-	{ key: "06", label: "Metronome", tag: "metronome", path: "/guitar/metronome" },
-	{ key: "07", label: "Tuner", tag: "pitch ref", path: "/guitar/tuner" },
-	{ key: "08", label: "Fretboard", tag: "fretboard map", path: "/guitar/fretboard" },
+	{ key: "04", label: "Songs", tag: "guitar catalog", path: "/guitar/songs" },
+	{ key: "05", label: "Fretboard", tag: "fretboard map", path: "/guitar/fretboard" },
 ];
 
 function ToolCard({ keyLabel, label, tag, path, side }) {
@@ -113,6 +114,12 @@ function HomeTools() {
 			</button>
 			{open && (
 				<div className="tools-dropdown hud">
+					<div className="tools-col tools-col--shared">
+						<div className="tools-col-head">SHARED</div>
+						{SHARED_TOOLS.map((t) => (
+							<ToolCard key={t.path} keyLabel={t.key} label={t.label} tag={t.tag} path={t.path} side="shared" />
+						))}
+					</div>
 					<div className="tools-col tools-col--bass">
 						<div className="tools-col-head">BASS</div>
 						{BASS_TOOLS.map((t) => (

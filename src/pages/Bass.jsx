@@ -6,11 +6,9 @@ import { useUserSongs } from "../features/songs/useUserSongs";
 import "./Bass.css";
 
 const TOOLS = [
-	{ to: "/bass/tuner", code: "MOD_01", name: "Tuner", tag: "PITCH·LOCK", desc: "4-string EADG via mic input. Median-smoothed pitch detect.", live: true },
-	{ to: "/bass/songs", code: "MOD_02", name: "Songs", tag: "REPERTOIRE", desc: "Track planned, learning and completed bass tracks. Notes per song.", live: true },
-	{ to: "/bass/fretboard", code: "MOD_03", name: "Fretboard", tag: "SCALE·MAP", desc: "Visualize scales across the neck. 8 patterns × 12 roots.", live: true },
-	{ to: "/bass/metronome", code: "MOD_04", name: "Metronome", tag: "TEMPO·LOCK", desc: "Web Audio click. 40–300 BPM, accented downbeat, tap tempo.", live: true },
-	{ to: "https://www.bassbuzz.com/lessons/the-ultimate-bass-setup-guide", code: "MOD_05", name: "Bass Setup", tag: "SETUP", desc: "A well-made guide for setting up your bass.", live: true },
+	{ to: "/bass/songs", code: "MOD_01", name: "Songs", tag: "REPERTOIRE", desc: "Track planned, learning and completed bass tracks. Notes per song.", live: true },
+	{ to: "/bass/fretboard", code: "MOD_02", name: "Fretboard", tag: "SCALE·MAP", desc: "Visualize scales across the neck. 8 patterns × 12 roots.", live: true },
+	{ to: "https://www.bassbuzz.com/lessons/the-ultimate-bass-setup-guide", code: "MOD_03", name: "Bass Setup", tag: "SETUP", desc: "A well-made guide for setting up your bass.", live: true },
 ];
 
 function BassToolCard({ t, accent }) {
