@@ -3,12 +3,16 @@ import { useAuth } from "./features/auth/useAuth";
 import Home from "./pages/Home";
 import Tuner from "./pages/Tuner";
 import Metronome from "./pages/Metronome";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import Bass from "./pages/Bass";
 import BassSongs from "./pages/bass/BassSongs";
+import BassBackingTracks from "./pages/bass/BassBackingTracks";
 import BassScales from "./pages/bass/Scales";
 import BassFretboard from "./pages/bass/Fretboard";
 import Guitar from "./pages/Guitar";
 import GuitarSongs from "./pages/guitar/GuitarSongs";
+import GuitarBackingTracks from "./pages/guitar/GuitarBackingTracks";
 import GuitarExercises from "./pages/guitar/Exercises";
 import GuitarFretboard from "./pages/guitar/Fretboard";
 import "./App.css";
@@ -26,8 +30,12 @@ function App() {
 				<Route path="/tuner" element={<Tuner />} />
 				<Route path="/metronome" element={<Metronome />} />
 
+				<Route path="/blog" element={<Blog />} />
+				<Route path="/blog/:id" element={<BlogPost />} />
+
 				<Route path="/bass" element={<Bass />} />
 				<Route path="/bass/songs" element={<BassSongs />} />
+				<Route path="/bass/backing-tracks" element={<BassBackingTracks />} />
 				<Route path="/bass/tuner" element={<Navigate to="/tuner" replace />} />
 				<Route path="/bass/scales" element={<BassScales />} />
 				<Route path="/bass/fretboard" element={<BassFretboard />} />
@@ -35,6 +43,7 @@ function App() {
 
 				<Route path="/guitar" element={<Guitar />} />
 				<Route path="/guitar/songs" element={<GuitarSongs />} />
+				<Route path="/guitar/backing-tracks" element={<GuitarBackingTracks />} />
 				<Route path="/guitar/tuner" element={<Navigate to="/tuner" replace />} />
 				<Route path="/guitar/exercises" element={<GuitarExercises />} />
 				<Route path="/guitar/fretboard" element={<GuitarFretboard />} />

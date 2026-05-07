@@ -3,7 +3,9 @@ import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import { useSongStatus } from "../features/songs/useSongStatus";
 import { useUserSongs } from "../features/songs/useUserSongs";
+import blogPosts from "../data/blogPosts";
 import "./Home.css";
+import "./Blog.css";
 
 function Stat({ k, v, c, sub }) {
 	return (
@@ -211,6 +213,24 @@ function Home() {
 				</section>
 
 				<HomeTools />
+
+				<div className="home-blog-section">
+					<div className="section-stripe">
+						<span className="label">// JOURNAL</span>
+						<span className="rule" />
+						<span className="count">{String(blogPosts.length).padStart(2, "0")} ENTRIES</span>
+					</div>
+					<Link to="/blog" className="home-blog-cta hud">
+						<span className="hud-corner-tr" />
+						<span className="hud-corner-bl" />
+						<div className="home-blog-cta-main">
+							<span className="home-blog-cta-key">// FIELD_NOTES</span>
+							<span className="home-blog-cta-title">Blog</span>
+							<span className="home-blog-cta-tag">tone · technique · practice notes</span>
+						</div>
+						<span className="home-blog-cta-arrow">READ →</span>
+					</Link>
+				</div>
 			</div>
 		</Layout>
 	);

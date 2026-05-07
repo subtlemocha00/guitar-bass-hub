@@ -7,8 +7,9 @@ import "./Bass.css";
 
 const TOOLS = [
 	{ to: "/bass/songs", code: "MOD_01", name: "Songs", tag: "REPERTOIRE", desc: "Track planned, learning and completed bass tracks. Notes per song.", live: true },
-	{ to: "/bass/fretboard", code: "MOD_02", name: "Fretboard", tag: "SCALE·MAP", desc: "Visualize scales across the neck. 8 patterns × 12 roots.", live: true },
-	{ to: "https://www.bassbuzz.com/lessons/the-ultimate-bass-setup-guide", code: "MOD_03", name: "Bass Setup", tag: "SETUP", desc: "A well-made guide for setting up your bass.", live: true },
+	{ to: "/bass/backing-tracks", code: "MOD_02", name: "Backing Tracks", tag: "JAM·LOOP", desc: "Save jam tracks with BPM, key and genre. Open on YouTube to play along.", live: true },
+	{ to: "/bass/fretboard", code: "MOD_03", name: "Fretboard", tag: "SCALE·MAP", desc: "Visualize scales across the neck. 8 patterns × 12 roots.", live: true },
+	{ to: "https://www.bassbuzz.com/lessons/the-ultimate-bass-setup-guide", code: "MOD_04", name: "Bass Setup", tag: "SETUP", desc: "A well-made guide for setting up your bass.", live: true },
 ];
 
 function BassToolCard({ t, accent }) {

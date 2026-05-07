@@ -1,0 +1,131 @@
+.bt-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	padding: 0.95rem 1rem 0.85rem 1.1rem;
+	border: 1px solid var(--line-mid);
+	background: rgba(5, 2, 31, 0.45);
+	transition: border-color 0.15s, box-shadow 0.2s, transform 0.12s;
+}
+
+.bt-card::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 3px;
+	background: var(--neon-cyan);
+	box-shadow: 0 0 10px var(--neon-cyan-glow);
+}
+
+.bt-card:hover {
+	border-color: var(--neon-cyan);
+	box-shadow: 0 0 14px color-mix(in srgb, var(--neon-cyan) 22%, transparent);
+}
+
+.bt-card-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 0.75rem;
+}
+
+.bt-card-info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	min-width: 0;
+}
+
+.bt-card-title {
+	font-family: var(--font-display);
+	font-size: 1.1rem;
+	letter-spacing: 0.04em;
+	color: var(--text);
+	margin: 0;
+	line-height: 1.25;
+}
+
+.bt-card-artist {
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--text-mute);
+	margin: 0;
+}
+
+.bt-card-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.bt-card-pill {
+	font-family: var(--font-mono);
+	font-size: 0.65rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	border: 1px solid var(--line-mid);
+	padding: 0.22rem 0.5rem;
+	color: var(--text-dim);
+	white-space: nowrap;
+}
+
+.bt-card-pill--bpm { color: var(--neon-cyan); border-color: color-mix(in srgb, var(--neon-cyan) 35%, var(--line-mid)); }
+.bt-card-pill--key { color: var(--neon-lime); border-color: color-mix(in srgb, var(--neon-lime) 35%, var(--line-mid)); }
+.bt-card-pill--genre { color: var(--neon-amber); border-color: color-mix(in srgb, var(--neon-amber) 35%, var(--line-mid)); }
+
+.bt-card-notes {
+	font-size: 0.85rem;
+	line-height: 1.5;
+	color: var(--text-dim);
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+.bt-card-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin-top: 0.25rem;
+}
+
+.bt-card-btn {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	background: transparent;
+	border: 1px solid var(--line-mid);
+	color: var(--text-mute);
+	padding: 0.4rem 0.7rem;
+	cursor: pointer;
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.bt-card-btn:hover {
+	color: var(--text);
+	border-color: var(--neon-cyan);
+}
+
+.bt-card-btn--open {
+	color: var(--bg-0);
+	background: var(--neon-cyan);
+	border-color: var(--neon-cyan);
+}
+.bt-card-btn--open:hover {
+	color: var(--bg-0);
+	box-shadow: 0 0 10px var(--neon-cyan-glow);
+}
+
+.bt-card-btn--remove:hover {
+	color: var(--neon-magenta);
+	border-color: var(--neon-magenta);
+}
