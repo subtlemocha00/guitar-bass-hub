@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import SongCard from "./SongCard";
 import { useSongStatus } from "./useSongStatus";
 import "./SongList.css";
@@ -9,7 +9,29 @@ const GROUPS = [
 	{ key: "completed", label: "Completed" },
 ];
 
-function SongList({ songs, filter = "all", onRemove, onEdit }) {
+function compareSongs(a, b, sortKey) {
+	if (sortKey === "alphabetical") {
+		return (a.title || "").localeCompare(b.title || "", undefined, {
+			sensitivity: "base",
+		});
+	}
+	if (sortKey === "artist") {
+		const ah = a.artist || "";
+		const bh = b.artist || "";
+		if (!ah && !bh) return 0;
+		if (!ah) return 1;
+		if (!bh) return -1;
+		return ah.localeCompare(bh, undefined, { sensitivity: "base" });
+	}
+	const at = typeof a.createdAt === "number" ? a.createdAt : null;
+	const bt = typeof b.createdAt === "number" ? b.createdAt : null;
+	if (at == null && bt == null) return 0;
+	if (at == null) return 1;
+	if (bt == null) return -1;
+	return bt - at;
+}
+
+function SongList({ songs, filter = "all", sort = "recent", onRemove, onEdit }) {
 	const { statuses, updateStatus } = useSongStatus(songs);
 	const [openSongId, setOpenSongId] = useState(null);
 
@@ -17,10 +39,17 @@ function SongList({ songs, filter = "all", onRemove, onEdit }) {
 		setOpenSongId((prev) => (prev === songId ? null : songId));
 	};
 
-	const grouped = GROUPS.map((group) => ({
-		...group,
-		songs: songs.filter((s) => statuses[s.id] === group.key),
-	}));
+	const grouped = useMemo(
+		() =>
+			GROUPS.map((group) => ({
+				...group,
+				songs: songs
+					.filter((s) => statuses[s.id] === group.key)
+					.slice()
+					.sort((a, b) => compareSongs(a, b, sort)),
+			})),
+		[songs, statuses, sort]
+	);
 
 	const visible =
 		filter === "all" ? grouped : grouped.filter((g) => g.key === filter);

@@ -1,21 +1,60 @@
+import { lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./features/auth/useAuth";
 import Home from "./pages/Home";
-import Tuner from "./pages/Tuner";
-import Metronome from "./pages/Metronome";
-import Blog from "./pages/Blog";
-import BlogPost from "./pages/BlogPost";
-import Bass from "./pages/Bass";
-import BassSongs from "./pages/bass/BassSongs";
-import BassBackingTracks from "./pages/bass/BassBackingTracks";
-import BassScales from "./pages/bass/Scales";
-import BassFretboard from "./pages/bass/Fretboard";
-import Guitar from "./pages/Guitar";
-import GuitarSongs from "./pages/guitar/GuitarSongs";
-import GuitarBackingTracks from "./pages/guitar/GuitarBackingTracks";
-import GuitarExercises from "./pages/guitar/Exercises";
-import GuitarFretboard from "./pages/guitar/Fretboard";
 import "./App.css";
+
+const Tuner = lazy(() => import("./pages/Tuner"));
+const Metronome = lazy(() => import("./pages/Metronome"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+const Bass = lazy(() => import("./pages/Bass"));
+const BassSongs = lazy(() => import("./pages/bass/BassSongs"));
+const BassBackingTracks = lazy(() => import("./pages/bass/BassBackingTracks"));
+const BassScales = lazy(() => import("./pages/bass/Scales"));
+const BassFretboard = lazy(() => import("./pages/bass/Fretboard"));
+const Guitar = lazy(() => import("./pages/Guitar"));
+const GuitarSongs = lazy(() => import("./pages/guitar/GuitarSongs"));
+const GuitarBackingTracks = lazy(() => import("./pages/guitar/GuitarBackingTracks"));
+const GuitarExercises = lazy(() => import("./pages/guitar/Exercises"));
+const GuitarFretboard = lazy(() => import("./pages/guitar/Fretboard"));
+
+function RouteFallback() {
+	return (
+		<div
+			style={{
+				minHeight: "60vh",
+				display: "flex",
+				alignItems: "center",
+				justifyContent: "center",
+				fontFamily: "var(--font-mono)",
+				fontSize: "0.78rem",
+				letterSpacing: "0.28em",
+				textTransform: "uppercase",
+				color: "var(--text-mute)",
+			}}
+		>
+			<span
+				style={{
+					display: "inline-flex",
+					alignItems: "center",
+					gap: "0.6rem",
+				}}
+			>
+				<span
+					style={{
+						width: 8,
+						height: 8,
+						borderRadius: "50%",
+						background: "var(--neon-cyan)",
+						boxShadow: "0 0 10px var(--neon-cyan-glow)",
+					}}
+				/>
+				LOADING MODULE
+			</span>
+		</div>
+	);
+}
 
 function App() {
 	const { loading } = useAuth();
@@ -24,31 +63,33 @@ function App() {
 
 	return (
 		<HashRouter>
-			<Routes>
-				<Route path="/" element={<Home />} />
+			<Suspense fallback={<RouteFallback />}>
+				<Routes>
+					<Route path="/" element={<Home />} />
 
-				<Route path="/tuner" element={<Tuner />} />
-				<Route path="/metronome" element={<Metronome />} />
+					<Route path="/tuner" element={<Tuner />} />
+					<Route path="/metronome" element={<Metronome />} />
 
-				<Route path="/blog" element={<Blog />} />
-				<Route path="/blog/:id" element={<BlogPost />} />
+					<Route path="/blog" element={<Blog />} />
+					<Route path="/blog/:id" element={<BlogPost />} />
 
-				<Route path="/bass" element={<Bass />} />
-				<Route path="/bass/songs" element={<BassSongs />} />
-				<Route path="/bass/backing-tracks" element={<BassBackingTracks />} />
-				<Route path="/bass/tuner" element={<Navigate to="/tuner" replace />} />
-				<Route path="/bass/scales" element={<BassScales />} />
-				<Route path="/bass/fretboard" element={<BassFretboard />} />
-				<Route path="/bass/metronome" element={<Navigate to="/metronome" replace />} />
+					<Route path="/bass" element={<Bass />} />
+					<Route path="/bass/songs" element={<BassSongs />} />
+					<Route path="/bass/backing-tracks" element={<BassBackingTracks />} />
+					<Route path="/bass/tuner" element={<Navigate to="/tuner" replace />} />
+					<Route path="/bass/scales" element={<BassScales />} />
+					<Route path="/bass/fretboard" element={<BassFretboard />} />
+					<Route path="/bass/metronome" element={<Navigate to="/metronome" replace />} />
 
-				<Route path="/guitar" element={<Guitar />} />
-				<Route path="/guitar/songs" element={<GuitarSongs />} />
-				<Route path="/guitar/backing-tracks" element={<GuitarBackingTracks />} />
-				<Route path="/guitar/tuner" element={<Navigate to="/tuner" replace />} />
-				<Route path="/guitar/exercises" element={<GuitarExercises />} />
-				<Route path="/guitar/fretboard" element={<GuitarFretboard />} />
-				<Route path="/guitar/metronome" element={<Navigate to="/metronome" replace />} />
-			</Routes>
+					<Route path="/guitar" element={<Guitar />} />
+					<Route path="/guitar/songs" element={<GuitarSongs />} />
+					<Route path="/guitar/backing-tracks" element={<GuitarBackingTracks />} />
+					<Route path="/guitar/tuner" element={<Navigate to="/tuner" replace />} />
+					<Route path="/guitar/exercises" element={<GuitarExercises />} />
+					<Route path="/guitar/fretboard" element={<GuitarFretboard />} />
+					<Route path="/guitar/metronome" element={<Navigate to="/metronome" replace />} />
+				</Routes>
+			</Suspense>
 		</HashRouter>
 	);
 }

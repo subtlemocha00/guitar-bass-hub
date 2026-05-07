@@ -281,3 +281,157 @@
 	display: grid;
 	gap: 0.25rem;
 }
+
+/* Subdivision pulse strip */
+.metro-subrow {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 1.25rem;
+	margin-top: 0.85rem;
+}
+
+.metro-subgroup {
+	display: flex;
+	gap: 0.4rem;
+	align-items: center;
+}
+
+.metro-subdot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--line-mid);
+	transition: background 0.05s, box-shadow 0.05s, transform 0.05s;
+}
+
+.metro-subdot--main {
+	width: 8px;
+	height: 8px;
+}
+
+.metro-subdot--active {
+	background: var(--neon-cyan);
+	box-shadow: 0 0 8px var(--neon-cyan-glow);
+	transform: scale(1.4);
+}
+
+.metro-dot--muted {
+	opacity: 0.55;
+}
+
+/* Training mode banners */
+.metro-train-banner {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	justify-content: center;
+	margin-top: 0.75rem;
+}
+
+.metro-train-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	padding: 0.32rem 0.6rem;
+	border: 1px solid var(--line-mid);
+	color: var(--text-dim);
+}
+
+.metro-train-chip .dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+	box-shadow: 0 0 8px currentColor;
+}
+
+.metro-train-chip--gap {
+	color: var(--neon-amber);
+	border-color: color-mix(in srgb, var(--neon-amber) 45%, var(--line-mid));
+}
+
+.metro-train-chip--random {
+	color: var(--neon-magenta);
+	border-color: color-mix(in srgb, var(--neon-magenta) 45%, var(--line-mid));
+}
+
+.metro-train-chip--muted {
+	color: var(--bg-0);
+	background: var(--neon-magenta);
+	border-color: var(--neon-magenta);
+	animation: metro-mute-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes metro-mute-pulse {
+	0%, 100% { box-shadow: 0 0 6px var(--neon-magenta-glow); }
+	50% { box-shadow: 0 0 14px var(--neon-magenta-glow); }
+}
+
+/* Gap training selector grid — stacked so labels/dropdowns never overflow
+   the narrow config side panel. */
+.metro-train-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 0.5rem;
+}
+
+.fb-btn:disabled {
+	cursor: not-allowed;
+}
+
+/* Collapsible section headers */
+.metro-collapse-header {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background: transparent;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+	font: inherit;
+	color: inherit;
+	text-align: left;
+	transition: color 0.15s;
+}
+
+.metro-collapse-header:hover .metro-collapse-label {
+	color: var(--text);
+}
+
+.metro-collapse-header:hover .metro-collapse-chevron {
+	color: var(--neon-cyan);
+}
+
+.metro-collapse-header:focus-visible {
+	outline: 1px dashed var(--neon-cyan);
+	outline-offset: 4px;
+}
+
+.metro-collapse-label {
+	margin: 0;
+}
+
+.metro-collapse-chevron {
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+	color: var(--text-mute);
+	letter-spacing: 0;
+	transition: color 0.15s;
+}
+
+.metro-collapse-body {
+	margin-top: 0.6rem;
+}
+
+/* Read-only sections relocated under the main controls — left-aligned so the
+   FEEL rows and ACCENTS row don't get centered by the parent .metro-main. */
+.metro-main-aux {
+	text-align: left;
+	margin-top: 1.5rem;
+}

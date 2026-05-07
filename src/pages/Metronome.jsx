@@ -1,18 +1,10 @@
-import { useState } from "react";
 import Layout from "../components/Layout";
 import BackLink from "../components/BackLink";
 import { MetronomeView } from "../features/metronome/Metronome";
 
-const INSTRUMENTS = [
-	{ id: "guitar", label: "GUITAR", btnClass: "btn btn--magenta" },
-	{ id: "bass", label: "BASS", btnClass: "btn btn--amber" },
-];
-
 function MetronomePage() {
-	const [instrument, setInstrument] = useState("guitar");
-
 	return (
-		<Layout theme={instrument}>
+		<Layout>
 			<div className="page">
 				<BackLink to="/" label="Back to Hub" />
 				<header style={{ marginBottom: "1.5rem" }}>
@@ -26,44 +18,7 @@ function MetronomePage() {
 					</p>
 				</header>
 
-				<div
-					className="hud"
-					style={{
-						display: "flex",
-						alignItems: "center",
-						gap: "1rem",
-						padding: "0.85rem 1rem",
-						marginBottom: "1.25rem",
-						fontFamily: "var(--font-mono)",
-					}}
-				>
-					<span className="hud-corner-tr" />
-					<span className="hud-corner-bl" />
-					<span
-						style={{
-							fontSize: "0.68rem",
-							letterSpacing: "0.22em",
-							textTransform: "uppercase",
-							color: "var(--text-mute)",
-						}}
-					>
-						// INSTRUMENT
-					</span>
-					<div style={{ display: "inline-flex", gap: "0.5rem" }}>
-						{INSTRUMENTS.map((opt) => (
-							<button
-								key={opt.id}
-								type="button"
-								className={instrument === opt.id ? opt.btnClass : "btn"}
-								onClick={() => setInstrument(opt.id)}
-							>
-								{opt.label}
-							</button>
-						))}
-					</div>
-				</div>
-
-				<MetronomeView instrument={instrument} />
+				<MetronomeView />
 			</div>
 		</Layout>
 	);

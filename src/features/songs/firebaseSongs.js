@@ -5,6 +5,13 @@ const songCollection = createUserCollection({
 	allowedFields: ["title", "artist", "tabUrl", "youtubeUrl", "status", "note"],
 	mapDoc: (d) => {
 		const data = d.data();
+		const raw = data.createdAt;
+		let createdAt = null;
+		if (raw && typeof raw.toMillis === "function") {
+			createdAt = raw.toMillis();
+		} else if (typeof raw === "number") {
+			createdAt = raw;
+		}
 		return {
 			id: d.id,
 			title: data.title ?? "",
@@ -14,7 +21,8 @@ const songCollection = createUserCollection({
 			instrument: data.instrument ?? null,
 			status: data.status ?? "planned",
 			note: data.note ?? "",
-			isUserCreated: !!data.createdAt,
+			createdAt,
+			isUserCreated: createdAt != null,
 		};
 	},
 });

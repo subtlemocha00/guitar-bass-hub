@@ -436,10 +436,10 @@ const PLAYERS = {
 	tambourine: playTambourine
 };
 
-export function playSound(type, ctx, time, accent = false) {
+export function playSound(type, ctx, time, accent = false, gainScale = 1) {
 	if (!ctx) return;
 	const player = PLAYERS[type] || PLAYERS.click;
-	const gain = accent ? 0.22 : 0.12;
+	const gain = (accent ? 0.22 : 0.12) * gainScale;
 
 	// Pass the accent boolean down to the player so they can adjust pitch/tone
 	player(ctx, time, gain, accent);
