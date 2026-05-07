@@ -1,0 +1,1 @@
+import{n as e,t}from"./Layout-DSQQJ5Jk.js";import{t as n}from"./BackLink-D_MYGRI0.js";var r=e();function i(){return(0,r.jsx)(t,{theme:`guitar`,children:(0,r.jsxs)(`div`,{className:`page`,children:[(0,r.jsx)(n,{to:`/guitar`,label:`Back to Guitar`}),(0,r.jsx)(`div`,{className:`empty-msg`,children:`GUITAR · EXERCISES · COMING SOON`})]})})}export{i as default};

@@ -1,0 +1,1 @@
+import{n as e}from"./Layout-DSQQJ5Jk.js";import{t}from"./Fretboard-Chks72BW.js";var n=e();function r(){return(0,n.jsx)(t,{instrument:`guitar`})}export{r as default};

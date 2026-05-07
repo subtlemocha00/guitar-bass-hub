@@ -1,0 +1,1 @@
+import{n as e}from"./Layout-DSQQJ5Jk.js";import{t}from"./BackingTracksPage-DD-T8evs.js";var n=e();function r(){return(0,n.jsx)(t,{instrument:`bass`})}export{r as default};
