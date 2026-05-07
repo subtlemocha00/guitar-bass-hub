@@ -151,6 +151,27 @@ function MetronomeView({ instrument }) {
 		};
 	}, [running]);
 
+	const togglePlayback = () => setRunning((r) => !r);
+
+	useEffect(() => {
+		function onKeyDown(e) {
+			if (e.code !== "Space" && e.key !== " ") return;
+			const t = e.target;
+			if (t && (
+				t.tagName === "INPUT" ||
+				t.tagName === "TEXTAREA" ||
+				t.tagName === "SELECT" ||
+				t.isContentEditable
+			)) {
+				return;
+			}
+			e.preventDefault();
+			togglePlayback();
+		}
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, []);
+
 	const tapTimes = useRef([]);
 	const tap = () => {
 		const now = performance.now();
@@ -175,7 +196,7 @@ function MetronomeView({ instrument }) {
 		});
 	}
 
-	const presets = [60, 80, 100, 120, 140, 160, 180, 220, 260, 300];
+	const presets = [40, 60, 80, 100, 120, 140, 160, 180, 220, 260, 300];
 	const accentLabel =
 		accentPattern
 			.map((a, i) => (a ? i + 1 : null))
@@ -237,7 +258,7 @@ function MetronomeView({ instrument }) {
 						onChange={(e) => setBpm(Number(e.target.value))}
 						className="metro-slider"
 					/>
-					<div className="metro-slider-axis"><span>40</span><span>120</span><span>300</span></div>
+					<div className="metro-slider-axis"><span>40</span><span>170</span><span>300</span></div>
 				</div>
 
 				<div className="metro-presets">
@@ -256,7 +277,7 @@ function MetronomeView({ instrument }) {
 					<button
 						className={running ? "btn btn--magenta" : "btn btn--solid"}
 						style={{ minWidth: "140px", justifyContent: "center" }}
-						onClick={() => setRunning((r) => !r)}
+						onClick={togglePlayback}
 					>
 						{running ? "■ STOP" : "▶ START"}
 					</button>
@@ -405,7 +426,7 @@ export default function MetronomePage({ instrument }) {
 					</h1>
 					<p className="hero-subtitle">
 						Lock the pocket. Web Audio click with accented downbeat, tap-tempo
-						calibration and 40–240 BPM range.
+						calibration and 40–300 BPM range.
 					</p>
 				</header>
 				<MetronomeView instrument={instrument} />

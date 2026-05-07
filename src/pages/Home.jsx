@@ -96,7 +96,7 @@ function ToolCard({ keyLabel, label, tag, path, side }) {
 }
 
 function HomeTools() {
-	const [open, setOpen] = useState(false);
+	const [open, setOpen] = useState(true);
 	return (
 		<div className="home-tools-section">
 			<button
@@ -161,13 +161,13 @@ function Home() {
 							<span className="seg"><span className="dot dot--m" /> SIGNAL_LOCK</span>
 						</div>
 						<h1 className="hero-title flicker">
-							<span data-text="PRACTICE" className="glitch">PRACTICE</span>
+							<span data-text="GUITAR + BASS" className="glitch">GUITAR + BASS</span>
 							<br />
-							<span className="accent">/</span><span className="accent-m">/</span> HUB
+							<span className="accent">/</span><span className="accent-m">/ </span><span data-text="HUB" className="glitch">HUB</span>
 						</h1>
 						<p className="hero-subtitle">
 							Your low-latency rig for learning songs, locking into tempo, and
-							mapping the fretboard. Plug in, tune up, route signal, run reps.
+							mapping the fretboard. Tune up, map the neck, and drill until automatic.
 						</p>
 						<div className="hero-strip">
 							<Stat k="Catalog" v={totalSongs} c="" sub="songs ready" />
