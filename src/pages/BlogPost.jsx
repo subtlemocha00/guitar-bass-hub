@@ -26,6 +26,22 @@ function renderBlock(block, i) {
 					{block.caption && <figcaption>{block.caption}</figcaption>}
 				</figure>
 			);
+		case "link":
+			if (!block.youtubeId) return null;
+			return (
+				<figure key={i} className="blog-post-video">
+					<div className="blog-post-video-frame">
+						<iframe
+							src={`https://www.youtube-nocookie.com/embed/${block.youtubeId}`}
+							title={block.title || "YouTube video"}
+							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+							allowFullScreen
+							loading="lazy"
+						/>
+					</div>
+					{block.title && <figcaption>{block.title}</figcaption>}
+				</figure>
+			);
 		default:
 			return null;
 	}

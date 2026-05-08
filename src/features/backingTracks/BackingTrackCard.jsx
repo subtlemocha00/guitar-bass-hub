@@ -1,6 +1,6 @@
 import "./BackingTrackCard.css";
 
-function BackingTrackCard({ track, onEdit, onRemove }) {
+function BackingTrackCard({ track, videoOpen, onToggleVideo, onEdit, onRemove }) {
 	const handleRemove = () => {
 		if (!onRemove) return;
 		const ok = window.confirm(
@@ -37,15 +37,16 @@ function BackingTrackCard({ track, onEdit, onRemove }) {
 			{track.notes && <p className="bt-card-notes">{track.notes}</p>}
 
 			<div className="bt-card-actions">
-				{track.youtubeUrl && (
-					<a
+				{track.youtubeId && onToggleVideo && (
+					<button
+						type="button"
 						className="bt-card-btn bt-card-btn--open"
-						href={track.youtubeUrl}
-						target="_blank"
-						rel="noopener noreferrer"
+						onClick={onToggleVideo}
+						aria-expanded={!!videoOpen}
 					>
-						▶ OPEN ON YOUTUBE
-					</a>
+						<span aria-hidden="true">{videoOpen ? "▾" : "▸"}</span>
+						{videoOpen ? "HIDE VIDEO" : "SHOW VIDEO"}
+					</button>
 				)}
 				{showActions && (
 					<>
@@ -66,6 +67,18 @@ function BackingTrackCard({ track, onEdit, onRemove }) {
 					</>
 				)}
 			</div>
+
+			{track.youtubeId && videoOpen && (
+				<div className="bt-card-video">
+					<iframe
+						src={`https://www.youtube-nocookie.com/embed/${track.youtubeId}`}
+						title={`${track.title} — ${track.artist}`}
+						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+						allowFullScreen
+						loading="lazy"
+					/>
+				</div>
+			)}
 		</article>
 	);
 }
