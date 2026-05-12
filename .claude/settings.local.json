@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\Users\\\\Owner\\\\Desktop\\\\GettingStarted\\\\new\\\\code\\\\repos\\\\practice-hub\\\\public\" | Out-Null; Add-Type -AssemblyName System.Drawing; $src = \"c:\\\\Users\\\\Owner\\\\Desktop\\\\GettingStarted\\\\new\\\\code\\\\repos\\\\practice-hub\\\\src\\\\assets\\\\Sisyphus.png\"; $img = [System.Drawing.Image]::FromFile\\($src\\); \"Source: $\\($img.Width\\)x$\\($img.Height\\)\")",
+      "Bash(npm install *)",
+      "PowerShell($env:VERCEL = \"1\"; npm run build 2>&1 | Select-Object -Last 60)",
+      "PowerShell($env:VERCEL = \"1\"; npm run build 2>&1 | Select-Object -Last 10)",
+      "PowerShell($env:VERCEL = \"1\"; npm run build 2>&1 | Select-Object -Last 40)",
+      "PowerShell($env:VERCEL = \"1\"; npm run build 2>&1 | Select-Object -Last 15)"
+    ]
+  }
+}
