@@ -421,22 +421,12 @@ a:hover {
 	border: 1px solid var(--line-mid);
 	background: var(--surface);
 }
-<<<<<<< HEAD
 @media (max-width: 760px) {
 	.hero-strip { grid-template-columns: repeat(2, 1fr); }
 	.strip-cell:nth-child(2) { border-right: none; }
 	.strip-cell:nth-child(1),
 	.strip-cell:nth-child(2) { border-bottom: 1px solid var(--line-mid); }
 }
-=======
-
-@media (max-width: 760px) {
-	.hero-strip {
-		grid-template-columns: repeat(2, 1fr);
-	}
-}
-
->>>>>>> 8badb56be6056c8e28cb2b671263c8b8b83610a0
 .strip-cell {
 	padding: 1rem 1.2rem;
 	border-right: 1px solid var(--line-mid);

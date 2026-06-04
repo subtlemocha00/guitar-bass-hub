@@ -283,7 +283,6 @@
 	gap: 0.25rem;
 }
 
-<<<<<<< HEAD
 @media (max-width: 540px) {
 	.metro-main {
 		padding: 1.5rem 1rem;
@@ -302,7 +301,7 @@
 		gap: 0.4rem;
 	}
 }
-=======
+
 /* Subdivision pulse strip */
 .metro-subrow {
 	display: flex;
@@ -393,8 +392,7 @@
 	50% { box-shadow: 0 0 14px var(--neon-magenta-glow); }
 }
 
-/* Gap training selector grid — stacked so labels/dropdowns never overflow
-   the narrow config side panel. */
+/* Gap training selector grid */
 .metro-train-grid {
 	display: grid;
 	grid-template-columns: 1fr;
@@ -450,10 +448,7 @@
 	margin-top: 0.6rem;
 }
 
-/* Read-only sections relocated under the main controls — left-aligned so the
-   FEEL rows and ACCENTS row don't get centered by the parent .metro-main. */
 .metro-main-aux {
 	text-align: left;
 	margin-top: 1.5rem;
 }
->>>>>>> 8badb56be6056c8e28cb2b671263c8b8b83610a0
