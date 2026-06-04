@@ -36,6 +36,7 @@
 	justify-content: center;
 	gap: 1.25rem;
 	margin-top: 2rem;
+	flex-wrap: wrap;
 }
 .metro-dot {
 	width: 26px; height: 26px;
@@ -220,4 +221,23 @@
 .metro-ramp-grid {
 	display: grid;
 	gap: 0.25rem;
+}
+
+@media (max-width: 540px) {
+	.metro-main {
+		padding: 1.5rem 1rem;
+	}
+	.metro-dots {
+		gap: 0.75rem;
+	}
+	.metro-dot {
+		width: 22px;
+		height: 22px;
+	}
+	.metro-bpm {
+		font-size: clamp(5rem, 18vw, 9rem);
+	}
+	.metro-controls {
+		gap: 0.4rem;
+	}
 }

@@ -45,3 +45,12 @@
 .songs-counters .cnt--c { color: var(--neon-cyan); }
 .songs-counters .cnt--m { color: var(--neon-magenta); }
 .songs-counters .cnt--l { color: var(--neon-lime); }
+
+@media (max-width: 480px) {
+	.songs-header {
+		padding: 1.25rem;
+	}
+	.songs-title {
+		font-size: clamp(1.5rem, 5vw, 2.5rem);
+	}
+}

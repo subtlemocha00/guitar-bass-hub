@@ -101,6 +101,7 @@
 @media (max-width: 760px) {
 	.tsb-cell { border-bottom: 1px solid var(--line-mid); }
 	.tsb-cell:nth-child(2n) { border-right: none; }
+	.tsb-cell:last-child { border-bottom: none; }
 }
 .tsb-cell .k {
 	font-size: 0.65rem; letter-spacing: 0.22em;

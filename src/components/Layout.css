@@ -90,3 +90,16 @@
 	text-transform: uppercase;
 	margin-top: auto;
 }
+
+@media (max-width: 480px) {
+	.topbar {
+		gap: 0.75rem;
+	}
+	.topbar-clock {
+		display: none;
+	}
+	.topbar-bread {
+		font-size: 0.7rem;
+		letter-spacing: 0.04em;
+	}
+}

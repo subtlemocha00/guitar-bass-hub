@@ -187,6 +187,7 @@ a:hover { color: var(--neon-magenta); }
 .glitch {
 	position: relative;
 	color: var(--text);
+	display: inline-block;
 }
 .glitch::before, .glitch::after {
 	content: attr(data-text);
@@ -259,6 +260,11 @@ a:hover { color: var(--neon-magenta); }
 	font-size: 1rem;
 	max-width: 56ch;
 }
+@media (max-width: 400px) {
+	.hero-title {
+		font-size: clamp(1.9rem, 7vw, 2.6rem);
+	}
+}
 
 .hero-strip {
 	margin-top: 2rem;
@@ -268,7 +274,12 @@ a:hover { color: var(--neon-magenta); }
 	border: 1px solid var(--line-mid);
 	background: var(--surface);
 }
-@media (max-width: 760px) { .hero-strip { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 760px) {
+	.hero-strip { grid-template-columns: repeat(2, 1fr); }
+	.strip-cell:nth-child(2) { border-right: none; }
+	.strip-cell:nth-child(1),
+	.strip-cell:nth-child(2) { border-bottom: 1px solid var(--line-mid); }
+}
 .strip-cell {
 	padding: 1rem 1.2rem;
 	border-right: 1px solid var(--line-mid);
