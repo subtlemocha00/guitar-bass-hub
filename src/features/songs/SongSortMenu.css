@@ -1,0 +1,33 @@
+.song-sort {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: var(--font-mono);
+	margin: 0 0 1.25rem;
+}
+
+.song-sort-label {
+	font-size: 0.7rem;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--text-mute);
+}
+
+.song-sort-select {
+	background: rgba(5, 2, 31, 0.55);
+	border: 1px solid var(--line-mid);
+	color: var(--text);
+	font: inherit;
+	font-size: 0.78rem;
+	letter-spacing: 0.08em;
+	padding: 0.5rem 0.7rem;
+	cursor: pointer;
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.song-sort-select:hover,
+.song-sort-select:focus {
+	outline: none;
+	border-color: var(--neon-cyan);
+	box-shadow: 0 0 8px var(--neon-cyan-glow);
+}

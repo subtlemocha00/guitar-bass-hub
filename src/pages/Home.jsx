@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
-import { bassSongs } from "../data/bassSongs";
-import { guitarSongs } from "../data/guitarSongs";
 import { useSongStatus } from "../features/songs/useSongStatus";
+import { useUserSongs } from "../features/songs/useUserSongs";
+import blogPosts from "../data/blogPosts";
 import "./Home.css";
+import "./Blog.css";
 
 function Stat({ k, v, c, sub }) {
 	return (
@@ -71,18 +72,19 @@ function InstrumentDeck({ instrument, accent, accentVar, glowVar, count, learnin
 	);
 }
 
+const SHARED_TOOLS = [
+	{ key: "00", label: "Tuner", tag: "guitar + bass · pitch ref", path: "/tuner" },
+	{ key: "01", label: "Metronome", tag: "guitar + bass · tempo lock", path: "/metronome" },
+];
+
 const BASS_TOOLS = [
-	{ key: "01", label: "Songs", tag: "bass catalog", path: "/bass/songs" },
-	{ key: "02", label: "Metronome", tag: "metronome", path: "/bass/metronome" },
-	{ key: "03", label: "Tuner", tag: "pitch ref", path: "/bass/tuner" },
-	{ key: "04", label: "Scales", tag: "fretboard map", path: "/bass/scales" },
+	{ key: "02", label: "Songs", tag: "bass catalog", path: "/bass/songs" },
+	{ key: "03", label: "Fretboard", tag: "fretboard map", path: "/bass/fretboard" },
 ];
 
 const GUITAR_TOOLS = [
-	{ key: "05", label: "Songs", tag: "guitar catalog", path: "/guitar/songs" },
-	{ key: "06", label: "Metronome", tag: "metronome", path: "/guitar/metronome" },
-	{ key: "07", label: "Tuner", tag: "pitch ref", path: "/guitar/tuner" },
-	{ key: "08", label: "Exercises", tag: "technique", path: "/guitar/exercises" },
+	{ key: "04", label: "Songs", tag: "guitar catalog", path: "/guitar/songs" },
+	{ key: "05", label: "Fretboard", tag: "fretboard map", path: "/guitar/fretboard" },
 ];
 
 function ToolCard({ keyLabel, label, tag, path, side }) {
@@ -97,7 +99,7 @@ function ToolCard({ keyLabel, label, tag, path, side }) {
 }
 
 function HomeTools() {
-	const [open, setOpen] = useState(false);
+	const [open, setOpen] = useState(true);
 	return (
 		<div className="home-tools-section">
 			<button
@@ -114,6 +116,12 @@ function HomeTools() {
 			</button>
 			{open && (
 				<div className="tools-dropdown hud">
+					<div className="tools-col tools-col--shared">
+						<div className="tools-col-head">SHARED</div>
+						{SHARED_TOOLS.map((t) => (
+							<ToolCard key={t.path} keyLabel={t.key} label={t.label} tag={t.tag} path={t.path} side="shared" />
+						))}
+					</div>
 					<div className="tools-col tools-col--bass">
 						<div className="tools-col-head">BASS</div>
 						{BASS_TOOLS.map((t) => (
@@ -133,16 +141,17 @@ function HomeTools() {
 }
 
 function Home() {
-	const bass = useSongStatus(bassSongs);
-	const guitar = useSongStatus(guitarSongs);
+	const { songs: bassSongs } = useUserSongs("bass");
+	const { songs: guitarSongs } = useUserSongs("guitar");
+	const { statuses } = useSongStatus([...bassSongs, ...guitarSongs]);
 
-	const stat = (statuses, value) =>
-		Object.values(statuses).filter((s) => s === value).length;
+	const countBy = (list, value) =>
+		list.filter((s) => statuses[s.id] === value).length;
 
-	const bassLearning = stat(bass.statuses, "learning");
-	const bassDone = stat(bass.statuses, "completed");
-	const gtrLearning = stat(guitar.statuses, "learning");
-	const gtrDone = stat(guitar.statuses, "completed");
+	const bassLearning = countBy(bassSongs, "learning");
+	const bassDone = countBy(bassSongs, "completed");
+	const gtrLearning = countBy(guitarSongs, "learning");
+	const gtrDone = countBy(guitarSongs, "completed");
 
 	const totalSongs = bassSongs.length + guitarSongs.length;
 	const totalLearning = bassLearning + gtrLearning;
@@ -161,13 +170,13 @@ function Home() {
 							<span className="seg"><span className="dot dot--m" /> SIGNAL_LOCK</span>
 						</div>
 						<h1 className="hero-title flicker">
-							<span data-text="PRACTICE" className="glitch">PRACTICE</span>
+							<span data-text="GUITAR + BASS" className="glitch">GUITAR + BASS</span>
 							<br />
-							<span className="accent">/</span><span className="accent-m">/</span> HUB
+							<span className="accent">/</span><span className="accent-m">/ </span><span data-text="HUB" className="glitch">HUB</span>
 						</h1>
 						<p className="hero-subtitle">
 							Your low-latency rig for learning songs, locking into tempo, and
-							mapping the fretboard. Plug in, tune up, route signal, run reps.
+							mapping the fretboard. Tune up, map the neck, and drill until automatic.
 						</p>
 						<div className="hero-strip">
 							<Stat k="Catalog" v={totalSongs} c="" sub="songs ready" />
@@ -204,6 +213,24 @@ function Home() {
 				</section>
 
 				<HomeTools />
+
+				<div className="home-blog-section">
+					<div className="section-stripe">
+						<span className="label">// JOURNAL</span>
+						<span className="rule" />
+						<span className="count">{String(blogPosts.length).padStart(2, "0")} ENTRIES</span>
+					</div>
+					<Link to="/blog" className="home-blog-cta hud">
+						<span className="hud-corner-tr" />
+						<span className="hud-corner-bl" />
+						<div className="home-blog-cta-main">
+							<span className="home-blog-cta-key">// FIELD_NOTES</span>
+							<span className="home-blog-cta-title">Blog</span>
+							<span className="home-blog-cta-tag">tone · technique · practice notes</span>
+						</div>
+						<span className="home-blog-cta-arrow">READ →</span>
+					</Link>
+				</div>
 			</div>
 		</Layout>
 	);

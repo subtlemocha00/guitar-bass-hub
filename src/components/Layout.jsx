@@ -38,7 +38,7 @@ function Layout({ children, theme }) {
 				<header className="topbar">
 					<Link to="/" className="topbar-brand">
 						<span className="dot" />
-						PRACTICE//HUB
+						GUITAR + BASS // HUB
 					</Link>
 					<span className="topbar-bread">
 						{crumbs.map((c, i) => (

@@ -27,6 +27,11 @@ const IN_TUNE_CENTS = 5;
 const SMOOTHING_BUFFER_SIZE = 7;
 const RESET_JUMP_CENTS = 700;
 
+// New constants for top-tier UX
+const EMA_ALPHA = 0.2; // 20% new value, 80% old value for buttery smoothness
+const MAX_GLIDE_CENTS = 150; // Snap instantly if jump is > 1.5 semitones
+const SILENCE_TIMEOUT_MS = 1500; // Clear the display after 1.5s of silence
+
 function freqToNoteInfo(frequency) {
 	const exactMidi = 12 * Math.log2(frequency / A4_FREQ) + A4_MIDI;
 	const nearestMidi = Math.round(exactMidi);
@@ -82,27 +87,23 @@ export function useTuner({
 } = {}) {
 	const [state, setState] = useState(INITIAL_STATE);
 
-	// Live refs so the mic loop sees updated config without re-acquiring the
-	// AudioContext/MediaStream when these change between renders.
 	const stringsRef = useRef(strings);
 	const modeRef = useRef(mode);
 	const lockedStringRef = useRef(lockedString);
-	useEffect(() => {
-		stringsRef.current = strings;
-	}, [strings]);
-	useEffect(() => {
-		modeRef.current = mode;
-	}, [mode]);
-	useEffect(() => {
-		lockedStringRef.current = lockedString;
-	}, [lockedString]);
+
+	useEffect(() => { stringsRef.current = strings; }, [strings]);
+	useEffect(() => { modeRef.current = mode; }, [mode]);
+	useEffect(() => { lockedStringRef.current = lockedString; }, [lockedString]);
 
 	useEffect(() => {
 		let cancelled = false;
 		let rafId = null;
 		let stream = null;
 		let audioContext = null;
+
 		const buffer = [];
+		let displayFreq = null; // Used for EMA temporal smoothing
+		let lastValidTime = performance.now(); // Used for silence detection
 
 		async function start() {
 			try {
@@ -149,7 +150,12 @@ export function useTuner({
 						pitch >= MIN_FREQUENCY &&
 						pitch <= MAX_FREQUENCY;
 
+					const now = performance.now();
+
 					if (validReading) {
+						lastValidTime = now;
+
+						// 1. Median Filter (Outlier Rejection)
 						if (buffer.length > 0) {
 							const currentMedian = median(buffer);
 							const jumpCents = Math.abs(
@@ -163,30 +169,59 @@ export function useTuner({
 						buffer.push(pitch);
 						if (buffer.length > SMOOTHING_BUFFER_SIZE) buffer.shift();
 
-						const smoothed = median(buffer);
-						const noteInfo = freqToNoteInfo(smoothed);
+						const medianFreq = median(buffer);
+
+						// 2. Exponential Moving Average (Display Smoothness)
+						if (displayFreq === null) {
+							displayFreq = medianFreq;
+						} else {
+							const glideJumpCents = Math.abs(1200 * Math.log2(medianFreq / displayFreq));
+							if (glideJumpCents > MAX_GLIDE_CENTS) {
+								displayFreq = medianFreq; // Snap instantly on completely new notes
+							} else {
+								// Glide smoothly on minor pitch changes
+								displayFreq = displayFreq * (1 - EMA_ALPHA) + medianFreq * EMA_ALPHA;
+							}
+						}
+
+						const noteInfo = freqToNoteInfo(displayFreq);
 						const currentMode = modeRef.current;
 						const currentLocked = lockedStringRef.current;
 						const currentStrings = stringsRef.current;
 
-						let targetString;
-						let cents;
+						let targetString = null;
+						let cents = 0;
+
+						// 3. Fix: Accurate Auto-Mode Cents Resolution
 						if (currentMode === "lock" && currentLocked) {
 							targetString = currentLocked;
-							cents = centsFromTarget(smoothed, currentLocked.freq);
+							cents = centsFromTarget(displayFreq, currentLocked.freq);
+						} else if (currentStrings && currentStrings.length > 0) {
+							targetString = findClosestString(displayFreq, currentStrings);
+							cents = centsFromTarget(displayFreq, targetString.freq);
 						} else {
-							targetString = findClosestString(smoothed, currentStrings);
+							// Pure chromatic mode (if strings array is empty)
 							cents = noteInfo.cents;
 						}
 
 						setState((prev) => ({
 							...prev,
-							frequency: smoothed,
-							note: noteInfo.note,
-							cents,
+							frequency: displayFreq,
+							note: noteInfo.note, // Actual note currently sounded
+							cents,               // Cents off from target
 							status: classify(cents),
 							targetString,
 						}));
+					} else {
+						// 4. Silence Fallback
+						if (now - lastValidTime > SILENCE_TIMEOUT_MS) {
+							buffer.length = 0;
+							displayFreq = null;
+							setState((prev) => {
+								if (prev.frequency === null) return prev; // Avoid unneeded renders
+								return { ...prev, frequency: null, note: null, cents: null, status: null, targetString: null };
+							});
+						}
 					}
 
 					rafId = requestAnimationFrame(tick);
@@ -210,7 +245,7 @@ export function useTuner({
 			if (rafId !== null) cancelAnimationFrame(rafId);
 			if (stream) stream.getTracks().forEach((t) => t.stop());
 			if (audioContext && audioContext.state !== "closed") {
-				audioContext.close().catch(() => {});
+				audioContext.close().catch(() => { });
 			}
 		};
 	}, []);

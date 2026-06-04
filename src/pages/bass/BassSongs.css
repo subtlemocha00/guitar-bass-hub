@@ -46,6 +46,7 @@
 .songs-counters .cnt--m { color: var(--neon-magenta); }
 .songs-counters .cnt--l { color: var(--neon-lime); }
 
+<<<<<<< HEAD
 @media (max-width: 480px) {
 	.songs-header {
 		padding: 1.25rem;
@@ -53,4 +54,43 @@
 	.songs-title {
 		font-size: clamp(1.5rem, 5vw, 2.5rem);
 	}
+=======
+.songs-toolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+.songs-add-btn {
+	background: transparent;
+	border: 1px solid var(--neon-cyan);
+	color: var(--neon-cyan);
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	padding: 0.55rem 1rem;
+	cursor: pointer;
+	transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.songs-add-btn:hover {
+	background: var(--neon-cyan);
+	color: var(--bg-0);
+	box-shadow: 0 0 12px var(--neon-cyan-glow);
+}
+
+.songs-empty {
+	margin: 0;
+	padding: 3rem 1rem;
+	text-align: center;
+	border: 1px dashed var(--line-mid);
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+	letter-spacing: 0.22em;
+	color: var(--text-mute);
+>>>>>>> 8badb56be6056c8e28cb2b671263c8b8b83610a0
 }

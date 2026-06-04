@@ -1,18 +1,26 @@
 import Layout from "../../components/Layout";
 import BackLink from "../../components/BackLink";
 import { useState } from "react";
-import { guitarSongs } from "../../data/guitarSongs";
+import AddSongModal from "../../features/songs/AddSongModal";
 import SongFilterTabs from "../../features/songs/SongFilterTabs";
+import SongSortMenu, { DEFAULT_SORT } from "../../features/songs/SongSortMenu";
 import SongList from "../../features/songs/SongList";
 import { useSongStatus } from "../../features/songs/useSongStatus";
+import { useUserSongs } from "../../features/songs/useUserSongs";
 import "../bass/BassSongs.css";
 
 function GuitarSongs() {
 	const [filter, setFilter] = useState("all");
-	const { statuses } = useSongStatus(guitarSongs);
-	const learning = Object.values(statuses).filter((s) => s === "learning").length;
-	const done = Object.values(statuses).filter((s) => s === "completed").length;
-	const planned = Object.values(statuses).filter((s) => s === "planned").length;
+	const [sort, setSort] = useState(DEFAULT_SORT);
+	const [showAdd, setShowAdd] = useState(false);
+	const [editingSong, setEditingSong] = useState(null);
+
+	const { songs, addSong, removeSong, updateSong } = useUserSongs("guitar");
+	const { statuses } = useSongStatus(songs);
+
+	const learning = songs.filter((s) => statuses[s.id] === "learning").length;
+	const done = songs.filter((s) => statuses[s.id] === "completed").length;
+	const planned = songs.filter((s) => statuses[s.id] === "planned").length;
 
 	return (
 		<Layout theme="guitar">
@@ -27,7 +35,7 @@ function GuitarSongs() {
 						<span className="glitch" data-text="GUITAR::SONGS">GUITAR::SONGS</span>
 					</h1>
 					<p className="songs-sub">
-						{guitarSongs.length} tracks tracked. Click a status badge to cycle
+						{songs.length} tracks tracked. Click a status badge to cycle
 						planned → learning → completed. Notes auto-save.
 					</p>
 					<div className="songs-counters">
@@ -37,8 +45,56 @@ function GuitarSongs() {
 					</div>
 				</header>
 
-				<SongFilterTabs filter={filter} onChange={setFilter} />
-				<SongList songs={guitarSongs} filter={filter} />
+				<div className="songs-toolbar">
+					<div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
+						<SongFilterTabs filter={filter} onChange={setFilter} />
+						<SongSortMenu sort={sort} onChange={setSort} />
+					</div>
+					<button
+						type="button"
+						className="songs-add-btn"
+						onClick={() => setShowAdd(true)}
+					>
+						+ ADD SONG
+					</button>
+				</div>
+
+				{songs.length === 0 ? (
+					<p className="songs-empty">
+						NO SONGS YET — ADD YOUR FIRST ONE.
+					</p>
+				) : (
+					<SongList
+						songs={songs}
+						filter={filter}
+						sort={sort}
+						onRemove={removeSong}
+						onEdit={setEditingSong}
+					/>
+				)}
+
+				<AddSongModal
+					open={showAdd}
+					onClose={() => setShowAdd(false)}
+					onSubmit={addSong}
+				/>
+
+				<AddSongModal
+					open={!!editingSong}
+					mode="edit"
+					initialValues={
+						editingSong
+							? {
+									title: editingSong.title,
+									artist: editingSong.artist,
+									tabUrl: editingSong.tabUrl,
+									youtubeUrl: editingSong.youtubeUrl ?? "",
+								}
+							: undefined
+					}
+					onClose={() => setEditingSong(null)}
+					onSubmit={(data) => updateSong(editingSong.id, data)}
+				/>
 			</div>
 		</Layout>
 	);

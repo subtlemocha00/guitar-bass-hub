@@ -51,8 +51,20 @@ function SongCard({
 	onStatusChange,
 	videoOpen,
 	onToggleVideo,
+	onRemove,
+	onEdit,
 }) {
 	const handleCycle = () => onStatusChange(nextStatus(status));
+	const handleRemove = () => {
+		if (!onRemove) return;
+		const ok = window.confirm(
+			`Delete "${song.title}" by ${song.artist}? This cannot be undone.`
+		);
+		if (ok) onRemove();
+	};
+	const handleEdit = () => {
+		if (onEdit) onEdit();
+	};
 
 	return (
 		<article className={`song-card song-card--${status}`}>
@@ -70,7 +82,7 @@ function SongCard({
 
 			<NotesField songId={song.id} />
 
-			{song.youtubeId && (
+			{song.youtubeId ? (
 				<>
 					<button
 						type="button"
@@ -96,6 +108,42 @@ function SongCard({
 						</div>
 					)}
 				</>
+			) : (
+				<button
+					type="button"
+					className="song-card-video-toggle"
+					style={{ visibility: "hidden" }}
+					disabled
+					aria-hidden="true"
+				>
+					<span className="song-card-video-chevron" aria-hidden="true">
+						▸
+					</span>
+					Show Video
+				</button>
+			)}
+
+			{(onRemove || onEdit) && (
+				<div className="song-card-actions">
+					{onEdit && (
+						<button
+							type="button"
+							className="song-card-edit"
+							onClick={handleEdit}
+						>
+							✎ EDIT
+						</button>
+					)}
+					{onRemove && (
+						<button
+							type="button"
+							className="song-card-remove"
+							onClick={handleRemove}
+						>
+							🗑 DELETE
+						</button>
+					)}
+				</div>
 			)}
 		</article>
 	);
