@@ -1,446 +1,121 @@
-export const SOUND_OPTIONS = [
-	"click",
-	"beep",
-	"hi-hat",
-	"snare",
-	"clap",
-	"woodblock",
-	"kick",
-	"tom",
-	"floor-tom",
-	"cymbal",
-	"cowbell",
-	"claves",
-	"rimshot",
-	"shaker",
-	"snap",
-	"tambourine"
-];
-
-let cachedNoiseBuffer = null;
-
-function getNoiseBuffer(ctx) {
-	if (
-		cachedNoiseBuffer &&
-		cachedNoiseBuffer.sampleRate === ctx.sampleRate
-	) {
-		return cachedNoiseBuffer;
-	}
-	const buffer = ctx.createBuffer(
-		1,
-		Math.floor(ctx.sampleRate * 0.3),
-		ctx.sampleRate
-	);
-	const data = buffer.getChannelData(0);
-	for (let i = 0; i < data.length; i++) {
-		data[i] = Math.random() * 2 - 1;
-	}
-	cachedNoiseBuffer = buffer;
-	return buffer;
-}
-
 // ---------------------------------------------------------
-// Sound Generators
+// Sample-based sound engine
+//
+// The metronome plays only preloaded WAV samples from public/samples/. There
+// is no synthesis: every voice is an AudioBuffer scheduled against
+// AudioContext.currentTime via AudioBufferSourceNode.start(time).
 // ---------------------------------------------------------
 
-function playClick(ctx, time, gain, accent) {
-	// Modern DAW-style click: Sine wave with a rapid pitch drop (transient tick)
-	const osc = ctx.createOscillator();
-	osc.type = "sine";
-	const startFreq = accent ? 2000 : 1200;
-	const endFreq = accent ? 1000 : 600;
+// Resolve a public/ asset against Vite's base path. The app is served under a
+// base (e.g. "/guitar-bass-hub/"), so an absolute "/samples/..." URL would hit
+// the origin root and 404. BASE_URL always ends with "/".
+const withBase = (file) => `${import.meta.env.BASE_URL}${file}`;
 
-	osc.frequency.setValueAtTime(startFreq, time);
-	osc.frequency.exponentialRampToValueAtTime(endFreq, time + 0.01);
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain, time + 0.001);
-	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.04);
-
-	osc.connect(env).connect(ctx.destination);
-	osc.start(time);
-	osc.stop(time + 0.05);
-}
-
-function playBeep(ctx, time, gain, accent) {
-	const osc = ctx.createOscillator();
-	osc.type = "sine";
-	osc.frequency.value = accent ? 1200 : 800;
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain, time + 0.005);
-	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.1);
-
-	osc.connect(env).connect(ctx.destination);
-	osc.start(time);
-	osc.stop(time + 0.12);
-}
-
-function playHihat(ctx, time, gain, accent) {
-	const noise = ctx.createBufferSource();
-	noise.buffer = getNoiseBuffer(ctx);
-
-	const filter = ctx.createBiquadFilter();
-	filter.type = "highpass";
-	filter.frequency.value = accent ? 8000 : 9000;
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain, time + 0.002);
-	env.gain.exponentialRampToValueAtTime(0.0001, time + (accent ? 0.04 : 0.02));
-
-	noise.connect(filter).connect(env).connect(ctx.destination);
-	noise.start(time);
-	noise.stop(time + 0.05);
-}
-
-function playSnare(ctx, time, gain) {
-	// Snare wires (Noise)
-	const noise = ctx.createBufferSource();
-	noise.buffer = getNoiseBuffer(ctx);
-	const noiseFilter = ctx.createBiquadFilter();
-	noiseFilter.type = "highpass";
-	noiseFilter.frequency.value = 2000;
-	const noiseEnv = ctx.createGain();
-	noiseEnv.gain.setValueAtTime(0.0001, time);
-	noiseEnv.gain.exponentialRampToValueAtTime(gain * 0.8, time + 0.002);
-	noiseEnv.gain.exponentialRampToValueAtTime(0.0001, time + 0.15);
-	noise.connect(noiseFilter).connect(noiseEnv).connect(ctx.destination);
-	noise.start(time);
-	noise.stop(time + 0.2);
-
-	// Drum Body (Oscillator with pitch punch)
-	const osc = ctx.createOscillator();
-	osc.type = "triangle";
-	osc.frequency.setValueAtTime(300, time);
-	osc.frequency.exponentialRampToValueAtTime(150, time + 0.05);
-	const oscEnv = ctx.createGain();
-	oscEnv.gain.setValueAtTime(0.0001, time);
-	oscEnv.gain.exponentialRampToValueAtTime(gain * 0.9, time + 0.002);
-	oscEnv.gain.exponentialRampToValueAtTime(0.0001, time + 0.08);
-	osc.connect(oscEnv).connect(ctx.destination);
-	osc.start(time);
-	osc.stop(time + 0.1);
-}
-
-function playClap(ctx, time, gain) {
-	const offsets = [0, 0.01, 0.02];
-	for (let i = 0; i < offsets.length; i++) {
-		const startT = time + offsets[i];
-		const noise = ctx.createBufferSource();
-		noise.buffer = getNoiseBuffer(ctx);
-
-		const filter = ctx.createBiquadFilter();
-		filter.type = "bandpass";
-		filter.frequency.value = 1200;
-		filter.Q.value = 1.2;
-
-		const env = ctx.createGain();
-		const peak = i === offsets.length - 1 ? gain * 1.2 : gain * 0.5;
-		env.gain.setValueAtTime(0.0001, startT);
-		env.gain.exponentialRampToValueAtTime(peak, startT + 0.002);
-		env.gain.exponentialRampToValueAtTime(0.0001, startT + (i === 2 ? 0.15 : 0.03));
-
-		noise.connect(filter).connect(env).connect(ctx.destination);
-		noise.start(startT);
-		noise.stop(startT + 0.2);
-	}
-}
-
-function playWoodblock(ctx, time, gain, accent) {
-	const freq = accent ? 1000 : 750;
-
-	// Two slighty detuned oscillators for a woody, hollow timbre
-	const osc1 = ctx.createOscillator();
-	osc1.type = "sine";
-	osc1.frequency.setValueAtTime(freq * 1.5, time); // Pitch bend attack
-	osc1.frequency.exponentialRampToValueAtTime(freq, time + 0.02);
-
-	const osc2 = ctx.createOscillator();
-	osc2.type = "triangle";
-	osc2.frequency.setValueAtTime(freq * 2.5, time);
-	osc2.frequency.exponentialRampToValueAtTime(freq * 1.5, time + 0.02);
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain, time + 0.002);
-	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.08);
-
-	osc1.connect(env);
-	osc2.connect(env);
-	env.connect(ctx.destination);
-
-	osc1.start(time);
-	osc2.start(time);
-	osc1.stop(time + 0.1);
-	osc2.stop(time + 0.1);
-}
-
-function playKick(ctx, time, gain) {
-	// Added a sharp "click" attack for modern punch
-	const osc = ctx.createOscillator();
-	osc.type = "sine";
-	osc.frequency.setValueAtTime(150, time);
-	osc.frequency.exponentialRampToValueAtTime(40, time + 0.05);
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain * 1.5, time + 0.002); // Faster attack
-	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.2);
-
-	osc.connect(env).connect(ctx.destination);
-	osc.start(time);
-	osc.stop(time + 0.25);
-}
-
-function playTom(ctx, time, gain, accent) {
-	const osc = ctx.createOscillator();
-	osc.type = "sine";
-	const startFreq = accent ? 300 : 200;
-	const endFreq = accent ? 100 : 70;
-
-	osc.frequency.setValueAtTime(startFreq, time);
-	osc.frequency.exponentialRampToValueAtTime(endFreq, time + 0.1);
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain * 1.3, time + 0.005);
-	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.25);
-
-	osc.connect(env).connect(ctx.destination);
-	osc.start(time);
-	osc.stop(time + 0.3);
-}
-
-function playFloorTom(ctx, time, gain) {
-	const osc = ctx.createOscillator();
-	osc.type = "sine";
-	osc.frequency.setValueAtTime(150, time);
-	osc.frequency.exponentialRampToValueAtTime(50, time + 0.1);
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain * 1.5, time + 0.005);
-	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.35);
-
-	osc.connect(env).connect(ctx.destination);
-	osc.start(time);
-	osc.stop(time + 0.4);
-}
-
-function playCymbal(ctx, time, gain) {
-	const noise = ctx.createBufferSource();
-	noise.buffer = getNoiseBuffer(ctx);
-	const filter = ctx.createBiquadFilter();
-	filter.type = "highpass";
-	filter.frequency.value = 6000;
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain * 0.8, time + 0.01);
-	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.4);
-
-	noise.connect(filter).connect(env).connect(ctx.destination);
-	noise.start(time);
-	noise.stop(time + 0.45);
-
-	// Inharmonic metallic tones
-	const osc1 = ctx.createOscillator();
-	osc1.type = "square";
-	osc1.frequency.value = 2500;
-	const oscEnv = ctx.createGain();
-	oscEnv.gain.setValueAtTime(0.0001, time);
-	oscEnv.gain.exponentialRampToValueAtTime(gain * 0.15, time + 0.005);
-	oscEnv.gain.exponentialRampToValueAtTime(0.0001, time + 0.2);
-
-	osc1.connect(oscEnv).connect(ctx.destination);
-	osc1.start(time);
-	osc1.stop(time + 0.25);
-}
-
-function playCowbell(ctx, time, gain, accent) {
-	// Standard 808 cowbell requires a bandpass filter to fix harshness
-	const osc1 = ctx.createOscillator();
-	osc1.type = "square";
-	osc1.frequency.value = accent ? 850 : 800;
-	const osc2 = ctx.createOscillator();
-	osc2.type = "square";
-	osc2.frequency.value = accent ? 580 : 540;
-
-	const filter = ctx.createBiquadFilter();
-	filter.type = "bandpass";
-	filter.frequency.value = 800;
-	filter.Q.value = 1.5;
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain * 1.2, time + 0.005);
-	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.2);
-
-	osc1.connect(filter);
-	osc2.connect(filter);
-	filter.connect(env);
-	env.connect(ctx.destination);
-
-	osc1.start(time);
-	osc2.start(time);
-	osc1.stop(time + 0.25);
-	osc2.stop(time + 0.25);
-}
-
-function playClaves(ctx, time, gain, accent) {
-	const osc = ctx.createOscillator();
-	osc.type = "sine";
-	const freq = accent ? 2800 : 2200;
-	osc.frequency.setValueAtTime(freq * 1.5, time); // Fast pitch drop creates strike transient
-	osc.frequency.exponentialRampToValueAtTime(freq, time + 0.01);
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain, time + 0.002);
-	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.06);
-
-	osc.connect(env).connect(ctx.destination);
-	osc.start(time);
-	osc.stop(time + 0.08);
-}
-
-// ---------------------------------------------------------
-// New Professional Sounds
-// ---------------------------------------------------------
-
-function playRimshot(ctx, time, gain, accent) {
-	// Sharp wooden transient
-	const freq = accent ? 900 : 700;
-	const osc = ctx.createOscillator();
-	osc.type = "triangle";
-	osc.frequency.setValueAtTime(freq * 2, time);
-	osc.frequency.exponentialRampToValueAtTime(freq, time + 0.02);
-
-	const oscEnv = ctx.createGain();
-	oscEnv.gain.setValueAtTime(0.0001, time);
-	oscEnv.gain.exponentialRampToValueAtTime(gain, time + 0.002);
-	oscEnv.gain.exponentialRampToValueAtTime(0.0001, time + 0.06);
-
-	// High impact noise body
-	const noise = ctx.createBufferSource();
-	noise.buffer = getNoiseBuffer(ctx);
-	const filter = ctx.createBiquadFilter();
-	filter.type = "bandpass";
-	filter.frequency.value = 1500;
-	const noiseEnv = ctx.createGain();
-	noiseEnv.gain.setValueAtTime(0.0001, time);
-	noiseEnv.gain.exponentialRampToValueAtTime(gain * 0.8, time + 0.002);
-	noiseEnv.gain.exponentialRampToValueAtTime(0.0001, time + 0.04);
-
-	osc.connect(oscEnv).connect(ctx.destination);
-	noise.connect(filter).connect(noiseEnv).connect(ctx.destination);
-
-	osc.start(time);
-	noise.start(time);
-	osc.stop(time + 0.08);
-	noise.stop(time + 0.08);
-}
-
-function playShaker(ctx, time, gain, accent) {
-	// Soft noise attack
-	const noise = ctx.createBufferSource();
-	noise.buffer = getNoiseBuffer(ctx);
-	const filter = ctx.createBiquadFilter();
-	filter.type = "bandpass";
-	filter.frequency.value = accent ? 6000 : 5000;
-	filter.Q.value = 0.8;
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain * 0.6, time + 0.015); // Slower attack
-	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.1);
-
-	noise.connect(filter).connect(env).connect(ctx.destination);
-	noise.start(time);
-	noise.stop(time + 0.15);
-}
-
-function playSnap(ctx, time, gain, accent) {
-	// Tight high-freq pop
-	const noise = ctx.createBufferSource();
-	noise.buffer = getNoiseBuffer(ctx);
-	const filter = ctx.createBiquadFilter();
-	filter.type = "bandpass";
-	filter.frequency.value = accent ? 2500 : 2000;
-	filter.Q.value = 1.2;
-
-	const env = ctx.createGain();
-	env.gain.setValueAtTime(0.0001, time);
-	env.gain.exponentialRampToValueAtTime(gain, time + 0.002);
-	env.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
-
-	noise.connect(filter).connect(env).connect(ctx.destination);
-	noise.start(time);
-	noise.stop(time + 0.06);
-}
-
-function playTambourine(ctx, time, gain, accent) {
-	// Multiple square waves to emulate jingles
-	const jingles = [3000, 4500, 6000];
-	const jingleEnv = ctx.createGain();
-	jingleEnv.gain.setValueAtTime(0.0001, time);
-	jingleEnv.gain.exponentialRampToValueAtTime(gain * 0.4, time + 0.01);
-	jingleEnv.gain.exponentialRampToValueAtTime(0.0001, time + (accent ? 0.2 : 0.15));
-
-	jingles.forEach(freq => {
-		const osc = ctx.createOscillator();
-		osc.type = "square";
-		osc.frequency.value = freq;
-		osc.connect(jingleEnv);
-		osc.start(time);
-		osc.stop(time + 0.25);
-	});
-	jingleEnv.connect(ctx.destination);
-
-	// Strike impact
-	const noise = ctx.createBufferSource();
-	noise.buffer = getNoiseBuffer(ctx);
-	const filter = ctx.createBiquadFilter();
-	filter.type = "highpass";
-	filter.frequency.value = 4000;
-
-	const noiseEnv = ctx.createGain();
-	noiseEnv.gain.setValueAtTime(0.0001, time);
-	noiseEnv.gain.exponentialRampToValueAtTime(gain * 0.7, time + 0.002);
-	noiseEnv.gain.exponentialRampToValueAtTime(0.0001, time + 0.08);
-
-	noise.connect(filter).connect(noiseEnv).connect(ctx.destination);
-	noise.start(time);
-	noise.stop(time + 0.1);
-}
-
-const PLAYERS = {
-	click: playClick,
-	beep: playBeep,
-	"hi-hat": playHihat,
-	snare: playSnare,
-	clap: playClap,
-	woodblock: playWoodblock,
-	kick: playKick,
-	tom: playTom,
-	"floor-tom": playFloorTom,
-	cymbal: playCymbal,
-	cowbell: playCowbell,
-	claves: playClaves,
-	rimshot: playRimshot,
-	shaker: playShaker,
-	snap: playSnap,
-	tambourine: playTambourine
+// Single source of truth: maps a sound name to its WAV file. Every entry
+// corresponds to a real file in public/samples/. SOUND_OPTIONS is derived from
+// these keys, so the dropdown can never drift out of sync with the samples.
+const SAMPLE_PATHS = {
+	"hi_hat_1": withBase("samples/hihat1.wav"),
+	"hi_hat_2": withBase("samples/hihat2.wav"),
+	"open hi-hat": withBase("samples/open_hihat.wav"),
+	"kick_1": withBase("samples/kick_acoustic1.wav"),
+	"kick_2": withBase("samples/kick_acoustic2.wav"),
+	"kick_nailgun": withBase("samples/kick_nailgun.wav"),
+	"snare_1": withBase("samples/snare1.wav"),
+	"snare_2": withBase("samples/snare2.wav"),
+	"snare_3": withBase("samples/snare3.wav"),
+	"snare_4": withBase("samples/snare4.wav"),
+	"clap_1": withBase("samples/clap1.wav"),
+	"clap_2": withBase("samples/clap2.wav"),
+	"cowbell": withBase("samples/cowbell.wav"),
+	"crash": withBase("samples/crash.wav"),
+	"ride": withBase("samples/ride.wav"),
+	"shaker": withBase("samples/shaker.wav"),
+	"tom": withBase("samples/tom.wav"),
+	"tom_808": withBase("samples/tom808.wav")
 };
 
+export const SOUND_OPTIONS = Object.keys(SAMPLE_PATHS);
+
+// Samples peak near full-scale; this scales them to a comfortable level while
+// preserving the accent/beat loudness ratio applied in playSound.
+const SAMPLE_GAIN = 3.0;
+
+// Decoded buffers keyed by URL. Module-level so it persists across calls and is
+// shared by every voice. A URL is fetched and decoded at most once.
+const sampleCache = new Map(); // url -> AudioBuffer
+// In-flight loads keyed by URL so concurrent requests share one round trip.
+const pendingLoads = new Map(); // url -> Promise<AudioBuffer | null>
+
+// Fetch + decode one sample, caching the result. Resolves to null (never
+// rejects) for a missing/undecodable file, so a warning is logged and the
+// remaining samples keep loading. Cached/pending URLs short-circuit.
+function loadSample(ctx, url) {
+	if (sampleCache.has(url)) return Promise.resolve(sampleCache.get(url));
+	if (pendingLoads.has(url)) return pendingLoads.get(url);
+
+	const promise = (async () => {
+		try {
+			const res = await fetch(url);
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
+			const arrayBuffer = await res.arrayBuffer();
+			const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+			sampleCache.set(url, audioBuffer);
+			return audioBuffer;
+		} catch (err) {
+			// Missing/undecodable file: warn and leave it uncached. Playback of
+			// that sound simply stays silent; nothing crashes.
+			console.warn(`[soundEngine] missing sample: ${url}`, err);
+			return null;
+		} finally {
+			pendingLoads.delete(url);
+		}
+	})();
+
+	pendingLoads.set(url, promise);
+	return promise;
+}
+
+let preloadStarted = false;
+
+// Fetch + decode every sample once, when the AudioContext is created.
+// Idempotent and fire-and-forget: returns immediately and must never run inside
+// the scheduler loop. All decoding happens here so playback never fetches or
+// decodes.
+export function preloadSamples(ctx) {
+	if (!ctx || preloadStarted) return;
+	preloadStarted = true;
+	const urls = [...new Set(Object.values(SAMPLE_PATHS))];
+	for (const url of urls) {
+		loadSample(ctx, url);
+	}
+}
+
+// Schedule a decoded sample for sample-accurate playback. Uses
+// AudioBufferSourceNode.start(time) against ctx.currentTime — no setTimeout, no
+// real-time triggering.
+function playSample(ctx, time, buffer, gain) {
+	const src = ctx.createBufferSource();
+	src.buffer = buffer;
+
+	const gainNode = ctx.createGain();
+	gainNode.gain.value = gain;
+
+	src.connect(gainNode).connect(ctx.destination);
+	src.start(time);
+}
+
+// Schedule a sound by name at an exact AudioContext time. The buffer lookup is
+// a synchronous Map.get on an already-decoded sample — no fetch, no decode — so
+// this is safe to call from inside the scheduler. If the sample isn't loaded
+// (still decoding, or missing), the beat stays silent.
 export function playSound(type, ctx, time, accent = false, gainScale = 1) {
 	if (!ctx) return;
-	const player = PLAYERS[type] || PLAYERS.click;
-	const gain = (accent ? 0.22 : 0.12) * gainScale;
+	const url = SAMPLE_PATHS[type];
+	if (!url) return;
+	const buffer = sampleCache.get(url);
+	if (!buffer) return;
 
-	// Pass the accent boolean down to the player so they can adjust pitch/tone
-	player(ctx, time, gain, accent);
+	const gain = (accent ? 0.22 : 0.12) * gainScale * SAMPLE_GAIN;
+	playSample(ctx, time, buffer, gain);
 }

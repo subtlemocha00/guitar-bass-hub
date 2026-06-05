@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { playSound, SOUND_OPTIONS } from "./soundEngine";
+import { playSound, preloadSamples, SOUND_OPTIONS } from "./soundEngine";
 import "./Metronome.css";
 
 const LOOKAHEAD_MS = 25;
@@ -76,6 +76,8 @@ function CollapsibleSection({ title, defaultOpen = false, isFirst = false, child
 export function MetronomeView() {
 	const accentColor = "var(--neon-lime)";
 	const accentGlow = "rgba(163, 255, 94, 0.7)";
+	const accent2Color = "var(--neon-amber)";
+	const accent2Glow = "rgba(255, 184, 77, 0.7)";
 
 	const [bpm, setBpm] = useState(120);
 	const [beats, setBeats] = useState(4);
@@ -86,10 +88,12 @@ export function MetronomeView() {
 	const [barAudible, setBarAudible] = useState(true);
 	const [muteReason, setMuteReason] = useState(null);
 
-	const [accentPattern, setAccentPattern] = useState([true, false, false, false]);
-	const [accentSound, setAccentSound] = useState("click");
-	const [beatSound, setBeatSound] = useState("hi-hat");
-	const [subSound, setSubSound] = useState("click");
+	// Per-beat accent level: 0 = none, 1 = accent 1, 2 = accent 2.
+	const [accentPattern, setAccentPattern] = useState([1, 0, 0, 0]);
+	const [accentSound, setAccentSound] = useState("Hi-Hat 1");
+	const [accentSound2, setAccentSound2] = useState("Cowbell");
+	const [beatSound, setBeatSound] = useState("Hi-Hat 1");
+	const [subSound, setSubSound] = useState("Hi-Hat 1");
 
 	const [rampEnabled, setRampEnabled] = useState(false);
 	const [startBpm, setStartBpm] = useState(60);
@@ -105,6 +109,7 @@ export function MetronomeView() {
 	const [randomMuteLevel, setRandomMuteLevel] = useState("off");
 
 	const ctxRef = useRef(null);
+	const samplesPreloadedRef = useRef(false);
 	const schedulerIdRef = useRef(null);
 	const rafIdRef = useRef(null);
 	const visualQueueRef = useRef([]);
@@ -126,6 +131,7 @@ export function MetronomeView() {
 		beats,
 		accentPattern,
 		accentSound,
+		accentSound2,
 		beatSound,
 		subSound,
 		rampEnabled,
@@ -147,8 +153,8 @@ export function MetronomeView() {
 	}, [bpm, running, rampEnabled]);
 
 	useEffect(() => {
-		const arr = new Array(beats).fill(false);
-		arr[0] = true;
+		const arr = new Array(beats).fill(0);
+		arr[0] = 1;
 		setAccentPattern(arr);
 	}, [beats]);
 
@@ -170,6 +176,13 @@ export function MetronomeView() {
 		}
 		const ctx = ctxRef.current;
 		if (ctx.state === "suspended") ctx.resume();
+
+		// Preload WAV samples once, right after the AudioContext exists. Runs
+		// outside the scheduler and never blocks playback (fire-and-forget).
+		if (!samplesPreloadedRef.current) {
+			preloadSamples(ctx);
+			samplesPreloadedRef.current = true;
+		}
 
 		visualQueueRef.current = [];
 		currentBeatRef.current = 0;
@@ -246,12 +259,15 @@ export function MetronomeView() {
 				}
 				const beatDuration = currentBeatDurationRef.current;
 
-				const accent = !!cfg.accentPattern[beatIdx];
+				const accentLevel = cfg.accentPattern[beatIdx] || 0;
+				const accent = accentLevel > 0;
 				const isMainBeat = pulse === 0;
 				const sound = isMainBeat
-					? accent
-						? cfg.accentSound
-						: cfg.beatSound
+					? accentLevel === 2
+						? cfg.accentSound2
+						: accentLevel === 1
+							? cfg.accentSound
+							: cfg.beatSound
 					: cfg.subSound;
 				const gainScale = isMainBeat ? 1 : SUB_GAIN_SCALE;
 
@@ -373,10 +389,11 @@ export function MetronomeView() {
 		}
 	};
 
-	function toggleAccent(i) {
+	// Cycle a beat through off -> accent 1 -> accent 2 -> off.
+	function cycleAccent(i) {
 		setAccentPattern((prev) => {
 			const next = prev.slice();
-			next[i] = !next[i];
+			next[i] = ((next[i] || 0) + 1) % 3;
 			return next;
 		});
 	}
@@ -446,32 +463,36 @@ export function MetronomeView() {
 				)}
 
 				<div className="metro-dots">
-					{accentPattern.map((isAccent, i) => {
+					{accentPattern.map((level, i) => {
 						const active = running && i === tick && barAudible;
 						const dimMuted = running && i === tick && !barAudible;
+						const isAccent = level > 0;
+						const dotColor =
+							level === 2 ? accent2Color : level === 1 ? accentColor : null;
+						const dotGlow = level === 2 ? accent2Glow : accentGlow;
 						return (
 							<button
 								type="button"
 								key={i}
-								onClick={() => toggleAccent(i)}
-								aria-label={`Beat ${i + 1} ${isAccent ? "accent" : "normal"}`}
+								onClick={() => cycleAccent(i)}
+								aria-label={`Beat ${i + 1} ${
+										level === 2 ? "accent 2" : level === 1 ? "accent 1" : "normal"
+									}`}
 								aria-pressed={isAccent}
 								className={
 									"metro-dot" + (dimMuted ? " metro-dot--muted" : "")
 								}
 								style={{
-									borderColor: isAccent ? accentColor : "var(--line-mid)",
+									borderColor: dotColor || "var(--line-mid)",
 									background: active
-										? isAccent
-											? accentColor
-											: "var(--neon-cyan)"
+										? dotColor || "var(--neon-cyan)"
 										: "transparent",
 									boxShadow: active
 										? `0 0 18px ${
-												isAccent ? accentGlow : "var(--neon-cyan-glow)"
+												isAccent ? dotGlow : "var(--neon-cyan-glow)"
 											}`
 										: isAccent
-											? `0 0 10px ${accentGlow}`
+											? `0 0 10px ${dotGlow}`
 											: "none",
 									transform: active || dimMuted ? "scale(1.15)" : "scale(1)",
 									opacity: dimMuted ? 0.55 : 1,
@@ -566,7 +587,7 @@ export function MetronomeView() {
 				<div className="metro-main-aux">
 					<CollapsibleSection title="ACCENTS">
 						<div className="metro-accent-hint">
-							Click any beat dot above to toggle its accent.
+							Click a beat dot to cycle: off → accent 1 → accent 2 → off.
 						</div>
 						<div className="metro-accent-row">
 							<span className="metro-accent-label">PATTERN</span>
@@ -723,11 +744,25 @@ export function MetronomeView() {
 
 				<CollapsibleSection title="SOUNDS">
 					<label className="metro-field">
-						<span className="metro-field-label">ACCENT</span>
+						<span className="metro-field-label">ACCENT 1</span>
 						<select
 							className="metro-select"
 							value={accentSound}
 							onChange={(e) => setAccentSound(e.target.value)}
+						>
+							{SOUND_OPTIONS.map((s) => (
+								<option key={s} value={s}>
+									{s}
+								</option>
+							))}
+						</select>
+					</label>
+					<label className="metro-field">
+						<span className="metro-field-label">ACCENT 2</span>
+						<select
+							className="metro-select"
+							value={accentSound2}
+							onChange={(e) => setAccentSound2(e.target.value)}
 						>
 							{SOUND_OPTIONS.map((s) => (
 								<option key={s} value={s}>
