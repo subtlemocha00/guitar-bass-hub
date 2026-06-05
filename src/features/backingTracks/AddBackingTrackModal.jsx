@@ -135,8 +135,8 @@ function AddBackingTrackModal({ open, onClose, onSubmit, mode = "add", initialVa
 					)}
 				</label>
 
-				<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.85rem" }}>
-					<label className="add-song-field">
+				<div className="add-song-grid">
+					<label className="add-song-field add-song-field--genre">
 						<span className="add-song-label">GENRE</span>
 						<input
 							className="add-song-input"

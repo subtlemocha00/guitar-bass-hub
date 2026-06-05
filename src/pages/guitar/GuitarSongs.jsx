@@ -3,15 +3,16 @@ import BackLink from "../../components/BackLink";
 import { useState } from "react";
 import AddSongModal from "../../features/songs/AddSongModal";
 import SongFilterTabs from "../../features/songs/SongFilterTabs";
-import SongSortMenu, { DEFAULT_SORT } from "../../features/songs/SongSortMenu";
+import SongSortMenu from "../../features/songs/SongSortMenu";
 import SongList from "../../features/songs/SongList";
 import { useSongStatus } from "../../features/songs/useSongStatus";
 import { useUserSongs } from "../../features/songs/useUserSongs";
+import { useSortPreference } from "../../features/songs/useSortPreference";
 import "../bass/BassSongs.css";
 
 function GuitarSongs() {
 	const [filter, setFilter] = useState("all");
-	const [sort, setSort] = useState(DEFAULT_SORT);
+	const [sort, setSort] = useSortPreference("guitar");
 	const [showAdd, setShowAdd] = useState(false);
 	const [editingSong, setEditingSong] = useState(null);
 
@@ -46,7 +47,7 @@ function GuitarSongs() {
 				</header>
 
 				<div className="songs-toolbar">
-					<div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
+					<div className="songs-toolbar-controls">
 						<SongFilterTabs filter={filter} onChange={setFilter} />
 						<SongSortMenu sort={sort} onChange={setSort} />
 					</div>

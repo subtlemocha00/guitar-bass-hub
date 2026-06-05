@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./features/auth/useAuth";
+import ScrollToTop from "./components/ScrollToTop";
 import Home from "./pages/Home";
 import "./App.css";
 
@@ -63,6 +64,7 @@ function App() {
 
 	return (
 		<HashRouter>
+			<ScrollToTop />
 			<Suspense fallback={<RouteFallback />}>
 				<Routes>
 					<Route path="/" element={<Home />} />

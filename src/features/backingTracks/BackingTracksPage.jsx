@@ -11,13 +11,13 @@ const META = {
 		backTo: "/bass",
 		backLabel: "Back to Bass",
 		eyebrow: "// MOD_03 · BASS · BACKING_TRACKS",
-		title: "BASS::BACKING_TRACKS",
+		title: "BASS:: BACKING_TRACKS",
 	},
 	guitar: {
 		backTo: "/guitar",
 		backLabel: "Back to Guitar",
 		eyebrow: "// MOD_03 · GUITAR · BACKING_TRACKS",
-		title: "GUITAR::BACKING_TRACKS",
+		title: "GUITAR:: BACKING_TRACKS",
 	},
 };
 
@@ -92,14 +92,14 @@ function BackingTracksPage({ instrument }) {
 					initialValues={
 						editing
 							? {
-									title: editing.title,
-									artist: editing.artist,
-									youtubeUrl: editing.youtubeUrl,
-									genre: editing.genre,
-									bpm: editing.bpm,
-									trackKey: editing.trackKey,
-									notes: editing.notes,
-								}
+								title: editing.title,
+								artist: editing.artist,
+								youtubeUrl: editing.youtubeUrl,
+								genre: editing.genre,
+								bpm: editing.bpm,
+								trackKey: editing.trackKey,
+								notes: editing.notes,
+							}
 							: undefined
 					}
 					onClose={() => setEditing(null)}
