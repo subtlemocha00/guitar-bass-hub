@@ -17,7 +17,7 @@ const withBase = (file) => `${import.meta.env.BASE_URL}${file}`;
 const SAMPLE_PATHS = {
 	"hi_hat_1": withBase("samples/hihat1.wav"),
 	"hi_hat_2": withBase("samples/hihat2.wav"),
-	"open hi-hat": withBase("samples/open_hihat.wav"),
+	"open_hi_hat": withBase("samples/open_hihat.wav"),
 	"kick_1": withBase("samples/kick_acoustic1.wav"),
 	"kick_2": withBase("samples/kick_acoustic2.wav"),
 	"kick_nailgun": withBase("samples/kick_nailgun.wav"),

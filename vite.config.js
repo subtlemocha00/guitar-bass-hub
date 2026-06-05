@@ -86,6 +86,18 @@ export default defineConfig({
               expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
+          {
+            // Metronome WAV samples: cache on first play so the metronome keeps
+            // working offline. Audio is immutable, so CacheFirst is ideal.
+            urlPattern: ({ request, url }) =>
+              request.destination === 'audio' || url.pathname.endsWith('.wav'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'audio-samples',
+              expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
         ],
       },
       devOptions: {

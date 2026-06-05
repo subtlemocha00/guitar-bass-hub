@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../auth/useAuth";
-import { DEFAULT_SORT, SORT_OPTIONS } from "./SongSortMenu";
+import { DEFAULT_SORT, SORT_OPTIONS } from "./sortOptions";
 import { subscribeToPrefs, setPref } from "./firebaseUserPrefs";
 
 const VALID = SORT_OPTIONS.map((o) => o.value);

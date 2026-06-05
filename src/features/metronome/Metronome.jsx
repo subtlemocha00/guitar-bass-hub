@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { playSound, preloadSamples, SOUND_OPTIONS } from "./soundEngine";
+import { loadMetronomeSettings, saveMetronomeSettings } from "./metronomeStorage";
+import MetronomePresets from "./MetronomePresets";
 import "./Metronome.css";
 
 const LOOKAHEAD_MS = 25;
@@ -79,34 +81,37 @@ export function MetronomeView() {
 	const accent2Color = "var(--neon-amber)";
 	const accent2Glow = "rgba(255, 184, 77, 0.7)";
 
-	const [bpm, setBpm] = useState(120);
-	const [beats, setBeats] = useState(4);
+	// Restore the persisted setup once on mount (validated; safe defaults).
+	const [settings0] = useState(loadMetronomeSettings);
+
+	const [bpm, setBpm] = useState(settings0.bpm);
+	const [beats, setBeats] = useState(settings0.beats);
 	const [running, setRunning] = useState(false);
 	const [tick, setTick] = useState(-1);
 	const [subTick, setSubTick] = useState(-1);
-	const [displayBpm, setDisplayBpm] = useState(120);
+	const [displayBpm, setDisplayBpm] = useState(settings0.bpm);
 	const [barAudible, setBarAudible] = useState(true);
 	const [muteReason, setMuteReason] = useState(null);
 
 	// Per-beat accent level: 0 = none, 1 = accent 1, 2 = accent 2.
-	const [accentPattern, setAccentPattern] = useState([1, 0, 0, 0]);
-	const [accentSound, setAccentSound] = useState("Hi-Hat 1");
-	const [accentSound2, setAccentSound2] = useState("Cowbell");
-	const [beatSound, setBeatSound] = useState("Hi-Hat 1");
-	const [subSound, setSubSound] = useState("Hi-Hat 1");
+	const [accentPattern, setAccentPattern] = useState(settings0.accentPattern);
+	const [accentSound, setAccentSound] = useState(settings0.accentSound);
+	const [accentSound2, setAccentSound2] = useState(settings0.accentSound2);
+	const [beatSound, setBeatSound] = useState(settings0.beatSound);
+	const [subSound, setSubSound] = useState(settings0.subSound);
 
-	const [rampEnabled, setRampEnabled] = useState(false);
-	const [startBpm, setStartBpm] = useState(60);
-	const [endBpm, setEndBpm] = useState(120);
-	const [rampDuration, setRampDuration] = useState(120);
+	const [rampEnabled, setRampEnabled] = useState(settings0.rampEnabled);
+	const [startBpm, setStartBpm] = useState(settings0.startBpm);
+	const [endBpm, setEndBpm] = useState(settings0.endBpm);
+	const [rampDuration, setRampDuration] = useState(settings0.rampDuration);
 
-	const [subdivision, setSubdivision] = useState("quarter");
-	const [swing, setSwing] = useState("straight");
+	const [subdivision, setSubdivision] = useState(settings0.subdivision);
+	const [swing, setSwing] = useState(settings0.swing);
 
-	const [gapEnabled, setGapEnabled] = useState(false);
-	const [gapAudibleBars, setGapAudibleBars] = useState(3);
-	const [gapSilentBars, setGapSilentBars] = useState(1);
-	const [randomMuteLevel, setRandomMuteLevel] = useState("off");
+	const [gapEnabled, setGapEnabled] = useState(settings0.gapEnabled);
+	const [gapAudibleBars, setGapAudibleBars] = useState(settings0.gapAudibleBars);
+	const [gapSilentBars, setGapSilentBars] = useState(settings0.gapSilentBars);
+	const [randomMuteLevel, setRandomMuteLevel] = useState(settings0.randomMuteLevel);
 
 	const ctxRef = useRef(null);
 	const samplesPreloadedRef = useRef(false);
@@ -152,11 +157,123 @@ export function MetronomeView() {
 		}
 	}, [bpm, running, rampEnabled]);
 
+	// Reset the accent pattern only when the meter size actually changes. The
+	// length check makes this idempotent, so a persisted pattern restored on
+	// mount is left intact (and it stays safe under StrictMode's double-mount).
 	useEffect(() => {
-		const arr = new Array(beats).fill(0);
-		arr[0] = 1;
-		setAccentPattern(arr);
+		setAccentPattern((prev) => {
+			if (prev.length === beats) return prev;
+			const arr = new Array(beats).fill(0);
+			arr[0] = 1;
+			return arr;
+		});
 	}, [beats]);
+
+	// Persist the setup whenever any saved field changes, so it survives reloads.
+	useEffect(() => {
+		saveMetronomeSettings({
+			bpm,
+			beats,
+			accentPattern,
+			accentSound,
+			accentSound2,
+			beatSound,
+			subSound,
+			rampEnabled,
+			startBpm,
+			endBpm,
+			rampDuration,
+			subdivision,
+			swing,
+			gapEnabled,
+			gapAudibleBars,
+			gapSilentBars,
+			randomMuteLevel,
+		});
+	}, [
+		bpm,
+		beats,
+		accentPattern,
+		accentSound,
+		accentSound2,
+		beatSound,
+		subSound,
+		rampEnabled,
+		startBpm,
+		endBpm,
+		rampDuration,
+		subdivision,
+		swing,
+		gapEnabled,
+		gapAudibleBars,
+		gapSilentBars,
+		randomMuteLevel,
+	]);
+
+	// Snapshot of the live settings for the presets panel (stable across the
+	// frequent tick-driven re-renders while running).
+	const currentSettings = useMemo(
+		() => ({
+			bpm,
+			beats,
+			accentPattern,
+			accentSound,
+			accentSound2,
+			beatSound,
+			subSound,
+			rampEnabled,
+			startBpm,
+			endBpm,
+			rampDuration,
+			subdivision,
+			swing,
+			gapEnabled,
+			gapAudibleBars,
+			gapSilentBars,
+			randomMuteLevel,
+		}),
+		[
+			bpm,
+			beats,
+			accentPattern,
+			accentSound,
+			accentSound2,
+			beatSound,
+			subSound,
+			rampEnabled,
+			startBpm,
+			endBpm,
+			rampDuration,
+			subdivision,
+			swing,
+			gapEnabled,
+			gapAudibleBars,
+			gapSilentBars,
+			randomMuteLevel,
+		]
+	);
+
+	// Apply a full settings object to the live metronome (used by presets +
+	// reset). The setters are stable, so this never needs to change identity.
+	const applySettings = useCallback((s) => {
+		setBpm(s.bpm);
+		setBeats(s.beats);
+		setAccentPattern(s.accentPattern);
+		setAccentSound(s.accentSound);
+		setAccentSound2(s.accentSound2);
+		setBeatSound(s.beatSound);
+		setSubSound(s.subSound);
+		setRampEnabled(s.rampEnabled);
+		setStartBpm(s.startBpm);
+		setEndBpm(s.endBpm);
+		setRampDuration(s.rampDuration);
+		setSubdivision(s.subdivision);
+		setSwing(s.swing);
+		setGapEnabled(s.gapEnabled);
+		setGapAudibleBars(s.gapAudibleBars);
+		setGapSilentBars(s.gapSilentBars);
+		setRandomMuteLevel(s.randomMuteLevel);
+	}, []);
 
 	useEffect(() => {
 		if (!running) {
@@ -919,6 +1036,13 @@ export function MetronomeView() {
 							/>
 						</label>
 					</div>
+				</CollapsibleSection>
+
+				<CollapsibleSection title="PRESETS">
+					<MetronomePresets
+						currentSettings={currentSettings}
+						onApply={applySettings}
+					/>
 				</CollapsibleSection>
 
 				<div className="metro-notes">
