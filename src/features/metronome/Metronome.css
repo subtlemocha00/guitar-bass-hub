@@ -452,3 +452,43 @@
 	text-align: left;
 	margin-top: 1.5rem;
 }
+
+/* Preset save row */
+.metro-preset-save {
+	display: flex;
+	gap: 0.4rem;
+	align-items: center;
+	margin-bottom: 0.5rem;
+}
+
+.metro-preset-save .metro-input {
+	flex: 1;
+	min-width: 0;
+}
+
+/* Preset list */
+.metro-preset-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	max-height: 220px;
+	overflow-y: auto;
+	padding-right: 2px;
+}
+
+.metro-preset-item {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.metro-preset-item-name {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--font-mono);
+	font-size: 0.74rem;
+	letter-spacing: 0.06em;
+	color: var(--text-dim);
+}

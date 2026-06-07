@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { playSound, SOUND_OPTIONS } from "./soundEngine";
+import { useMetronomePresets } from "./useMetronomePresets";
 import "./Metronome.css";
 
 const LOOKAHEAD_MS = 25;
@@ -104,6 +105,10 @@ export function MetronomeView() {
 	const [gapSilentBars, setGapSilentBars] = useState(1);
 	const [randomMuteLevel, setRandomMuteLevel] = useState("off");
 
+	const [presetName, setPresetName] = useState("");
+	const { presets: savedPresets, savePreset, deletePreset, signedIn } =
+		useMetronomePresets();
+
 	const ctxRef = useRef(null);
 	const schedulerIdRef = useRef(null);
 	const rafIdRef = useRef(null);
@@ -147,9 +152,14 @@ export function MetronomeView() {
 	}, [bpm, running, rampEnabled]);
 
 	useEffect(() => {
-		const arr = new Array(beats).fill(false);
-		arr[0] = true;
-		setAccentPattern(arr);
+		// Only reset accent pattern when the beat count actually changes length.
+		// Preserves the pattern when loading a preset that already has the correct length.
+		setAccentPattern((prev) => {
+			if (prev.length === beats) return prev;
+			const arr = new Array(beats).fill(false);
+			arr[0] = true;
+			return arr;
+		});
 	}, [beats]);
 
 	useEffect(() => {
@@ -381,7 +391,65 @@ export function MetronomeView() {
 		});
 	}
 
-	const presets = [40, 60, 80, 100, 120, 140, 160, 180, 220, 260, 300];
+	const bpmPresets = [40, 60, 80, 100, 120, 140, 160, 180, 220, 260, 300];
+
+	const handleLoadPreset = useCallback((preset) => {
+		const targetBeats = preset.beats ?? 4;
+		setBpm(preset.bpm ?? 120);
+		setBeats(targetBeats);
+		setSubdivision(preset.subdivision ?? "quarter");
+		setSwing(preset.swing ?? "straight");
+		// Set accent pattern in same batch so the beats effect sees matching length.
+		setAccentPattern(
+			Array.isArray(preset.accentPattern) &&
+				preset.accentPattern.length === targetBeats
+				? preset.accentPattern.map(Boolean)
+				: new Array(targetBeats).fill(false).map((_, i) => i === 0)
+		);
+		setAccentSound(preset.accentSound ?? "click");
+		setBeatSound(preset.beatSound ?? "hi-hat");
+		setSubSound(preset.subSound ?? "click");
+		setGapEnabled(!!preset.gapEnabled);
+		setGapAudibleBars(preset.gapAudibleBars ?? 3);
+		setGapSilentBars(preset.gapSilentBars ?? 1);
+		setRandomMuteLevel(preset.randomMuteLevel ?? "off");
+		setRampEnabled(!!preset.rampEnabled);
+		setStartBpm(preset.startBpm ?? 60);
+		setEndBpm(preset.endBpm ?? 120);
+		setRampDuration(preset.rampDuration ?? 120);
+	}, []);
+
+	const handleSavePreset = useCallback(() => {
+		const name = presetName.trim();
+		if (!name) return;
+		savePreset(name, {
+			bpm,
+			beats,
+			subdivision,
+			swing,
+			accentPattern,
+			accentSound,
+			beatSound,
+			subSound,
+			gapEnabled,
+			gapAudibleBars,
+			gapSilentBars,
+			randomMuteLevel,
+			rampEnabled,
+			startBpm,
+			endBpm,
+			rampDuration,
+		});
+		setPresetName("");
+	}, [
+		presetName,
+		savePreset,
+		bpm, beats, subdivision, swing, accentPattern,
+		accentSound, beatSound, subSound,
+		gapEnabled, gapAudibleBars, gapSilentBars, randomMuteLevel,
+		rampEnabled, startBpm, endBpm, rampDuration,
+	]);
+
 	const accentLabel =
 		accentPattern
 			.map((a, i) => (a ? i + 1 : null))
@@ -525,7 +593,7 @@ export function MetronomeView() {
 				</div>
 
 				<div className="metro-presets">
-					{presets.map((p) => (
+					{bpmPresets.map((p) => (
 						<button
 							key={p}
 							onClick={() => setBpm(p)}
@@ -884,6 +952,65 @@ export function MetronomeView() {
 							/>
 						</label>
 					</div>
+				</CollapsibleSection>
+
+				<CollapsibleSection title="PRESETS">
+					{!signedIn ? (
+						<div className="metro-accent-hint">
+							Sign in to save and sync presets across devices.
+						</div>
+					) : (
+						<>
+							<div className="metro-preset-save">
+								<input
+									type="text"
+									className="metro-input"
+									placeholder="Name this preset..."
+									value={presetName}
+									maxLength={40}
+									onChange={(e) => setPresetName(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === "Enter") handleSavePreset();
+									}}
+								/>
+								<button
+									className="btn"
+									onClick={handleSavePreset}
+									disabled={!presetName.trim()}
+								>
+									SAVE
+								</button>
+							</div>
+							{savedPresets.length === 0 ? (
+								<div className="metro-accent-hint">
+									No presets saved yet.
+								</div>
+							) : (
+								<div className="metro-preset-list">
+									{savedPresets.map((p) => (
+										<div key={p.id} className="metro-preset-item">
+											<span className="metro-preset-item-name">
+												{p.name}
+											</span>
+											<button
+												className="btn"
+												onClick={() => handleLoadPreset(p)}
+											>
+												LOAD
+											</button>
+											<button
+												className="btn"
+												aria-label={`Delete preset ${p.name}`}
+												onClick={() => deletePreset(p.id)}
+											>
+												✕
+											</button>
+										</div>
+									))}
+								</div>
+							)}
+						</>
+					)}
 				</CollapsibleSection>
 
 				<div className="metro-notes">
