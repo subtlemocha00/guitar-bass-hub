@@ -1,12 +1,5 @@
 import "./SongSortMenu.css";
-
-export const SORT_OPTIONS = [
-	{ value: "recent", label: "Recently Added" },
-	{ value: "alphabetical", label: "Alphabetical" },
-	{ value: "artist", label: "Artist" },
-];
-
-export const DEFAULT_SORT = "recent";
+import { SORT_OPTIONS } from "./sortOptions";
 
 function SongSortMenu({ sort, onChange }) {
 	return (

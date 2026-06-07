@@ -9,6 +9,7 @@ const ALLOWED_FIELDS = [
 	"swing",
 	"accentPattern",
 	"accentSound",
+	"accentSound2",
 	"beatSound",
 	"subSound",
 	"gapEnabled",
@@ -29,24 +30,38 @@ function tsToMs(ts) {
 	return null;
 }
 
+// Normalize accentPattern to an array of 0/1/2 values.
+function normalizeAccentPattern(v, beats) {
+	if (
+		Array.isArray(v) &&
+		v.length === beats &&
+		v.every((x) => x === 0 || x === 1 || x === 2)
+	) {
+		return v.slice();
+	}
+	const arr = new Array(beats).fill(0);
+	arr[0] = 1;
+	return arr;
+}
+
 const presetCollection = createUserCollection({
 	name: "metronomePresets",
 	allowedFields: ALLOWED_FIELDS,
 	mapDoc: (d) => {
 		const data = d.data();
+		const beats = typeof data.beats === "number" ? data.beats : 4;
 		return {
 			id: d.id,
 			name: data.name ?? "Untitled",
 			bpm: typeof data.bpm === "number" ? data.bpm : 120,
-			beats: typeof data.beats === "number" ? data.beats : 4,
+			beats,
 			subdivision: data.subdivision ?? "quarter",
 			swing: data.swing ?? "straight",
-			accentPattern: Array.isArray(data.accentPattern)
-				? data.accentPattern.map(Boolean)
-				: [true, false, false, false],
-			accentSound: data.accentSound ?? "click",
-			beatSound: data.beatSound ?? "hi-hat",
-			subSound: data.subSound ?? "click",
+			accentPattern: normalizeAccentPattern(data.accentPattern, beats),
+			accentSound: data.accentSound ?? "hi_hat_1",
+			accentSound2: data.accentSound2 ?? "cowbell",
+			beatSound: data.beatSound ?? "hi_hat_1",
+			subSound: data.subSound ?? "hi_hat_1",
 			gapEnabled: !!data.gapEnabled,
 			gapAudibleBars: typeof data.gapAudibleBars === "number" ? data.gapAudibleBars : 3,
 			gapSilentBars: typeof data.gapSilentBars === "number" ? data.gapSilentBars : 1,

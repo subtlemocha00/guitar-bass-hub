@@ -9,18 +9,6 @@ import {
 const CACHE_KEY = "practice-hub:metronome-presets";
 const MIGRATED_KEY = "practice-hub:metronome-presets-migrated";
 
-// Sound name map for presets saved under the old naming convention.
-const LEGACY_SOUND_MAP = {
-	hi_hat_1: "hi-hat",
-	hi_hat_2: "hi-hat",
-	hi_hat_3: "hi-hat",
-};
-
-function normalizeSound(name) {
-	if (typeof name !== "string") return undefined;
-	return LEGACY_SOUND_MAP[name] ?? name;
-}
-
 function readCache() {
 	try {
 		const raw = localStorage.getItem(CACHE_KEY);
@@ -40,20 +28,22 @@ function writeCache(presets) {
 	}
 }
 
-// Flatten the old { id, name, createdAt, settings: {...} } shape into the
-// flat shape used by Firestore, and normalize any legacy sound names.
+// Flatten the localStorage format { id, name, createdAt, settings: {...} } into
+// the flat shape Firestore uses. The .settings object may already contain a
+// numeric accentPattern (0/1/2) from metronomeStorage — leave those values as-is.
 function normalizeLocalPreset(p) {
 	if (!p || typeof p !== "object") return null;
-	const base =
-		p.settings && typeof p.settings === "object"
-			? { id: p.id, name: p.name, createdAt: p.createdAt, ...p.settings }
-			: { ...p };
-
-	if (base.accentSound) base.accentSound = normalizeSound(base.accentSound) ?? base.accentSound;
-	if (base.beatSound) base.beatSound = normalizeSound(base.beatSound) ?? base.beatSound;
-	if (base.subSound) base.subSound = normalizeSound(base.subSound) ?? base.subSound;
-
-	return base;
+	if (p.settings && typeof p.settings === "object") {
+		return {
+			id: p.id ?? String(Date.now()),
+			name: p.name ?? "Untitled",
+			createdAt: p.createdAt ?? Date.now(),
+			updatedAt: p.createdAt ?? Date.now(),
+			...p.settings,
+		};
+	}
+	// Already flat — pass through.
+	return { ...p };
 }
 
 export function useMetronomePresets() {
@@ -70,11 +60,9 @@ export function useMetronomePresets() {
 			return undefined;
 		}
 
-		// Reset migration guard when uid changes (new sign-in).
 		migratedRef.current = false;
 
 		const unsub = subscribeToMetronomePresets(uid, (fsPresets) => {
-			// Migration runs at most once per sign-in session.
 			if (!migratedRef.current) {
 				migratedRef.current = true;
 
@@ -104,7 +92,6 @@ export function useMetronomePresets() {
 						);
 					}
 
-					// Mark migration done so it never re-runs on this device.
 					localStorage.setItem(MIGRATED_KEY, "1");
 				}
 			}

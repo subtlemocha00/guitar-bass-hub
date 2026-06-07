@@ -52,6 +52,29 @@
 	gap: 0.35rem;
 }
 
+/* GENRE / BPM / KEY row. min-width:0 lets the grid items shrink below
+   their intrinsic content width so the row never overflows the modal. */
+.add-song-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	gap: 0.85rem;
+}
+
+.add-song-grid > .add-song-field {
+	min-width: 0;
+}
+
+/* On mobile, GENRE spans the full width and BPM + KEY share the row
+   below, each taking half — matching the alignment of the other fields. */
+@media (max-width: 480px) {
+	.add-song-grid {
+		grid-template-columns: 1fr 1fr;
+	}
+	.add-song-grid > .add-song-field--genre {
+		grid-column: 1 / -1;
+	}
+}
+
 .add-song-label {
 	font-family: var(--font-mono);
 	font-size: 0.7rem;

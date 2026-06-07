@@ -17,9 +17,9 @@ export function useAuth() {
 		const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
 			setUser(currentUser);
 			setLoading(false);
-			if (currentUser) {
-				console.log("[auth] session restored for", currentUser.uid);
-			}
+			// if (currentUser) {
+			// 	console.log("[auth] session restored for", currentUser.uid);
+			// }
 		});
 
 		return unsubscribe;

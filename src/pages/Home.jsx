@@ -17,7 +17,7 @@ function Stat({ k, v, c, sub }) {
 	);
 }
 
-function InstrumentDeck({ instrument, accent, accentVar, glowVar, count, learning, completed, sunHue }) {
+function InstrumentDeck({ instrument, count, learning, completed, sunHue }) {
 	const to = "/" + instrument;
 	const sunStyle = {
 		"--sun-1": sunHue.a,
@@ -75,6 +75,7 @@ function InstrumentDeck({ instrument, accent, accentVar, glowVar, count, learnin
 const SHARED_TOOLS = [
 	{ key: "00", label: "Tuner", tag: "guitar + bass · pitch ref", path: "/tuner" },
 	{ key: "01", label: "Metronome", tag: "guitar + bass · tempo lock", path: "/metronome" },
+	{ key: "06", label: "Control Center", tag: "system · settings + utils", path: "/control-center" },
 ];
 
 const BASS_TOOLS = [
@@ -110,7 +111,7 @@ function HomeTools() {
 				<span className="tools-toggle-label">// QUICK ACCESS</span>
 				<span className="tools-toggle-rule" />
 				<span className="tools-toggle-right">
-					<span className="tools-toggle-count">06 ROUTES</span>
+					<span className="tools-toggle-count">07 ROUTES</span>
 					<span className="tools-toggle-chevron">{open ? "▲" : "▼"}</span>
 				</span>
 			</button>
@@ -196,7 +197,6 @@ function Home() {
 				<section className="home-decks">
 					<InstrumentDeck
 						instrument="bass"
-						accent="amber"
 						count={bassSongs.length}
 						learning={bassLearning}
 						completed={bassDone}
@@ -204,7 +204,6 @@ function Home() {
 					/>
 					<InstrumentDeck
 						instrument="guitar"
-						accent="magenta"
 						count={guitarSongs.length}
 						learning={gtrLearning}
 						completed={gtrDone}

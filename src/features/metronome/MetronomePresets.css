@@ -1,0 +1,137 @@
+/* Metronome presets panel — lives inside a metro CollapsibleSection. */
+
+.mp {
+	display: flex;
+	flex-direction: column;
+	gap: 0.7rem;
+}
+
+.mp-save {
+	display: flex;
+	gap: 0.45rem;
+}
+
+.mp-input {
+	flex: 1;
+	min-width: 0;
+	font-family: var(--font-mono);
+	font-size: 0.74rem;
+	color: var(--text);
+	background: var(--bg-0);
+	border: 1px solid var(--line-mid);
+	border-radius: 2px;
+	padding: 0.5rem 0.6rem;
+}
+
+.mp-input:focus-visible {
+	outline: none;
+	border-color: var(--neon-cyan);
+	box-shadow: 0 0 8px var(--neon-cyan-glow);
+}
+
+.mp-empty {
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	line-height: 1.5;
+	color: var(--text-mute);
+	margin: 0;
+}
+
+.mp-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+}
+
+.mp-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+	border: 1px solid var(--line-dim);
+	border-radius: 2px;
+	padding: 0.5rem 0.6rem;
+	background: var(--surface-2);
+}
+
+.mp-item-info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	min-width: 0;
+}
+
+.mp-item-name {
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	color: var(--text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mp-item-sum {
+	font-family: var(--font-mono);
+	font-size: 0.62rem;
+	letter-spacing: 0.06em;
+	color: var(--text-mute);
+}
+
+.mp-item-actions {
+	display: inline-flex;
+	gap: 0.35rem;
+	flex-shrink: 0;
+}
+
+.mp-mini {
+	font-family: var(--font-mono);
+	font-size: 0.62rem;
+	letter-spacing: 0.12em;
+	color: var(--neon-cyan);
+	background: transparent;
+	border: 1px solid var(--line-mid);
+	border-radius: 2px;
+	padding: 0.3rem 0.5rem;
+	cursor: pointer;
+	transition: background 0.15s, box-shadow 0.2s, color 0.15s;
+}
+
+.mp-mini:hover {
+	background: color-mix(in srgb, var(--neon-cyan) 16%, transparent);
+	box-shadow: 0 0 8px var(--neon-cyan-glow);
+}
+
+.mp-mini--danger {
+	color: var(--neon-magenta);
+	border-color: color-mix(in srgb, var(--neon-magenta) 45%, transparent);
+}
+
+.mp-mini--danger:hover {
+	background: color-mix(in srgb, var(--neon-magenta) 16%, transparent);
+	box-shadow: 0 0 8px var(--neon-magenta-glow);
+}
+
+.mp-reset {
+	display: flex;
+	justify-content: flex-end;
+	padding-top: 0.2rem;
+	border-top: 1px solid var(--line-dim);
+}
+
+@media (max-width: 360px) {
+	.mp-save {
+		flex-direction: column;
+	}
+
+	.mp-reset {
+		justify-content: stretch;
+	}
+
+	.mp-reset .btn {
+		flex: 1;
+		justify-content: center;
+	}
+}

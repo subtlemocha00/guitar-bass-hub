@@ -1,0 +1,186 @@
+/* Control Center — system panel layout. Reuses global tokens + .hud / .btn. */
+
+.cc-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 1rem;
+	align-items: start;
+}
+
+.cc-card {
+	padding: 1rem 1.1rem 1.1rem;
+}
+
+.cc-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.85rem;
+	padding-bottom: 0.55rem;
+	border-bottom: 1px solid var(--line-dim);
+}
+
+.cc-card-label {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--neon-cyan);
+}
+
+.cc-card-count {
+	font-family: var(--font-mono);
+	font-size: 0.6rem;
+	letter-spacing: 0.18em;
+	color: var(--text-mute);
+	border: 1px solid var(--line-dim);
+	border-radius: 2px;
+	padding: 0.1rem 0.4rem;
+	white-space: nowrap;
+}
+
+.cc-card-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+/* Key / value rows */
+.cc-kv {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.75rem;
+	font-family: var(--font-mono);
+	font-size: 0.74rem;
+}
+
+.cc-kv-k {
+	color: var(--text-mute);
+	letter-spacing: 0.08em;
+}
+
+.cc-kv-v {
+	color: var(--text);
+	text-align: right;
+	word-break: break-word;
+}
+
+/* Keyboard shortcuts */
+.cc-shortcut {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: 0.6rem;
+	font-family: var(--font-mono);
+	font-size: 0.74rem;
+}
+
+.cc-shortcut-keys {
+	display: inline-flex;
+	gap: 0.25rem;
+}
+
+.cc-kbd {
+	font-family: var(--font-mono);
+	font-size: 0.66rem;
+	letter-spacing: 0.06em;
+	color: var(--neon-cyan);
+	background: var(--surface-2);
+	border: 1px solid var(--line-mid);
+	border-bottom-width: 2px;
+	border-radius: 3px;
+	padding: 0.12rem 0.4rem;
+	min-width: 1.4rem;
+	text-align: center;
+}
+
+.cc-shortcut-action {
+	color: var(--text);
+}
+
+.cc-shortcut-scope {
+	color: var(--text-mute);
+	font-size: 0.62rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.cc-hint {
+	font-family: var(--font-mono);
+	font-size: 0.66rem;
+	line-height: 1.5;
+	color: var(--text-mute);
+	margin: 0.15rem 0 0;
+}
+
+.cc-modules {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+}
+
+.cc-module {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+	border: 1px solid var(--line-dim);
+	border-radius: 2px;
+	padding: 0.5rem 0.6rem;
+	background: var(--surface-2);
+}
+
+.cc-module-info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	min-width: 0;
+}
+
+.cc-module-name {
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	color: var(--text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cc-module-tag {
+	font-family: var(--font-mono);
+	font-size: 0.62rem;
+	letter-spacing: 0.06em;
+	color: var(--text-mute);
+}
+
+/* Future modules */
+.cc-module--disabled {
+	opacity: 0.5;
+}
+
+.cc-module-badge {
+	font-family: var(--font-mono);
+	font-size: 0.56rem;
+	letter-spacing: 0.16em;
+	color: var(--text-mute);
+	border: 1px dashed var(--line-dim);
+	border-radius: 2px;
+	padding: 0.12rem 0.4rem;
+	flex-shrink: 0;
+}
+
+@media (max-width: 360px) {
+	.cc-grid {
+		grid-template-columns: 1fr;
+		gap: 0.75rem;
+	}
+
+	.cc-card {
+		padding: 0.85rem 0.85rem 0.95rem;
+	}
+}
