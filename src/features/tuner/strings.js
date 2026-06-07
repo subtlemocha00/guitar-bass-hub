@@ -62,6 +62,14 @@ export const INSTRUMENT_CONFIGS = {
 			{ name: "A3", letter: "A", freq: 220.00 },
 			{ name: "D4", letter: "D", freq: 293.66 }
 		],
+		"6_open_c": [
+			{ name: "C2", letter: "C", freq: 65.41 },
+			{ name: "G2", letter: "G", freq: 98.00 },
+			{ name: "C3", letter: "C", freq: 130.81 },
+			{ name: "G3", letter: "G", freq: 196.00 },
+			{ name: "C4", letter: "C", freq: 261.63 },
+			{ name: "E4", letter: "E", freq: 329.63 }
+		],
 		"7_standard": [
 			{ name: "B1", letter: "B", freq: 61.74 },
 			{ name: "E2", letter: "E", freq: 82.41 },
