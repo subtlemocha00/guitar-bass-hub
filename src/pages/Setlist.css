@@ -1,0 +1,215 @@
+.setlist-page {
+	max-width: 860px;
+	margin: 0 auto;
+	padding-bottom: 4rem;
+}
+
+/* ── Header ── */
+.setlist-header {
+	position: relative;
+	padding: 1.5rem;
+	margin-bottom: 1.5rem;
+}
+
+.setlist-header h1 {
+	margin: 0.25rem 0 0.5rem;
+	font-size: clamp(2rem, 5vw, 3rem);
+	letter-spacing: 0.06em;
+}
+
+.setlist-header p {
+	margin: 0 0 1.25rem;
+	color: var(--text-mute);
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.15em;
+}
+
+/* ── Filter tabs ── */
+.setlist-filters {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.setlist-filter-btn {
+	background: transparent;
+	border: 1px solid var(--border);
+	color: var(--text-mute);
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	letter-spacing: 0.22em;
+	padding: 0.3rem 0.85rem;
+	cursor: pointer;
+	transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+	text-transform: uppercase;
+}
+
+.setlist-filter-btn:hover {
+	border-color: var(--neon-cyan);
+	color: var(--neon-cyan);
+}
+
+.setlist-filter-btn--active {
+	border-color: var(--neon-cyan);
+	color: var(--neon-cyan);
+	box-shadow: 0 0 8px var(--neon-cyan-glow);
+}
+
+/* ── List panel ── */
+.setlist-list-panel {
+	position: relative;
+	padding: 1rem;
+}
+
+.setlist-reorder-hint {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.18em;
+	color: var(--text-mute);
+	text-align: center;
+	padding: 0.5rem 0 0.75rem;
+	border-bottom: 1px solid var(--border);
+	margin-bottom: 0.75rem;
+}
+
+/* ── Individual item ── */
+.setlist-item {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.7rem 0.5rem;
+	border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+	transition: background 0.12s;
+	touch-action: none;
+	user-select: none;
+}
+
+.setlist-item:last-child {
+	border-bottom: none;
+}
+
+.setlist-item--dragging {
+	opacity: 0.35;
+}
+
+.setlist-item--overlay {
+	background: var(--surface-2);
+	border: 1px solid var(--neon-cyan);
+	box-shadow: 0 0 18px color-mix(in srgb, var(--neon-cyan-glow) 60%, transparent);
+	border-radius: 2px;
+	opacity: 1 !important;
+}
+
+/* ── Drag handle ── */
+.setlist-handle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 32px;
+	color: var(--text-mute);
+	font-size: 1.1rem;
+	cursor: grab;
+	flex-shrink: 0;
+	transition: color 0.12s;
+}
+
+.setlist-handle:active {
+	cursor: grabbing;
+}
+
+.setlist-handle:hover {
+	color: var(--neon-cyan);
+}
+
+/* ── Position number ── */
+.setlist-pos {
+	width: 2rem;
+	flex-shrink: 0;
+	font-family: var(--font-mono);
+	font-size: 0.68rem;
+	letter-spacing: 0.15em;
+	color: var(--text-mute);
+	text-align: right;
+}
+
+/* ── Song info ── */
+.setlist-song-info {
+	flex: 1;
+	min-width: 0;
+}
+
+.setlist-song-title {
+	display: block;
+	font-family: var(--font-display, var(--font-mono));
+	font-size: 0.95rem;
+	letter-spacing: 0.06em;
+	color: var(--text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.setlist-song-artist {
+	display: block;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	letter-spacing: 0.12em;
+	color: var(--text-mute);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	margin-top: 0.1rem;
+}
+
+/* ── Instrument badge ── */
+.setlist-badge {
+	flex-shrink: 0;
+	font-family: var(--font-mono);
+	font-size: 0.62rem;
+	letter-spacing: 0.2em;
+	padding: 0.2rem 0.5rem;
+	border: 1px solid;
+	text-transform: uppercase;
+}
+
+.setlist-badge--guitar {
+	border-color: var(--neon-cyan);
+	color: var(--neon-cyan);
+}
+
+.setlist-badge--bass {
+	border-color: var(--neon-amber);
+	color: var(--neon-amber);
+}
+
+/* ── Empty + loading states ── */
+.setlist-state {
+	padding: 3rem 1.5rem;
+	text-align: center;
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.2em;
+	color: var(--text-mute);
+}
+
+.setlist-state p {
+	margin: 0.35rem 0 0;
+	font-size: 0.72rem;
+	letter-spacing: 0.14em;
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+	.setlist-header {
+		padding: 1rem;
+	}
+
+	.setlist-song-title {
+		font-size: 0.87rem;
+	}
+
+	.setlist-handle {
+		width: 20px;
+	}
+}

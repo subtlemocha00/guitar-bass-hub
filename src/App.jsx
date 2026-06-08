@@ -21,6 +21,7 @@ const GuitarSongs = lazy(() => import("./pages/guitar/GuitarSongs"));
 const GuitarBackingTracks = lazy(() => import("./pages/guitar/GuitarBackingTracks"));
 const GuitarExercises = lazy(() => import("./pages/guitar/Exercises"));
 const GuitarFretboard = lazy(() => import("./pages/guitar/Fretboard"));
+const Setlist = lazy(() => import("./pages/Setlist"));
 
 function RouteFallback() {
 	return (
@@ -72,6 +73,7 @@ function App() {
 					<Routes>
 						<Route path="/" element={<Home />} />
 
+						<Route path="/setlist" element={<Setlist />} />
 						<Route path="/tuner" element={<Tuner />} />
 						<Route path="/metronome" element={<Metronome />} />
 						<Route path="/control-center" element={<ControlCenter />} />

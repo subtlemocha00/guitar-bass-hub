@@ -73,20 +73,33 @@ function InstrumentDeck({ instrument, count, learning, completed, sunHue }) {
 }
 
 const SHARED_TOOLS = [
-	{ key: "00", label: "Tuner", tag: "guitar + bass · pitch ref", path: "/tuner" },
-	{ key: "01", label: "Metronome", tag: "guitar + bass · tempo lock", path: "/metronome" },
-	{ key: "06", label: "Control Center", tag: "system · settings + utils", path: "/control-center" },
+	{ label: "Tuner", tag: "guitar + bass · pitch ref", path: "/tuner" },
+	{ label: "Metronome", tag: "guitar + bass · tempo lock", path: "/metronome" },
+	{ label: "Setlist", tag: "completed songs · reorderable", path: "/setlist" },
+	{ label: "Control Center", tag: "system · settings + utils", path: "/control-center" },
 ];
 
 const BASS_TOOLS = [
-	{ key: "02", label: "Songs", tag: "bass catalog", path: "/bass/songs" },
-	{ key: "03", label: "Fretboard", tag: "fretboard map", path: "/bass/fretboard" },
+	{ label: "Songs", tag: "bass catalog", path: "/bass/songs" },
+	{ label: "Fretboard", tag: "fretboard map", path: "/bass/fretboard" },
 ];
 
 const GUITAR_TOOLS = [
-	{ key: "04", label: "Songs", tag: "guitar catalog", path: "/guitar/songs" },
-	{ key: "05", label: "Fretboard", tag: "fretboard map", path: "/guitar/fretboard" },
+	{ label: "Songs", tag: "guitar catalog", path: "/guitar/songs" },
+	{ label: "Fretboard", tag: "fretboard map", path: "/guitar/fretboard" },
 ];
+
+function withKeys(tools, startIdx) {
+	return tools.map((t, i) => ({
+		...t,
+		key: String(startIdx + i).padStart(2, "0"),
+	}));
+}
+
+const SHARED_KEYED = withKeys(SHARED_TOOLS, 0);
+const BASS_KEYED = withKeys(BASS_TOOLS, SHARED_TOOLS.length);
+const GUITAR_KEYED = withKeys(GUITAR_TOOLS, SHARED_TOOLS.length + BASS_TOOLS.length);
+const TOTAL_TOOLS = SHARED_TOOLS.length + BASS_TOOLS.length + GUITAR_TOOLS.length;
 
 function ToolCard({ keyLabel, label, tag, path, side }) {
 	return (
@@ -101,6 +114,7 @@ function ToolCard({ keyLabel, label, tag, path, side }) {
 
 function HomeTools() {
 	const [open, setOpen] = useState(true);
+	const routeCount = String(TOTAL_TOOLS).padStart(2, "0");
 	return (
 		<div className="home-tools-section">
 			<button
@@ -111,7 +125,7 @@ function HomeTools() {
 				<span className="tools-toggle-label">// QUICK ACCESS</span>
 				<span className="tools-toggle-rule" />
 				<span className="tools-toggle-right">
-					<span className="tools-toggle-count">07 ROUTES</span>
+					<span className="tools-toggle-count">{routeCount} ROUTES</span>
 					<span className="tools-toggle-chevron">{open ? "▲" : "▼"}</span>
 				</span>
 			</button>
@@ -119,19 +133,19 @@ function HomeTools() {
 				<div className="tools-dropdown hud">
 					<div className="tools-col tools-col--shared">
 						<div className="tools-col-head">SHARED</div>
-						{SHARED_TOOLS.map((t) => (
+						{SHARED_KEYED.map((t) => (
 							<ToolCard key={t.path} keyLabel={t.key} label={t.label} tag={t.tag} path={t.path} side="shared" />
 						))}
 					</div>
 					<div className="tools-col tools-col--bass">
 						<div className="tools-col-head">BASS</div>
-						{BASS_TOOLS.map((t) => (
+						{BASS_KEYED.map((t) => (
 							<ToolCard key={t.path} keyLabel={t.key} label={t.label} tag={t.tag} path={t.path} side="bass" />
 						))}
 					</div>
 					<div className="tools-col tools-col--guitar">
 						<div className="tools-col-head">GUITAR</div>
-						{GUITAR_TOOLS.map((t) => (
+						{GUITAR_KEYED.map((t) => (
 							<ToolCard key={t.path} keyLabel={t.key} label={t.label} tag={t.tag} path={t.path} side="guitar" />
 						))}
 					</div>
@@ -183,7 +197,7 @@ function Home() {
 							<Stat k="Catalog" v={totalSongs} c="" sub="songs ready" />
 							<Stat k="In Flight" v={totalLearning} c="m" sub="learning" />
 							<Stat k="Cleared" v={totalDone} c="a" sub="completed" />
-							<Stat k="Tools" v="08" c="v" sub="modules online" />
+							<Stat k="Tools" v={String(TOTAL_TOOLS).padStart(2, "0")} c="v" sub="modules online" />
 						</div>
 					</div>
 				</section>
