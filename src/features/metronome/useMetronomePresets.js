@@ -6,10 +6,36 @@ import {
 	subscribeToMetronomePresets,
 } from "./firebaseMetronomePresets";
 
+// Per-UID cache key — signing in as a different account never touches another
+// account's cached data.
 const CACHE_KEY = "practice-hub:metronome-presets";
 const MIGRATED_KEY = "practice-hub:metronome-presets-migrated";
 
-function readCache() {
+function cacheKey(uid) {
+	return `${CACHE_KEY}:${uid}`;
+}
+
+function readCache(uid) {
+	try {
+		const raw = localStorage.getItem(cacheKey(uid));
+		if (!raw) return [];
+		const parsed = JSON.parse(raw);
+		return Array.isArray(parsed) ? parsed : [];
+	} catch {
+		return [];
+	}
+}
+
+function writeCache(uid, presets) {
+	try {
+		localStorage.setItem(cacheKey(uid), JSON.stringify(presets));
+	} catch {
+		console.warn("[metronomePresets] localStorage write failed");
+	}
+}
+
+// Read the old un-keyed cache format for one-time migration.
+function readLegacyCache() {
 	try {
 		const raw = localStorage.getItem(CACHE_KEY);
 		if (!raw) return [];
@@ -20,17 +46,8 @@ function readCache() {
 	}
 }
 
-function writeCache(presets) {
-	try {
-		localStorage.setItem(CACHE_KEY, JSON.stringify(presets));
-	} catch {
-		console.warn("[metronomePresets] localStorage write failed");
-	}
-}
-
 // Flatten the localStorage format { id, name, createdAt, settings: {...} } into
-// the flat shape Firestore uses. The .settings object may already contain a
-// numeric accentPattern (0/1/2) from metronomeStorage — leave those values as-is.
+// the flat shape Firestore uses.
 function normalizeLocalPreset(p) {
 	if (!p || typeof p !== "object") return null;
 	if (p.settings && typeof p.settings === "object") {
@@ -42,16 +59,13 @@ function normalizeLocalPreset(p) {
 			...p.settings,
 		};
 	}
-	// Already flat — pass through.
 	return { ...p };
 }
 
 export function useMetronomePresets() {
 	const { user } = useAuth();
 	const uid = user?.uid;
-	const [presets, setPresets] = useState(() =>
-		readCache().map(normalizeLocalPreset).filter(Boolean)
-	);
+	const [presets, setPresets] = useState([]);
 	const migratedRef = useRef(false);
 
 	useEffect(() => {
@@ -62,6 +76,10 @@ export function useMetronomePresets() {
 
 		migratedRef.current = false;
 
+		// Seed state from this user's cache so presets appear before Firestore responds.
+		const cached = readCache(uid).map(normalizeLocalPreset).filter(Boolean);
+		if (cached.length > 0) setPresets(cached);
+
 		const unsub = subscribeToMetronomePresets(uid, (fsPresets) => {
 			if (!migratedRef.current) {
 				migratedRef.current = true;
@@ -70,17 +88,18 @@ export function useMetronomePresets() {
 					fsPresets.length === 0 &&
 					!localStorage.getItem(MIGRATED_KEY)
 				) {
-					const local = readCache()
+					// One-time migration from the old un-keyed localStorage format.
+					const legacy = readLegacyCache()
 						.map(normalizeLocalPreset)
 						.filter(Boolean);
 
-					if (local.length > 0) {
+					if (legacy.length > 0) {
 						console.log(
 							"[metronomePresets] migrating",
-							local.length,
+							legacy.length,
 							"local presets to Firestore"
 						);
-						local.forEach(
+						legacy.forEach(
 							({ id: _id, createdAt: _ca, updatedAt: _ua, ...settings }) => {
 								addMetronomePreset(uid, settings).catch((err) => {
 									console.warn(
@@ -97,7 +116,7 @@ export function useMetronomePresets() {
 			}
 
 			setPresets(fsPresets);
-			writeCache(fsPresets);
+			writeCache(uid, fsPresets);
 		});
 
 		return unsub;
