@@ -1,5 +1,6 @@
 import { STATUSES } from "./songStorage";
 import { useSongNotes } from "./useSongNotes";
+import YouTubeEmbed from "./YouTubeEmbed";
 import "./SongCard.css";
 
 function nextStatus(current) {
@@ -83,31 +84,12 @@ function SongCard({
 			<NotesField songId={song.id} />
 
 			{song.youtubeId ? (
-				<>
-					<button
-						type="button"
-						className="song-card-video-toggle"
-						onClick={onToggleVideo}
-						aria-expanded={videoOpen}
-					>
-						<span className="song-card-video-chevron" aria-hidden="true">
-							{videoOpen ? "▾" : "▸"}
-						</span>
-						{videoOpen ? "Hide Video" : "Show Video"}
-					</button>
-
-					{videoOpen && (
-						<div className="song-card-video">
-							<iframe
-								src={`https://www.youtube-nocookie.com/embed/${song.youtubeId}`}
-								title={`${song.title} — ${song.artist}`}
-								allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-								allowFullScreen
-								loading="lazy"
-							/>
-						</div>
-					)}
-				</>
+				<YouTubeEmbed
+					youtubeId={song.youtubeId}
+					title={`${song.title} — ${song.artist}`}
+					videoOpen={videoOpen}
+					onToggleVideo={onToggleVideo}
+				/>
 			) : (
 				<button
 					type="button"

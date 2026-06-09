@@ -19,6 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Layout from "../components/Layout";
 import BackLink from "../components/BackLink";
 import { useSetlist } from "../features/setlist/useSetlist";
+import { VideoToggleButton, VideoPlayer } from "../features/songs/YouTubeEmbed";
 import "./Setlist.css";
 
 const FILTERS = ["all", "guitar", "bass"];
@@ -32,6 +33,8 @@ function InstrumentBadge({ instrument }) {
 }
 
 function SongItem({ song, globalIndex, isDragMode, isOverlay }) {
+	const [videoOpen, setVideoOpen] = useState(false);
+
 	const {
 		setNodeRef,
 		attributes,
@@ -56,24 +59,38 @@ function SongItem({ song, globalIndex, isDragMode, isOverlay }) {
 
 	return (
 		<div ref={setNodeRef} style={style} className={classes}>
-			{isDragMode && (
-				<span
-					className="setlist-handle"
-					aria-label="Drag to reorder"
-					{...attributes}
-					{...listeners}
-				>
-					⠿
+			<div className="setlist-item-row">
+				{isDragMode && (
+					<span
+						className="setlist-handle"
+						aria-label="Drag to reorder"
+						{...attributes}
+						{...listeners}
+					>
+						⠿
+					</span>
+				)}
+				<span className="setlist-pos">
+					#{String(globalIndex + 1).padStart(2, "0")}
 				</span>
-			)}
-			<span className="setlist-pos">
-				#{String(globalIndex + 1).padStart(2, "0")}
-			</span>
-			<div className="setlist-song-info">
-				<span className="setlist-song-title">{song.title}</span>
-				<span className="setlist-song-artist">{song.artist}</span>
+				<div className="setlist-song-info">
+					<span className="setlist-song-title">{song.title}</span>
+					<span className="setlist-song-artist">{song.artist}</span>
+				</div>
+				<InstrumentBadge instrument={song.instrument} />
+				{!isOverlay && song.youtubeId && (
+					<VideoToggleButton
+						videoOpen={videoOpen}
+						onToggleVideo={() => setVideoOpen((v) => !v)}
+					/>
+				)}
 			</div>
-			<InstrumentBadge instrument={song.instrument} />
+			{!isOverlay && song.youtubeId && videoOpen && (
+				<VideoPlayer
+					youtubeId={song.youtubeId}
+					title={`${song.title} — ${song.artist}`}
+				/>
+			)}
 		</div>
 	);
 }

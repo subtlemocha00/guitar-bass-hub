@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../auth/useAuth";
 import { subscribeToSongs } from "../songs/firebaseSongs";
 import { subscribeToSetlistOrder, saveSetlistOrder } from "./firebaseSetlist";
+import { extractYoutubeId } from "../songs/youtubeUtils";
 
 function applyOrder(completedSongs, savedOrder) {
 	if (!savedOrder) return completedSongs;
@@ -39,9 +40,9 @@ export function useSetlist() {
 		orderReadyRef.current = false;
 
 		const unsubSongs = subscribeToSongs(uid, (allSongs) => {
-			const completed = allSongs.filter(
-				(s) => s.isUserCreated && s.status === "completed"
-			);
+			const completed = allSongs
+				.filter((s) => s.isUserCreated && s.status === "completed")
+				.map((s) => ({ ...s, youtubeId: extractYoutubeId(s.youtubeUrl) }));
 			setCompletedSongs(completed);
 			songsReadyRef.current = true;
 			if (orderReadyRef.current) setLoading(false);

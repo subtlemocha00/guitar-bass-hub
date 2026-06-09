@@ -75,13 +75,18 @@
 /* ── Individual item ── */
 .setlist-item {
 	display: flex;
-	align-items: center;
-	gap: 0.75rem;
+	flex-direction: column;
 	padding: 0.7rem 0.5rem;
 	border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
 	transition: background 0.12s;
 	touch-action: none;
 	user-select: none;
+}
+
+.setlist-item-row {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
 }
 
 .setlist-item:last-child {
@@ -211,5 +216,14 @@
 
 	.setlist-handle {
 		width: 20px;
+	}
+
+	.setlist-item-row {
+		flex-wrap: wrap;
+	}
+
+	.setlist-item-row .song-card-video-toggle {
+		flex-basis: 100%;
+		margin-top: 0.35rem;
 	}
 }
