@@ -468,6 +468,22 @@ export function MetronomeView() {
 		};
 	}, [running]);
 
+	// Release the AudioContext when the metronome leaves the screen. The context
+	// is deliberately kept alive across start/stop (recreating it per press adds
+	// latency), but without this every visit to the page would leak one. Browsers
+	// cap the number of live AudioContexts per document — once that cap is hit a
+	// new one cannot be created and the metronome goes permanently silent.
+	useEffect(() => {
+		return () => {
+			const ctx = ctxRef.current;
+			ctxRef.current = null;
+			samplesPreloadedRef.current = false;
+			if (ctx && ctx.state !== "closed") {
+				ctx.close().catch(() => { });
+			}
+		};
+	}, []);
+
 	const togglePlayback = () => setRunning((r) => !r);
 
 	useEffect(() => {

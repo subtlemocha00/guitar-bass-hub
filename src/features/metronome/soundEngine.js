@@ -76,15 +76,17 @@ function loadSample(ctx, url) {
 	return promise;
 }
 
-let preloadStarted = false;
-
 // Fetch + decode every sample once, when the AudioContext is created.
 // Idempotent and fire-and-forget: returns immediately and must never run inside
 // the scheduler loop. All decoding happens here so playback never fetches or
 // decodes.
+//
+// loadSample already short-circuits on cached and in-flight URLs, so calling
+// this again is cheap and only fills gaps. That matters because a decode tied
+// to a context that gets closed mid-flight (page left right after starting)
+// fails; a later call retries it instead of leaving that sound silent forever.
 export function preloadSamples(ctx) {
-	if (!ctx || preloadStarted) return;
-	preloadStarted = true;
+	if (!ctx) return;
 	const urls = [...new Set(Object.values(SAMPLE_PATHS))];
 	for (const url of urls) {
 		loadSample(ctx, url);

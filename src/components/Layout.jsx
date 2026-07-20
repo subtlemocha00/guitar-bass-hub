@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useAuth } from "../features/auth/useAuth";
+import { useAuthContext } from "../features/auth/useAuthContext";
 import "./Layout.css";
 
 function useClock() {
@@ -17,7 +17,7 @@ function fmtClock(d) {
 }
 
 function Layout({ children, theme }) {
-	const { user, signIn, signOut } = useAuth();
+	const { user, signIn, signOut } = useAuthContext();
 	const { pathname } = useLocation();
 	const now = useClock();
 

@@ -4,6 +4,35 @@ import { SOUND_OPTIONS } from "./soundEngine";
 // a practice configuration survives reloads. Everything is validated on read so
 // corrupt or stale data can never crash the metronome — bad fields fall back to
 // their default.
+//
+// ---------------------------------------------------------
+// WHERE METRONOME DATA LIVES  (see also: README, "Data model")
+// ---------------------------------------------------------
+// localStorage, this device only:
+//   practice-hub:metronome            the live setup — every field in
+//                                     DEFAULT_SETTINGS below (bpm, beats,
+//                                     accent pattern, all four sounds,
+//                                     subdivision, swing, tempo ramp, gap
+//                                     training, random mute)
+//   practice-hub:metronome-presets    named presets for signed-out users
+//
+// localStorage, cache only (authoritative copy is in Firestore):
+//   practice-hub:metronome-presets:{uid}            last-seen cloud presets,
+//                                                   so they paint before
+//                                                   Firestore responds
+//   practice-hub:metronome-presets-migrated:{uid}   one-shot migration flag
+//
+// Firestore (users/{uid}/metronomePresets), syncs across devices:
+//   named presets for signed-in users
+//
+// SHOULD MOVE TO FIRESTORE BEFORE NATIVE PACKAGING:
+//   The live setup is user-owned data sitting in device-local storage. Dial in
+//   96 BPM with swing and gap training on the desktop app, open the phone app,
+//   and it is back to 120/4 — which reads as a bug once the same account is
+//   used on two installs. It belongs in users/{uid}.prefs.metronome, keeping
+//   localStorage as the signed-out/offline fallback. useSortPreference is the
+//   working template for that dual-write pattern. Deliberately NOT changed
+//   yet: it is a data migration, not a cleanup.
 const LS_KEY = "practice-hub:metronome";
 
 export const DEFAULT_SETTINGS = {

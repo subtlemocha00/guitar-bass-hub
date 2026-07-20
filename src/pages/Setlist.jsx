@@ -132,8 +132,6 @@ export default function Setlist() {
 		? orderedList.findIndex((s) => s.id === activeId)
 		: -1;
 
-	const routeCount = String(FILTERS.length).padStart(2, "0");
-
 	return (
 		<Layout>
 			<div className="page setlist-page">

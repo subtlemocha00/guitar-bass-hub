@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "./features/auth/useAuth";
+import { useAuthContext } from "./features/auth/useAuthContext";
 import ScrollToTop from "./components/ScrollToTop";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Home from "./pages/Home";
@@ -61,7 +61,7 @@ function RouteFallback() {
 }
 
 function App() {
-	const { loading } = useAuth();
+	const { loading } = useAuthContext();
 
 	if (loading) return null;
 

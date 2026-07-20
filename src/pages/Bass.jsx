@@ -12,6 +12,8 @@ const TOOLS = [
 	{ to: "https://www.bassbuzz.com/lessons/the-ultimate-bass-setup-guide", code: "MOD_04", name: "Bass Setup", tag: "SETUP", desc: "A well-made guide for setting up your bass.", live: true },
 ];
 
+const isExternal = (to) => /^https?:\/\//i.test(to);
+
 function BassToolCard({ t, accent }) {
 	if (!t.live) {
 		return (
@@ -29,8 +31,8 @@ function BassToolCard({ t, accent }) {
 			</div>
 		);
 	}
-	return (
-		<Link to={t.to} className="tool-block hud" style={{ "--tool-accent": accent }}>
+	const body = (
+		<>
 			<span className="hud-corner-tr" />
 			<span className="hud-corner-bl" />
 			<div className="tool-block-head">
@@ -40,7 +42,30 @@ function BassToolCard({ t, accent }) {
 			</div>
 			<div className="tool-block-name">{t.name}</div>
 			<p className="tool-block-desc">{t.desc}</p>
-			<div className="tool-block-cta">ENGAGE → </div>
+			<div className="tool-block-cta">{isExternal(t.to) ? "OPEN ↗" : "ENGAGE → "}</div>
+		</>
+	);
+
+	// External resources open in a separate tab/window. A router <Link> to an
+	// absolute URL navigates the current document away from the app, which in a
+	// packaged desktop/mobile webview would replace the app with no way back.
+	if (isExternal(t.to)) {
+		return (
+			<a
+				href={t.to}
+				target="_blank"
+				rel="noopener noreferrer"
+				className="tool-block hud"
+				style={{ "--tool-accent": accent }}
+			>
+				{body}
+			</a>
+		);
+	}
+
+	return (
+		<Link to={t.to} className="tool-block hud" style={{ "--tool-accent": accent }}>
+			{body}
 		</Link>
 	);
 }

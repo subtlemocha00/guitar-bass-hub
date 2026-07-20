@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "../auth/useAuth";
+import { useAuthContext } from "../auth/useAuthContext";
 import { STATUSES } from "./songStorage";
 import { subscribeToSongs, updateSong } from "./firebaseSongs";
 
 export function useSongStatus(songs = []) {
-	const { user } = useAuth();
+	const { user } = useAuthContext();
 	const uid = user?.uid;
 
 	const [statuses, setStatuses] = useState(() => {

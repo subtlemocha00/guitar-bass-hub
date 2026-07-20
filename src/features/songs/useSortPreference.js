@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "../auth/useAuth";
+import { useAuthContext } from "../auth/useAuthContext";
 import { DEFAULT_SORT, SORT_OPTIONS } from "./sortOptions";
 import { subscribeToPrefs, setPref } from "./firebaseUserPrefs";
 
@@ -31,7 +31,7 @@ function writeLocal(instrument, value) {
  *   user to any other device.
  */
 export function useSortPreference(instrument) {
-	const { user } = useAuth();
+	const { user } = useAuthContext();
 	const uid = user?.uid;
 	const [sort, setSortState] = useState(() => readLocal(instrument));
 

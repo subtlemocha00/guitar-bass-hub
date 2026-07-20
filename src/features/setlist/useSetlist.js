@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAuth } from "../auth/useAuth";
+import { useAuthContext } from "../auth/useAuthContext";
 import { subscribeToSongs } from "../songs/firebaseSongs";
 import { subscribeToSetlistOrder, saveSetlistOrder } from "./firebaseSetlist";
 import { extractYoutubeId } from "../songs/youtubeUtils";
@@ -15,7 +15,7 @@ function applyOrder(completedSongs, savedOrder) {
 }
 
 export function useSetlist() {
-	const { user } = useAuth();
+	const { user } = useAuthContext();
 	const uid = user?.uid;
 
 	const [completedSongs, setCompletedSongs] = useState([]);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAuth } from "../auth/useAuth";
+import { useAuthContext } from "../auth/useAuthContext";
 import {
 	addMetronomePreset,
 	removeMetronomePreset,
@@ -13,6 +13,13 @@ const MIGRATED_KEY = "practice-hub:metronome-presets-migrated";
 
 function cacheKey(uid) {
 	return `${CACHE_KEY}:${uid}`;
+}
+
+// The migration flag has to be per-UID for the same reason the cache key is.
+// While it was global, the first account to migrate on a device permanently
+// blocked migration for every other account signing in on that device.
+function migratedKey(uid) {
+	return `${MIGRATED_KEY}:${uid}`;
 }
 
 function readCache(uid) {
@@ -46,6 +53,14 @@ function readLegacyCache() {
 	}
 }
 
+// Same result shape the Firestore layer returns, so callers only ever have to
+// check `result.ok` — being signed out is just another kind of failed write.
+const SIGNED_OUT = {
+	ok: false,
+	code: "unauthenticated",
+	message: "Sign in to sync presets across devices.",
+};
+
 // Flatten the localStorage format { id, name, createdAt, settings: {...} } into
 // the flat shape Firestore uses.
 function normalizeLocalPreset(p) {
@@ -63,7 +78,7 @@ function normalizeLocalPreset(p) {
 }
 
 export function useMetronomePresets() {
-	const { user } = useAuth();
+	const { user } = useAuthContext();
 	const uid = user?.uid;
 	const [presets, setPresets] = useState([]);
 	const migratedRef = useRef(false);
@@ -86,7 +101,7 @@ export function useMetronomePresets() {
 
 				if (
 					fsPresets.length === 0 &&
-					!localStorage.getItem(MIGRATED_KEY)
+					!localStorage.getItem(migratedKey(uid))
 				) {
 					// One-time migration from the old un-keyed localStorage format.
 					const legacy = readLegacyCache()
@@ -99,19 +114,26 @@ export function useMetronomePresets() {
 							legacy.length,
 							"local presets to Firestore"
 						);
-						legacy.forEach(
-							({ id: _id, createdAt: _ca, updatedAt: _ua, ...settings }) => {
-								addMetronomePreset(uid, settings).catch((err) => {
-									console.warn(
-										"[metronomePresets] migration upload error:",
-										err
-									);
-								});
-							}
-						);
+						legacy.forEach((preset) => {
+							// id/createdAt/updatedAt are assigned by Firestore on write.
+							const settings = { ...preset };
+							delete settings.id;
+							delete settings.createdAt;
+							delete settings.updatedAt;
+							Promise.resolve(addMetronomePreset(uid, settings)).then(
+								(result) => {
+									if (result && result.ok === false) {
+										console.warn(
+											"[metronomePresets] migration upload failed:",
+											result.code
+										);
+									}
+								}
+							);
+						});
 					}
 
-					localStorage.setItem(MIGRATED_KEY, "1");
+					localStorage.setItem(migratedKey(uid), "1");
 				}
 			}
 
@@ -124,10 +146,7 @@ export function useMetronomePresets() {
 
 	const savePreset = useCallback(
 		(name, settings) => {
-			if (!uid) {
-				console.warn("[metronomePresets] cannot save: not signed in");
-				return null;
-			}
+			if (!uid) return SIGNED_OUT;
 			return addMetronomePreset(uid, { name, ...settings });
 		},
 		[uid]
@@ -135,7 +154,7 @@ export function useMetronomePresets() {
 
 	const deletePreset = useCallback(
 		(id) => {
-			if (!uid) return undefined;
+			if (!uid) return SIGNED_OUT;
 			return removeMetronomePreset(uid, id);
 		},
 		[uid]

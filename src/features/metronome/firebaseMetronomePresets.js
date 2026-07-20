@@ -87,11 +87,4 @@ export function removeMetronomePreset(uid, id) {
 	return presetCollection.remove(uid, id);
 }
 
-export function updateMetronomePreset(uid, id, settings) {
-	return presetCollection.update(uid, id, {
-		...settings,
-		updatedAt: serverTimestamp(),
-	});
-}
-
 export const subscribeToMetronomePresets = presetCollection.subscribe;

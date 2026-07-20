@@ -66,7 +66,16 @@ function AddBackingTrackModal({ open, onClose, onSubmit, mode = "add", initialVa
 				notes: notes.trim(),
 			})
 		)
-			.then(() => onClose())
+			.then((result) => {
+				// The write layer reports { ok, message }. Keep the modal open on
+				// failure so the entered values aren't lost — previously it closed
+				// regardless and the track silently never saved.
+				if (result && result.ok === false) {
+					setErrors({ form: result.message });
+					return;
+				}
+				onClose();
+			})
 			.finally(() => setSubmitting(false));
 	}
 
@@ -185,6 +194,12 @@ function AddBackingTrackModal({ open, onClose, onSubmit, mode = "add", initialVa
 						style={{ resize: "vertical", fontFamily: "inherit" }}
 					/>
 				</label>
+
+				{errors.form && (
+					<span className="add-song-error" role="alert">
+						{errors.form}
+					</span>
+				)}
 
 				<div className="add-song-actions">
 					<button

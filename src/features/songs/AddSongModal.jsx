@@ -52,7 +52,14 @@ function AddSongModal({ open, onClose, onSubmit, mode = "add", initialValues }) 
 				youtubeUrl: youtubeUrl.trim() || null,
 			})
 		)
-			.then(() => {
+			.then((result) => {
+				// The write layer reports { ok, message }. Keep the modal open on
+				// failure so the entered values aren't lost — previously it closed
+				// regardless and the song silently never saved.
+				if (result && result.ok === false) {
+					setErrors({ form: result.message });
+					return;
+				}
 				onClose();
 			})
 			.finally(() => {
@@ -143,6 +150,12 @@ function AddSongModal({ open, onClose, onSubmit, mode = "add", initialValues }) 
 						placeholder="optional"
 					/>
 				</label>
+
+				{errors.form && (
+					<span className="add-song-error" role="alert">
+						{errors.form}
+					</span>
+				)}
 
 				<div className="add-song-actions">
 					<button

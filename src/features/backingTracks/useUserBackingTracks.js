@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAuth } from "../auth/useAuth";
+import { useAuthContext } from "../auth/useAuthContext";
 import {
 	addBackingTrack as fsAdd,
 	removeBackingTrack as fsRemove,
@@ -7,23 +7,22 @@ import {
 	subscribeToBackingTracks,
 } from "./firebaseBackingTracks";
 import sampleBackingTracks from "./sampleBackingTracks";
-
-function extractYoutubeId(url) {
-	if (!url) return null;
-	let m = url.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
-	if (m) return m[1];
-	m = url.match(/[?&]v=([A-Za-z0-9_-]{11})/);
-	if (m) return m[1];
-	if (/^[A-Za-z0-9_-]{11}$/.test(url)) return url;
-	return null;
-}
+import { extractYoutubeId } from "../songs/youtubeUtils";
 
 function decorate(track) {
 	return { ...track, youtubeId: extractYoutubeId(track.youtubeUrl) };
 }
 
+// Same result shape the Firestore layer returns, so callers only ever have to
+// check `result.ok` — being signed out is just another kind of failed write.
+const SIGNED_OUT = {
+	ok: false,
+	code: "unauthenticated",
+	message: "Sign in to save your backing tracks.",
+};
+
 export function useUserBackingTracks(instrument) {
-	const { user } = useAuth();
+	const { user } = useAuthContext();
 	const uid = user?.uid;
 	const [userTracks, setUserTracks] = useState([]);
 
@@ -56,7 +55,7 @@ export function useUserBackingTracks(instrument) {
 
 	const addTrack = useCallback(
 		(data) => {
-			if (!uid) return null;
+			if (!uid) return SIGNED_OUT;
 			return fsAdd(uid, { ...data, instrument });
 		},
 		[uid, instrument]
@@ -64,7 +63,7 @@ export function useUserBackingTracks(instrument) {
 
 	const removeTrack = useCallback(
 		(id) => {
-			if (!uid) return undefined;
+			if (!uid) return SIGNED_OUT;
 			return fsRemove(uid, id);
 		},
 		[uid]
@@ -72,7 +71,7 @@ export function useUserBackingTracks(instrument) {
 
 	const updateTrack = useCallback(
 		(id, data) => {
-			if (!uid) return undefined;
+			if (!uid) return SIGNED_OUT;
 			return fsUpdate(uid, id, {
 				title: data.title,
 				artist: data.artist,

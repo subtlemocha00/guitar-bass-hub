@@ -12,7 +12,6 @@ const SHORTCUTS = [
 // Future modules — visually present, intentionally non-functional for now.
 const FUTURE_MODULES = [
 	{ label: "Practice Statistics", tag: "session tracking · streaks" },
-	{ label: "Setlists", tag: "ordered song groups" },
 	{ label: "Audio Diagnostics", tag: "latency · output device" },
 ];
 
