@@ -1,16 +1,19 @@
-# Tauri Authentication — Investigation
+# Tauri Authentication — Investigation and Implementation
 
-**Status: investigated and experimentally validated. Nothing implemented.**
+**Status: Option A validated and implemented. Sign-in through Google's
+credential prompt is confirmed in the production build; completing a sign-in
+still needs the account owner.**
 
 The question: now that the Tauri PoC has shown the app runs from
 `http://tauri.localhost` rather than a custom scheme, can the existing Firebase
 popup flow be reused on desktop — avoiding a separate OAuth implementation?
 
-**Answer: yes, up to the credential step — all three gates pass.** An isolated
-experiment (since removed) drove `signInWithPopup` from `http://tauri.localhost`
-and reached Google's real sign-in page. See
-[Experiment results](#experiment-results); the earlier pessimistic reading in
-the *Options* section below is superseded by it and kept for context.
+**Answer: yes.** An isolated experiment (since removed) drove `signInWithPopup`
+from `http://tauri.localhost` and reached Google's real sign-in page; the
+production shell now does the same. See
+[Experiment results](#experiment-results) and
+[Production implementation](#production-implementation). The earlier pessimistic
+reading in the *Options* section below is superseded and kept for context.
 
 > **First pass got this wrong.** The initial analysis leaned toward Option B on
 > the basis that popup reuse faced three risky gates. Two of those turned out to
@@ -27,10 +30,13 @@ the *Options* section below is superseded by it and kept for context.
 | --- | --- |
 | `authDomain` | `practice-hub-00.firebaseapp.com` |
 | Web sign-in | `signInWithPopup` + `GoogleAuthProvider` in `platform/auth/webAuth.js` |
-| Native sign-in | `platform/auth/index.js` throws `AuthNotImplementedError` |
+| Native sign-in | the same module — `platform/auth/index.js` no longer branches |
 | Tauri origin | `http://tauri.localhost` |
-| Shell | `tauri::Builder::default()` + log plugin — no custom handlers |
+| Shell | window built in `lib.rs` with an `on_new_window` allow-list; log plugin |
 | Versions | tauri 2.11.5, tauri-runtime-wry 2.11.4, wry 0.55.1 |
+
+Before this work the native branch threw `AuthNotImplementedError`; that stub is
+gone, because the tested path needs no native-specific implementation.
 
 Only credential *acquisition* is platform-specific. Every strategy below ends
 in the same Firebase session, so `AuthProvider` and all consumers are
@@ -77,10 +83,11 @@ experiment below confirms that registering it resolves the problem completely.
 one when explicitly configured (`if let Some(user_agent)`), so WebView2 presents
 its stock Chromium/Edge UA. This turned out to matter for gate 3.
 
-**5. The native auth boundary behaves as designed.** Unit-tested against the
-real selection logic in `platform/auth/index.js` with `isNative` stubbed both
-ways: web delegates to `webAuth`; native throws `AuthNotImplementedError`, names
-the file to edit, and never silently falls back (10/10).
+**5. The native auth boundary behaved as designed while it existed.**
+Unit-tested against the real selection logic in `platform/auth/index.js` with
+`isNative` stubbed both ways: web delegated to `webAuth`; native threw
+`AuthNotImplementedError`, named the file to edit, and never silently fell back
+(10/10). Superseded — see [Production implementation](#production-implementation).
 
 **6. `tauri.localhost` is already an authorised domain — no Console change
 needed.** The project's authorised list (read via the public
@@ -183,6 +190,97 @@ inference from two proven facts, **not a tested result.**
 
 ---
 
+## Production implementation
+
+Two changes, one per side of the boundary.
+
+### 1. The shell allows exactly one popup URL
+
+`src-tauri/src/lib.rs` now builds the main window itself so `on_new_window` can
+be attached, and answers new-window requests with an allow-list:
+
+```rust
+fn is_firebase_auth_handler(url: &Url) -> bool {
+  url.scheme() == "https"
+    && url.path() == "/__/auth/handler"
+    && url.host_str().is_some_and(|h| h.ends_with(".firebaseapp.com"))
+}
+```
+
+Allowed → `NewWindowResponse::Allow`. Everything else → `Deny`, with a
+`log::warn!`, because a silent denial is otherwise undiagnosable: nothing
+happens and no error reaches the page.
+
+**Why an allow-list and not a bridge.** Returning `Allow` unconditionally would
+be simpler and is what the experiment did — but it would hand any content the
+app renders, YouTube embeds most obviously, an in-app browser window that the
+user cannot navigate or inspect beyond the OS chrome. The auth handler is the
+only URL the app has a reason to open this way. External links are meant to
+reach the *system* browser through `platform/links.js`, which is a separate
+(and still unimplemented) native concern.
+
+**Why the host test is structural.** The real `authDomain` is build-time
+configuration (`VITE_FIREBASE_AUTH_DOMAIN`, gitignored) that Rust never sees, so
+the rule matches the shape of a Firebase auth handler rather than one hardcoded
+domain. A custom `authDomain` would need the host test widened. The suffix test
+includes the leading dot, so `evil-firebaseapp.com` does not match.
+
+Covered by `cargo test --lib` (2 tests): the handler URL is allowed;
+`about:blank`, plain external links, right-host-wrong-path,
+right-path-wrong-host and an `http:` downgrade are all denied.
+
+Note the window is still *declared* in `tauri.conf.json` — it gained
+`"create": false` and is built from that same config via
+`WebviewWindowBuilder::from_config`. Size and title stay configuration; only the
+handler lives in Rust.
+
+### 2. The auth boundary stopped branching
+
+`platform/auth/index.js` exports `webAuth.signIn` / `webAuth.signOut` directly.
+There is no native branch, because there is no native implementation to select —
+adding one that re-exported `webAuth` would be indirection with nothing behind
+it. `isNative` is no longer imported there.
+
+The boundary itself is unchanged and still earns its place: if Google's policy
+tightens, or Capacitor arrives with its custom scheme, a sibling module selected
+by `platform()` replaces this one and nothing else in the app moves.
+
+**One consequence to be aware of:** the loud native failure is gone. If a
+Capacitor target is added later it will inherit the popup path, which is
+expected to fail on `capacitor://localhost`. Adding a mobile build target must
+reintroduce the branch — noted in the roadmap.
+
+### Verified in the production build
+
+Launched `src-tauri/target/release/app.exe`, clicked SIGN IN by synthetic input,
+and enumerated new top-level windows:
+
+```text
+[0] pid=16520 (msedgewebview2) 'Sign in - Google Accounts' 516x672
+```
+
+Captured: Google's real sign-in page, address bar showing
+`https://accounts.google.com/v3/signin/identifier`, body reading "Sign in with
+Google — to continue to practice-hub-00.firebaseapp.com". No
+`auth/unauthorized-domain`, no `auth/popup-blocked`, no `disallowed_useragent`.
+
+That is gates 1–3 reproduced outside the experiment, in the shipped shell,
+through the real UI.
+
+### Still requires the account owner
+
+Everything past the credential prompt. Entering a Google password is not
+something this validation could do:
+
+1. Sign-in completes and the user appears in the app header.
+2. The session survives closing and reopening the app.
+3. Sign-out works.
+
+Steps 1 and 2 are the substance of gate 4. Until they are done, "desktop sign-in
+works" is proven up to the point where Google takes over and inferred after it.
+
+---
+
 ## Tested behaviour
 
 | Check | Result | How |
@@ -190,15 +288,9 @@ inference from two proven facts, **not a tested result.**
 | Origin is `http://tauri.localhost` | confirmed | profile wipe + relaunch |
 | Firebase SDK initialises | confirmed | IndexedDB + `__sak` recreated |
 | App renders, storage hydrates, auth state resolves | confirmed | window capture (see [tauri-poc.md](tauri-poc.md)) |
-| Native branch throws `AuthNotImplementedError` | confirmed | unit test |
-| Clicking SIGN IN in the running app | **not observable** | see below |
-
-The abstraction was not bypassed and no auth code was changed.
-
-Clicking SIGN IN cannot be verified visually: the throw happens inside a React
-event handler, error boundaries do not catch those, and Tauri does not forward
-webview console output to stdout. There is no UI change to capture. The unit
-test is the appropriate evidence for that behaviour.
+| SIGN IN opens Google's sign-in page | confirmed | production build, window capture |
+| Popup allow-list allows the handler, denies the rest | confirmed | `cargo test --lib` |
+| Sign-in completes / persists / signs out | **not tested** | needs the account owner |
 
 ---
 
@@ -261,49 +353,50 @@ configuration so Firebase will accept the resulting ID token.
 
 ## Where this points
 
-**Option A is viable and is the recommended direction**, on the evidence above.
-It is dramatically cheaper than Option B — no OAuth client registration, no
-loopback listener, no PKCE, no Console changes — and it reuses `webAuth`
-verbatim behind the existing boundary.
+**Option A was chosen and is implemented.** It is dramatically cheaper than
+Option B — no OAuth client registration, no loopback listener, no PKCE, no
+Console changes — and it reuses `webAuth` verbatim behind the existing boundary.
 
-Two honest caveats:
+Two honest caveats remain:
 
-1. **The final step is unproven.** Sign-in was driven up to Google's credential
-   prompt, not through it. Before committing, someone with the account should
-   complete one sign-in and confirm the session survives a restart.
+1. **The final step is still unproven.** Sign-in has been driven up to Google's
+   credential prompt in the production build, not through it. Someone with the
+   account should complete one sign-in and confirm the session survives a
+   restart.
 2. **Gate 3 is a policy, not a contract.** Google could tighten
    embedded-webview detection later. The mitigation is that the abstraction
-   already isolates this: if Option A ever breaks, replacing `webAuth` with a
-   `desktopAuth.js` implementing Option B is a one-file change, and `AuthProvider`
-   and every consumer stay untouched. That is precisely the insurance the
-   platform layer was built to provide.
+   already isolates this: if Option A ever breaks, adding a `desktopAuth.js`
+   implementing Option B and selecting it in `platform/auth/index.js` is a
+   one-file change, and `AuthProvider` and every consumer stay untouched. That is
+   precisely the insurance the platform layer was built to provide.
 
 Option B remains the documented fallback and does not need building now.
 
-### Recommended implementation plan (when auth work starts)
+### Implementation plan — status
 
-1. Have the account owner complete one sign-in in the experiment shell and
-   confirm persistence across a restart. **Do this first** — it is the only
-   remaining unknown, and everything below assumes it passes.
-2. Add the `on_new_window` handler to the production shell. Scope it tightly:
-   allow only `https://<authDomain>/__/auth/handler`, deny everything else, so
-   the app cannot be talked into opening arbitrary popups.
-3. Point the native branch of `platform/auth/index.js` at `webAuth` instead of
-   the `notImplemented` stub. No other application file changes.
+1. ~~Add the `on_new_window` handler to the production shell, scoped to the
+   Firebase auth handler.~~ **Done** — see
+   [Production implementation](#production-implementation).
+2. ~~Point native at `webAuth` instead of the `notImplemented` stub.~~ **Done**;
+   the branch was removed rather than repointed.
+3. **Have the account owner complete one sign-in and confirm persistence across
+   a restart.** Outstanding — the only remaining unknown.
 4. Verify sign-out, token refresh, and the offline case (a returning user with
    no network — Firestore has a persistent cache, auth does not).
-5. Keep `AuthNotImplementedError` for Capacitor until mobile is separately
-   validated; `capacitor://localhost` would fail the same `HTTP_REGEX` guard
-   that `tauri://localhost` fails.
+5. Reintroduce a native branch when a Capacitor target is added;
+   `capacitor://localhost` would fail the same `HTTP_REGEX` guard that
+   `tauri://localhost` fails, so mobile cannot inherit this path untested.
 
 ## Unresolved questions
 
-Answered by the experiment:
+Answered by the experiment and the implementation:
 
 - ~~Does Firebase accept `tauri.localhost`?~~ Yes, already, via subdomain
   matching on `localhost`. No Console change.
 - ~~Does Google reject WebView2?~~ No. The sign-in page rendered normally.
 - ~~Does `on_new_window` make `window.open` work?~~ Yes.
+- ~~Does it still work in the real app rather than a test page?~~ Yes —
+  clicking SIGN IN in the release build opens Google's sign-in page.
 
 Still open:
 

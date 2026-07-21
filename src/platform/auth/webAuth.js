@@ -5,24 +5,26 @@ import {
 } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
 
-// Web (browser + PWA) authentication: Google sign-in through a Firebase popup.
+// Google sign-in through a Firebase popup. Used by every current target —
+// browser, installed PWA and the Tauri desktop build.
 //
 // WHY POPUP IS THE RIGHT CHOICE HERE
 // signInWithPopup keeps the user on the page — no full-document navigation, so
 // in-progress state survives sign-in. The alternative, signInWithRedirect, is
 // only needed for browsers that block popups outright and costs a page reload.
 //
-// WHY THIS IS THE PART THAT GETS REPLACED
-// The popup mechanism is precisely what no native shell can do: it needs a
-// second window plus a cross-origin postMessage back to the Firebase
-// authDomain, and custom schemes (tauri://localhost, capacitor://localhost)
-// cannot be registered as Firebase authorized domains.
+// WHY DESKTOP USES IT TOO
+// The popup was assumed to be the one thing a packaged webview could not do.
+// Tested, it works: Tauri serves the app from http://tauri.localhost, which
+// Firebase already treats as authorized (subdomain of the `localhost` entry),
+// and the shell allows window.open for the auth handler URL specifically. See
+// src/platform/auth/index.js and docs/tauri-auth-investigation.md.
 //
 // Note that only the *credential acquisition* is platform-specific. Every
 // strategy — popup here, native Google Sign-In on mobile, system-browser OAuth
-// on desktop — ends in the same Firebase session, so onAuthStateChanged and
-// everything downstream of it stays platform-agnostic and lives in
-// features/auth/AuthProvider.
+// if desktop ever needs it — ends in the same Firebase session, so
+// onAuthStateChanged and everything downstream of it stays platform-agnostic
+// and lives in features/auth/AuthProvider.
 
 const provider = new GoogleAuthProvider();
 

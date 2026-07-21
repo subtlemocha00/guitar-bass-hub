@@ -83,12 +83,16 @@ Three tests decide whether something belongs in `src/platform/`:
 | --- | --- | --- |
 | `platform/platform.js` | build target, `isWeb` / `isNative`, standalone, service-worker and connectivity checks | widen `platform()` to `desktop` / `ios` / `android` |
 | `platform/links.js` | leaving the app (`openExternal`, `externalLinkProps`) | Tauri shell plugin / Capacitor Browser |
-| `platform/auth/` | credential acquisition only | native Google Sign-In / system-browser OAuth |
+| `platform/auth/` | credential acquisition only | none for desktop — Tauri reuses the popup; mobile needs native Google Sign-In |
 | `platform/storage/` | hydration, sync reads, async writes | Capacitor Preferences / Tauri store |
 
-Each has one live implementation (`web*`) selected by build target, and each
-selection folds away at build time — the native bundle contains no web
-implementation and vice versa.
+Each has one live implementation (`web*`), selected by build target where the
+targets differ, and each selection folds away at build time — the native bundle
+contains no web implementation and vice versa. `platform/auth/` is the exception
+and the interesting case: the swap it was built for turned out not to be needed
+on desktop, so it currently selects nothing. It stays because the *reason* for
+the boundary held — credential acquisition is still the piece most likely to
+differ per target, and mobile will differ.
 
 ### What is intentionally deferred
 
@@ -97,7 +101,7 @@ implementation and vice versa.
 | `platform/dialogs.js` | zero call sites. `window.confirm` was replaced by the React `ConfirmDialog` precisely because blocking dialogs misbehave in webviews |
 | `platform/audio/` | Web Audio is identical in every webview; the tuner and metronome share no code beyond the name `AudioContext` |
 | `platform/microphone.js` | boundary is documented in `useTuner.js`, but Capacitor needs a pre-request while Tauri needs an OS entitlement — the interface cannot be designed without a shell to test |
-| `desktopAuth.js` / `mobileAuth.js` | would encode a guess at two different redirect models; the native branch throws a named error instead |
+| `desktopAuth.js` / `mobileAuth.js` | desktop turned out not to need one — Tauri reuses the popup flow. A mobile model cannot be guessed without a shell to test |
 
 Deferring is a decision, not an omission. Each of the above has a recorded
 reason and a trigger for revisiting it.

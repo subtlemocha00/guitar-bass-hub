@@ -51,6 +51,7 @@ src-tauri/
   capabilities/default.json
   src/main.rs           thin entry -> app_lib::run()
   src/lib.rs            Builder::default() + log plugin in debug
+                        (since extended with the auth popup allow-list)
   icons/                default Tauri icons (placeholder)
 ```
 
@@ -219,17 +220,24 @@ Additionally verified without the UI:
 - **Auth boundary**, by unit test against the real selection logic in
   `platform/auth/index.js` with `isNative` stubbed both ways: web delegates to
   `webAuth`; native throws `AuthNotImplementedError`, names the file to edit,
-  and never silently falls back to the web implementation (10/10).
+  and never silently falls back to the web implementation (10/10). *That
+  behaviour has since been replaced — desktop uses the popup flow.*
 - **Platform detection**, by dead-code elimination in `dist-native` (Finding 4).
 - **Firebase**, from the WebView2 IndexedDB profile (Finding 7).
 
 ### Not verified
 
-- **In-app navigation.** Synthetic mouse input (`mouse_event`) does not reach
+- **In-app navigation.** Synthetic mouse input (`mouse_event`) did not reach
   WebView2's content process, so a scripted click on a route link did not
-  navigate. This is a limitation of input injection, **not evidence of a
+  navigate. This was a limitation of input injection, **not evidence of a
   routing bug** — the window was captured before and after and only the clock
   advanced.
+
+  **Cause found later:** `SetForegroundWindow` is refused when called from a
+  background process, so the click landed on an unfocused window. Attaching to
+  the foreground thread's input queue first (`AttachThreadInput`) fixes it, and
+  a scripted click on SIGN IN then worked. Route clicks were never retried, so
+  navigation itself is still unverified.
 
   Reasoning, not proof: HashRouter navigation is entirely client-side. Changing
   the fragment issues no request, so it cannot reach the custom protocol
@@ -244,11 +252,11 @@ Additionally verified without the UI:
 
 ## Known limitations
 
-- **Authentication is not implemented on native, by design.** The native branch
-  of `platform/auth` throws `AuthNotImplementedError`. Confirmed present in
-  `dist-native` and confirmed that the web popup implementation is *absent* from
-  it. Sign-in will fail loudly, which is the intended proof that the boundary
-  works.
+- ~~**Authentication is not implemented on native, by design.**~~ **Superseded.**
+  At PoC time the native branch of `platform/auth` threw
+  `AuthNotImplementedError`, confirmed present in `dist-native` with the web
+  popup implementation absent. Desktop sign-in now uses the popup flow; see
+  [tauri-auth-investigation.md](tauri-auth-investigation.md).
 - **Storage still uses `localStorage`** via the web driver. It works in the
   webview, but native durability (OS eviction) is unaddressed.
 - **Icons are Tauri placeholders**, not the app's own.

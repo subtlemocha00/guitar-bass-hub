@@ -2,16 +2,17 @@
 
 Migration plan toward Tauri (desktop) and Capacitor (mobile).
 
-**Status: Phase 2 complete. Phase 3 started — Tauri PoC built, desktop auth
-path validated but not implemented.**
+**Status: Phase 2 complete. Phase 3 in progress — Tauri shell built and desktop
+authentication implemented.**
 
 A minimal Tauri shell builds and launches against `dist-native/`; see
-[tauri-poc.md](tauri-poc.md). Desktop sign-in has been experimentally validated
-(see [tauri-auth-investigation.md](tauri-auth-investigation.md)) but **no auth
-code has changed**. **Capacitor is not installed**, and no migration work
-(auth, storage, audio) has been done on either platform. Claims about
-Capacitor in this document remain analytical; claims about Tauri are now marked
-as verified or not.
+[tauri-poc.md](tauri-poc.md). Desktop sign-in now uses the same Firebase popup
+flow as the web build, with the shell allowing that one popup URL; see
+[tauri-auth-investigation.md](tauri-auth-investigation.md). Completing a
+sign-in end to end still needs the account owner's credentials. Storage, links
+and audio are untouched on native. **Capacitor is not installed**, so claims
+about it in this document remain analytical; claims about Tauri are marked as
+verified or not.
 
 ---
 
@@ -43,12 +44,12 @@ off the critical path.
 | Tauri shell builds + launches from `dist-native/` | **done** — [tauri-poc.md](tauri-poc.md) |
 | Platform detection correct in the native binary | **done** — verified by dead-code elimination |
 | Firebase initialises inside WebView2 | **done** — Auth + heartbeat IndexedDB created |
-| Auth boundary fails loudly on native | **done** — `AuthNotImplementedError` shipped, web popup absent |
-| Native authentication | **validated, not implemented** — Option A viable, [tauri-auth-investigation.md](tauri-auth-investigation.md) |
+| Native authentication | **implemented** — popup allow-list in the shell, `webAuth` on both targets |
+| Sign-in completes and persists | **outstanding** — needs the account owner's credentials |
 | Native storage driver | not started |
 | Native links implementation | not started |
 | Microphone / audio on native | not started |
-| Capacitor shell | not started |
+| Capacitor shell | not started — must reintroduce a native auth branch |
 
 Ordered by risk. Authentication first: everything signed-in depends on it, and
 it is the only item that can block the whole effort.
@@ -97,31 +98,31 @@ service-worker assumptions are confirmed before installing anything.
 
 ## Expected work per area
 
-### Authentication — highest risk, do first
+### Authentication — done for desktop
 
-Today: `signInWithPopup` in `platform/auth/webAuth.js`.
+Web, PWA and Tauri all use `signInWithPopup` in `platform/auth/webAuth.js`.
+`platform/auth/index.js` no longer branches: the popup was the one thing a
+packaged webview was assumed not to do, and it works.
 
-Popup needs a second window plus cross-origin `postMessage` back to the
-Firebase `authDomain`. That was long assumed impossible in both wrappers; for
-Tauri it is not.
+**Implemented after experimental validation — see
+[tauri-auth-investigation.md](tauri-auth-investigation.md).** Why it works:
 
-**Investigated and experimentally validated for Tauri — see
-[tauri-auth-investigation.md](tauri-auth-investigation.md).** Summary:
-
-**Option A (reuse the existing popup flow) is viable.** An isolated experiment
-drove `signInWithPopup` from `http://tauri.localhost` and reached Google's real
-sign-in page. All three gates passed:
-
-1. `window.open` works once an `on_new_window` handler returns `Allow` (~8 lines
-   of Rust; the default shell has none, which is why it fails today).
+1. `window.open` works once an `on_new_window` handler returns `Allow`. The
+   default shell registers none, which is why it silently failed before.
 2. `tauri.localhost` is **already authorised** — Firebase matches subdomains
    against the existing `localhost` entry. **No Console change needed.**
 3. Google accepted WebView2; no `disallowed_useragent`. The popup is a real
    browser window with a visible address bar, which is what that policy exists
    to protect.
 
-Untested: completing sign-in and session persistence — both need the account
-owner's credentials.
+The shell allows exactly `https://<host>.firebaseapp.com/__/auth/handler` and
+denies every other `window.open`. An unrestricted bridge would give embedded
+third-party content — YouTube most obviously — an in-app browser window; the
+auth handler is the only URL the app needs opened that way.
+
+Untested: completing sign-in and session persistence, both of which need the
+account owner's credentials. Verified as far as Google's credential prompt in
+the release build.
 
 This supersedes the earlier lean toward Option B, which had assumed gates 2 and
 3 were likely to fail. Option B remains the documented fallback; because the
@@ -129,7 +130,9 @@ platform layer isolates credential acquisition, switching to it later would be
 a one-file change.
 
 Capacitor's `capacitor://localhost` remains a custom scheme unless
-`iosScheme: 'https'` is set, so mobile may need its own answer regardless.
+`iosScheme: 'https'` is set, so mobile needs its own answer regardless — and
+adding a mobile target must reintroduce the native branch that desktop no
+longer needs, or mobile will silently inherit a flow that cannot work there.
 
 **Fallback plan (Option B), still valid if popup reuse is ever ruled out:**
 
@@ -162,6 +165,11 @@ store and select it by build target. Features do not change. Full contract in
 wired: on a native build `externalLinkProps` attaches an `onClick` that
 delegates to `openExternal`. Present in the native bundle but **never executed
 against a real shell** — treat as unverified.
+
+Its `window.open` fallback is now explicitly denied by the shell's popup
+allow-list. That is not a regression — WebView2 discarded those requests anyway
+— but it does mean external links stay dead on desktop until this is
+implemented, and each attempt logs a denial.
 
 ### Microphone — native permissions
 
@@ -200,10 +208,13 @@ Audited separately; no code changes were required. See
 
 ---
 
-## Before installing anything
+## Before adding the next shell
+
+Tauri is installed and its auth flow is decided. For Capacitor, in order:
 
 1. **Decide the auth flow.** Everything else is reversible; this shapes the
-   integration.
+   integration — and desktop's answer does not transfer, because
+   `capacitor://localhost` fails Firebase's protocol guard.
 2. **Run the `file://` pre-flight** above.
 3. **Spike the tuner and one YouTube embed early** — the two features most
    likely to fail outright rather than degrade.
