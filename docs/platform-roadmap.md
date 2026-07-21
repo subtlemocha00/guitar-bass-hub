@@ -46,6 +46,7 @@ off the critical path.
 | Firebase initialises inside WebView2 | **done** — Auth + heartbeat IndexedDB created |
 | Native authentication | **implemented** — popup allow-list in the shell, `webAuth` on both targets |
 | Sign-in completes and persists | **outstanding** — needs the account owner's credentials |
+| YouTube embeds on Windows | **verified** — blog and backing-track surfaces; songs and setlist need a session |
 | Native storage driver | not started |
 | Native links implementation | not started |
 | Microphone / audio on native | not started |
@@ -201,10 +202,28 @@ unimplemented:
   off needs the iOS `audio` background mode and an Android foreground service —
   and a decision about whether that is wanted at all.
 
-### YouTube embeds
+### YouTube embeds — verified on Tauri/Windows
 
-Audited separately; no code changes were required. See
+Audited in Phase 2, then measured in the running desktop app. No code changes
+were required at either point. See
 [youtube-native-compatibility.md](youtube-native-compatibility.md).
+
+The audit's highest-ranked risk — that a native origin would make YouTube refuse
+to play — does not apply: `http://tauri.localhost` is an ordinary http origin,
+the referrer is sent, and playback, fullscreen and repeat navigation all work.
+No CSP is set, so nothing is blocked. Edge Tracking Prevention partitions the
+embed's storage, which costs only playback-position persistence.
+
+Two things it turned up that are not compatibility problems:
+
+- **The sample backing-track video IDs have rotted** — four of five are
+  unavailable and one has embedding disabled. Identical from a plain web origin,
+  so it is stale placeholder data, not a native issue.
+- **"Watch on YouTube" is dead on desktop**, because it opens a new window and
+  the popup allow-list denies everything but the auth handler. Same status as
+  every other external link until `openExternal` gets its native implementation.
+
+Songs and setlist embeds are still untested: both need a signed-in session.
 
 ---
 
