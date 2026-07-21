@@ -2,11 +2,14 @@
 
 Migration plan toward Tauri (desktop) and Capacitor (mobile).
 
-**Status: Phase 2 complete. Phase 3 started — Tauri proof of concept only.**
+**Status: Phase 2 complete. Phase 3 started — Tauri PoC built, desktop auth
+path validated but not implemented.**
 
 A minimal Tauri shell builds and launches against `dist-native/`; see
-[tauri-poc.md](tauri-poc.md). **Capacitor is not installed**, and no migration
-work (auth, storage, audio) has been done on either platform. Claims about
+[tauri-poc.md](tauri-poc.md). Desktop sign-in has been experimentally validated
+(see [tauri-auth-investigation.md](tauri-auth-investigation.md)) but **no auth
+code has changed**. **Capacitor is not installed**, and no migration work
+(auth, storage, audio) has been done on either platform. Claims about
 Capacitor in this document remain analytical; claims about Tauri are now marked
 as verified or not.
 
@@ -41,7 +44,7 @@ off the critical path.
 | Platform detection correct in the native binary | **done** — verified by dead-code elimination |
 | Firebase initialises inside WebView2 | **done** — Auth + heartbeat IndexedDB created |
 | Auth boundary fails loudly on native | **done** — `AuthNotImplementedError` shipped, web popup absent |
-| Native authentication | **investigated, not implemented** — [tauri-auth-investigation.md](tauri-auth-investigation.md) |
+| Native authentication | **validated, not implemented** — Option A viable, [tauri-auth-investigation.md](tauri-auth-investigation.md) |
 | Native storage driver | not started |
 | Native links implementation | not started |
 | Microphone / audio on native | not started |
@@ -99,33 +102,45 @@ service-worker assumptions are confirmed before installing anything.
 Today: `signInWithPopup` in `platform/auth/webAuth.js`.
 
 Popup needs a second window plus cross-origin `postMessage` back to the
-Firebase `authDomain`. **Neither wrapper can do this.**
+Firebase `authDomain`. That was long assumed impossible in both wrappers; for
+Tauri it is not.
 
-**Investigated for Tauri — see
+**Investigated and experimentally validated for Tauri — see
 [tauri-auth-investigation.md](tauri-auth-investigation.md).** Summary:
 
-The `http://tauri.localhost` origin is confirmed, and it *is* friendlier than
-the custom scheme earlier audits assumed. But reusing the popup flow needs
-three independent gates to pass, and the first already fails: **wry suppresses
-`window.open()` unless the app registers an `on_new_window` handler**, so
-`signInWithPopup` would fail with `auth/popup-blocked`. That is fixable. The
-harder unknown is whether Google's OAuth consent screen accepts WebView2 at
-all, since embedded user agents are blocked by policy.
+**Option A (reuse the existing popup flow) is viable.** An isolated experiment
+drove `signInWithPopup` from `http://tauri.localhost` and reached Google's real
+sign-in page. All three gates passed:
 
-Current lean is **Option B** (system-browser OAuth + `signInWithCredential`) —
-not because popup reuse is impossible, but because its remaining risk sits with
-a third-party policy that could break every installed desktop client at once.
-**Not a final decision**: two cheap experiments are listed in the investigation
-doc that would settle it either way.
+1. `window.open` works once an `on_new_window` handler returns `Allow` (~8 lines
+   of Rust; the default shell has none, which is why it fails today).
+2. `tauri.localhost` is **already authorised** — Firebase matches subdomains
+   against the existing `localhost` entry. **No Console change needed.**
+3. Google accepted WebView2; no `disallowed_useragent`. The popup is a real
+   browser window with a visible address bar, which is what that policy exists
+   to protect.
+
+Untested: completing sign-in and session persistence — both need the account
+owner's credentials.
+
+This supersedes the earlier lean toward Option B, which had assumed gates 2 and
+3 were likely to fail. Option B remains the documented fallback; because the
+platform layer isolates credential acquisition, switching to it later would be
+a one-file change.
 
 Capacitor's `capacitor://localhost` remains a custom scheme unless
 `iosScheme: 'https'` is set, so mobile may need its own answer regardless.
 
+**Fallback plan (Option B), still valid if popup reuse is ever ruled out:**
+
 - **Capacitor** — native Google Sign-In returns an `idToken` →
-  `GoogleAuthProvider.credential(idToken)` → `signInWithCredential()`.
-- **Tauri** — open Google's consent screen in the **system browser** (Google's
-  OAuth policy refuses embedded webviews), catch the loopback/deep-link
-  redirect, exchange the code, then `signInWithCredential()`.
+  `GoogleAuthProvider.credential(idToken)` → `signInWithCredential()`. Likely
+  required regardless, since `capacitor://localhost` fails the same protocol
+  guard that `tauri://localhost` fails.
+- **Tauri** — open Google's consent screen in the system browser, catch the
+  loopback redirect, exchange the code, then `signInWithCredential()`. Needs a
+  desktop OAuth client and its ID allow-listed in the Google provider's Web SDK
+  configuration.
 
 Both converge on `signInWithCredential`, producing a session indistinguishable
 from today's. `AuthProvider` and every consumer are unaffected — add a file and
