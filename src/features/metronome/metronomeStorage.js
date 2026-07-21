@@ -1,9 +1,12 @@
 import { SOUND_OPTIONS } from "./soundEngine";
+import { readItem, writeItem } from "../../platform/storage";
 
-// Persisted metronome setup. localStorage gives instant, offline persistence so
-// a practice configuration survives reloads. Everything is validated on read so
-// corrupt or stale data can never crash the metronome — bad fields fall back to
-// their default.
+// Persisted metronome setup. Reads and writes go through platform/storage,
+// which serves them synchronously from a cache hydrated before the app renders
+// — so this module keeps its synchronous shape while the underlying driver
+// (localStorage today, an async native store later) can change freely.
+// Everything is validated on read so corrupt or stale data can never crash the
+// metronome — bad fields fall back to their default.
 //
 // ---------------------------------------------------------
 // WHERE METRONOME DATA LIVES  (see also: README, "Data model")
@@ -107,7 +110,7 @@ export function sanitizeSettings(raw) {
 
 export function loadMetronomeSettings() {
 	try {
-		const raw = localStorage.getItem(LS_KEY);
+		const raw = readItem(LS_KEY);
 		if (!raw) return { ...DEFAULT_SETTINGS };
 		return sanitizeSettings(JSON.parse(raw));
 	} catch {
@@ -117,7 +120,7 @@ export function loadMetronomeSettings() {
 
 export function saveMetronomeSettings(settings) {
 	try {
-		localStorage.setItem(LS_KEY, JSON.stringify(sanitizeSettings(settings)));
+		writeItem(LS_KEY, JSON.stringify(sanitizeSettings(settings)));
 	} catch {
 		/* ignore storage failures (private mode, quota, etc.) */
 	}
@@ -134,7 +137,7 @@ const PRESETS_KEY = "practice-hub:metronome-presets";
 
 export function listPresets() {
 	try {
-		const raw = localStorage.getItem(PRESETS_KEY);
+		const raw = readItem(PRESETS_KEY);
 		if (!raw) return [];
 		const arr = JSON.parse(raw);
 		if (!Array.isArray(arr)) return [];
@@ -153,7 +156,7 @@ export function listPresets() {
 
 function writePresets(presets) {
 	try {
-		localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+		writeItem(PRESETS_KEY, JSON.stringify(presets));
 	} catch {
 		/* ignore storage failures (private mode, quota, etc.) */
 	}

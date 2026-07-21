@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useAuthContext } from "../auth/useAuthContext";
 import { subscribeToPrefs, setPref } from "../../firebase/userPrefs";
+import { readItem, writeItem } from "../../platform/storage";
 import { sanitizeSettings, saveMetronomeSettings } from "./metronomeStorage";
 
 // Cross-device sync for the live metronome setup, modelled on useSortPreference:
@@ -27,7 +28,7 @@ function migratedKey(uid) {
 
 function hasMigrated(uid) {
 	try {
-		return !!localStorage.getItem(migratedKey(uid));
+		return !!readItem(migratedKey(uid));
 	} catch {
 		return false;
 	}
@@ -35,7 +36,7 @@ function hasMigrated(uid) {
 
 function markMigrated(uid) {
 	try {
-		localStorage.setItem(migratedKey(uid), "1");
+		writeItem(migratedKey(uid), "1");
 	} catch {
 		/* ignore storage failures (private mode, quota, etc.) */
 	}

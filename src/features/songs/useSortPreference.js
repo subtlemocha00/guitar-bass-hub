@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuthContext } from "../auth/useAuthContext";
 import { DEFAULT_SORT, SORT_OPTIONS } from "./sortOptions";
 import { subscribeToPrefs, setPref } from "../../firebase/userPrefs";
+import { readItem, writeItem } from "../../platform/storage";
 
 const VALID = SORT_OPTIONS.map((o) => o.value);
 const lsKey = (instrument) => `practice-hub:sort:${instrument}`;
@@ -9,7 +10,7 @@ const prefKey = (instrument) => `sort:${instrument}`;
 
 function readLocal(instrument) {
 	try {
-		const value = localStorage.getItem(lsKey(instrument));
+		const value = readItem(lsKey(instrument));
 		return VALID.includes(value) ? value : DEFAULT_SORT;
 	} catch {
 		return DEFAULT_SORT;
@@ -18,7 +19,7 @@ function readLocal(instrument) {
 
 function writeLocal(instrument, value) {
 	try {
-		localStorage.setItem(lsKey(instrument), value);
+		writeItem(lsKey(instrument), value);
 	} catch {
 		/* ignore storage failures (private mode, quota, etc.) */
 	}

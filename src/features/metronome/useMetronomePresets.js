@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuthContext } from "../auth/useAuthContext";
+import { readItem, writeItem } from "../../platform/storage";
 import {
 	addMetronomePreset,
 	removeMetronomePreset,
@@ -24,7 +25,7 @@ function migratedKey(uid) {
 
 function readCache(uid) {
 	try {
-		const raw = localStorage.getItem(cacheKey(uid));
+		const raw = readItem(cacheKey(uid));
 		if (!raw) return [];
 		const parsed = JSON.parse(raw);
 		return Array.isArray(parsed) ? parsed : [];
@@ -34,17 +35,16 @@ function readCache(uid) {
 }
 
 function writeCache(uid, presets) {
-	try {
-		localStorage.setItem(cacheKey(uid), JSON.stringify(presets));
-	} catch {
-		console.warn("[metronomePresets] localStorage write failed");
-	}
+	// writeItem never throws — the storage layer logs persistence failures and
+	// keeps the value in memory for the session. Only JSON.stringify could
+	// realistically fail here, and these presets are plain data.
+	writeItem(cacheKey(uid), JSON.stringify(presets));
 }
 
 // Read the old un-keyed cache format for one-time migration.
 function readLegacyCache() {
 	try {
-		const raw = localStorage.getItem(CACHE_KEY);
+		const raw = readItem(CACHE_KEY);
 		if (!raw) return [];
 		const parsed = JSON.parse(raw);
 		return Array.isArray(parsed) ? parsed : [];
@@ -101,7 +101,7 @@ export function useMetronomePresets() {
 
 				if (
 					fsPresets.length === 0 &&
-					!localStorage.getItem(migratedKey(uid))
+					!readItem(migratedKey(uid))
 				) {
 					// One-time migration from the old un-keyed localStorage format.
 					const legacy = readLegacyCache()
@@ -133,7 +133,7 @@ export function useMetronomePresets() {
 						});
 					}
 
-					localStorage.setItem(migratedKey(uid), "1");
+					writeItem(migratedKey(uid), "1");
 				}
 			}
 
