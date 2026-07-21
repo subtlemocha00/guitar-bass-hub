@@ -237,6 +237,20 @@ base path from the `VERCEL` environment variable, falling back to
 
 ---
 
+## Developer documentation
+
+Deeper background lives in [`docs/`](docs/):
+
+| Document | Covers |
+| --- | --- |
+| [architecture.md](docs/architecture.md) | Structure, startup order, the platform abstraction philosophy, and what is deliberately deferred |
+| [storage.md](docs/storage.md) | Hydration layer, why a synchronous wrapper was rejected, future native drivers |
+| [data-model.md](docs/data-model.md) | Firestore ownership, local keys, dual-write pattern, migration flags |
+| [platform-roadmap.md](docs/platform-roadmap.md) | Phase status and the expected work for Tauri/Capacitor |
+| [youtube-native-compatibility.md](docs/youtube-native-compatibility.md) | Embed audit: known behaviour, expected native risks, open decisions |
+
+---
+
 ## Status
 
 Actively developed and in daily use. The next planned work is the desktop and
