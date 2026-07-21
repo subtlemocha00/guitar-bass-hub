@@ -3,9 +3,11 @@ import Layout from "../components/Layout";
 import BackLink from "../components/BackLink";
 import { loadMetronomeSettings } from "../features/metronome/metronomeStorage";
 import {
+	APP_VERSION,
+	isNative,
 	isOnline,
 	isServiceWorkerActive,
-	isStandalone,
+	runtimeLabel,
 	subscribeToOnline,
 } from "../platform/platform";
 import "./ControlCenter.css";
@@ -31,7 +33,7 @@ function usePwaStatus() {
 
 	return {
 		online,
-		standalone: isStandalone(),
+		runtime: runtimeLabel(),
 		swActive: isServiceWorkerActive(),
 	};
 }
@@ -64,7 +66,7 @@ function Row({ k, v, accent }) {
 }
 
 function ControlCenter() {
-	const { online, standalone, swActive } = usePwaStatus();
+	const { online, runtime, swActive } = usePwaStatus();
 	// Read-only snapshot of the persisted metronome setup.
 	const [settings] = useState(() => loadMetronomeSettings());
 
@@ -95,21 +97,26 @@ function ControlCenter() {
 							k="ENV"
 							v={import.meta.env.PROD ? "PRODUCTION" : "DEVELOPMENT"}
 						/>
+						<Row k="VERSION" v={APP_VERSION} />
 						<Row
-							k="DISPLAY"
-							v={standalone ? "STANDALONE / PWA" : "BROWSER"}
-							accent={standalone ? "var(--neon-lime)" : undefined}
+							k="RUNTIME"
+							v={runtime}
+							accent={runtime === "BROWSER" ? undefined : "var(--neon-lime)"}
 						/>
 						<Row
 							k="NETWORK"
 							v={online ? "ONLINE" : "OFFLINE"}
 							accent={online ? "var(--neon-lime)" : "var(--neon-magenta)"}
 						/>
-						<Row
-							k="SERVICE WORKER"
-							v={swActive ? "ACTIVE" : "INACTIVE"}
-							accent={swActive ? "var(--neon-lime)" : undefined}
-						/>
+						{/* A service worker cannot exist in a native shell, so reporting
+						    "INACTIVE" there would read as a fault rather than as N/A. */}
+						{!isNative && (
+							<Row
+								k="SERVICE WORKER"
+								v={swActive ? "ACTIVE" : "INACTIVE"}
+								accent={swActive ? "var(--neon-lime)" : undefined}
+							/>
+						)}
 					</Card>
 
 					{/* 2. KEYBOARD CONTROLS */}

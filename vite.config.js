@@ -1,6 +1,12 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+
+// One version for every target. src-tauri/tauri.conf.json reads this same file
+// ("version": "../package.json"), so the desktop binary, the installer and the
+// in-app readout can never disagree.
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
 
 // Build targets
 // -------------
@@ -50,6 +56,7 @@ export default defineConfig(({ mode }) => {
     // (the future openExternal / platform seams need this).
     define: {
       'import.meta.env.VITE_BUILD_TARGET': JSON.stringify(target),
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
     },
     plugins: [
       react(),

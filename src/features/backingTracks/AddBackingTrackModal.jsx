@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDialogFocus } from "../../components/useDialogFocus";
 import "../songs/AddSongModal.css";
 
 function AddBackingTrackModal({ open, onClose, onSubmit, mode = "add", initialValues }) {
@@ -11,6 +12,16 @@ function AddBackingTrackModal({ open, onClose, onSubmit, mode = "add", initialVa
 	const [notes, setNotes] = useState("");
 	const [errors, setErrors] = useState({});
 	const [submitting, setSubmitting] = useState(false);
+	const formRef = useRef(null);
+	const submittingRef = useRef(false);
+
+	useDialogFocus(open, formRef);
+
+	// Mirrored so the Escape listener can read it without re-subscribing on
+	// every keystroke-driven render.
+	useEffect(() => {
+		submittingRef.current = submitting;
+	}, [submitting]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -29,7 +40,9 @@ function AddBackingTrackModal({ open, onClose, onSubmit, mode = "add", initialVa
 	useEffect(() => {
 		if (!open) return undefined;
 		const onKey = (e) => {
-			if (e.key === "Escape") onClose();
+			// Guarded like the close button: Escape mid-save would discard the
+			// entered values while the write is still in flight.
+			if (e.key === "Escape" && !submittingRef.current) onClose();
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
@@ -88,8 +101,11 @@ function AddBackingTrackModal({ open, onClose, onSubmit, mode = "add", initialVa
 		<div className="add-song-overlay" onClick={handleClose} role="presentation">
 			<form
 				className="add-song-modal hud"
+				ref={formRef}
 				onClick={(e) => e.stopPropagation()}
 				onSubmit={handleSubmit}
+				role="dialog"
+				aria-modal="true"
 				aria-label={ariaLabel}
 			>
 				<span className="hud-corner-tr" />

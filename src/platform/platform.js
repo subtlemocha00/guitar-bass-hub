@@ -38,6 +38,16 @@ export const isNative = BUILD_TARGET === "native";
 export const isWeb = !isNative;
 
 /**
+ * The app version, injected from package.json by vite.config.js.
+ *
+ * Here rather than read from package.json at each call site because it is the
+ * same kind of build-time environment fact as BUILD_TARGET. Every packaged
+ * target needs it for the same reason: a user reporting a bug in an installed
+ * app cannot look at a URL to tell you which build they have.
+ */
+export const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? "0.0.0";
+
+/**
  * The platform the app is currently running on.
  *
  * Returns "web" today. A native shell widens this to the specific platform;
@@ -45,6 +55,22 @@ export const isWeb = !isNative;
  */
 export function platform() {
 	return isNative ? "native" : "web";
+}
+
+/**
+ * How the app is running, for display. "BROWSER" / "INSTALLED PWA" /
+ * "DESKTOP (TAURI)".
+ *
+ * Exists because the Control Center's status card was describing a *browser*
+ * on desktop: isStandalone() is true there, so it read "STANDALONE / PWA",
+ * and "SERVICE WORKER: INACTIVE" implied something was broken rather than
+ * inapplicable. The distinction the panel needs is not display-mode, it is
+ * which shell — so that is what this answers, and it is the single line
+ * Capacitor will extend to "MOBILE (IOS)" / "MOBILE (ANDROID)".
+ */
+export function runtimeLabel() {
+	if (isNative) return "DESKTOP (TAURI)";
+	return isStandalone() ? "INSTALLED PWA" : "BROWSER";
 }
 
 // ---------------------------------------------------------

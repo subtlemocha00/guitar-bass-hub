@@ -12,8 +12,8 @@ use tauri::{Url, WebviewWindowBuilder};
 // Allowing every window.open would give any content the app renders — YouTube
 // embeds most obviously — an in-app browser window with no address bar,
 // navigation or close affordance beyond the OS chrome. Only the Firebase auth
-// handler is allowed; everything else is denied, and external links are meant
-// to reach the system browser through platform/links.js instead.
+// handler is allowed; everything else is denied, and external links reach the
+// system browser through platform/links instead.
 //
 // The match is structural rather than a hardcoded domain because the authDomain
 // is build-time configuration (VITE_FIREBASE_AUTH_DOMAIN) that Rust never sees.
@@ -28,7 +28,26 @@ fn is_firebase_auth_handler(url: &Url) -> bool {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  tauri::Builder::default()
+  let builder = tauri::Builder::default();
+
+  // Single instance must be registered before anything else so a second launch
+  // is short-circuited before it starts building windows. Without it a second
+  // process opens a second window against the *same* WebView2 profile, and the
+  // two fight over the IndexedDB that holds the Firebase session.
+  #[cfg(desktop)]
+  let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+    use tauri::Manager;
+    if let Some(window) = app.get_webview_window("main") {
+      let _ = window.unminimize();
+      let _ = window.set_focus();
+    }
+  }));
+
+  #[cfg(desktop)]
+  let builder = builder.plugin(tauri_plugin_window_state::Builder::default().build());
+
+  builder
+    .plugin(tauri_plugin_opener::init())
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

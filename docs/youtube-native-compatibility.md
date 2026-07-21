@@ -153,7 +153,7 @@ brief was not to change working code. Worth fixing separately.
 
 The "Watch on YouTube" overlay does open a new window, which the shell's popup
 allow-list denies, so on desktop that affordance is dead — the same as every
-other external link until `platform/links.js` gets its native implementation.
+other external link until `platform/links/` gets its native implementation.
 Not a regression; WebView2 discarded those requests before the allow-list
 existed too.
 
@@ -197,7 +197,7 @@ experience needs a fallback — a feature decision, not a bug fix.
 
 ### Fallback UX
 
-`platform/links.js` already provides the right primitive: `openExternal(url)`.
+`platform/links/` already provides the right primitive: `openExternal(url)`.
 Three gaps to settle before building anything:
 
 1. **Detection is not possible.** The iframe is cross-origin, so the parent

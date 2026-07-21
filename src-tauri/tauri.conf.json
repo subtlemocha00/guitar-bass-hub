@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "guitar-bass-hub",
-  "version": "0.1.0",
+  "version": "../package.json",
   "identifier": "com.guitarbasshub.desktop",
   "build": {
     "frontendDist": "../dist-native",
@@ -18,8 +18,9 @@
         "height": 800,
         "resizable": true,
         "fullscreen": false,
-        "minWidth": 900,
-        "minHeight": 600
+        "center": true,
+        "minWidth": 720,
+        "minHeight": 560
       }
     ],
     "security": {

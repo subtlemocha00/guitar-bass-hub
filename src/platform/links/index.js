@@ -6,33 +6,33 @@
 // difference between opening the system browser and navigating the app away
 // with no way back. Centralising it means the native fix is one file.
 //
-// WHY IT USES THE BROWSER IMPLEMENTATION TODAY
-// On the web an anchor with target="_blank" already is the correct answer, so
-// externalLinkProps returns exactly those attributes and openExternal uses
-// window.open for the imperative case. There is no web behaviour to improve
-// on here — the value is the indirection, not a different implementation.
+// WHAT VARIES AND WHAT DOES NOT
+// Only the final hand-off varies, so only that is behind the split:
 //
-// HOW NATIVE WILL REPLACE IT
-// A packaged build reimplements the two functions below and nothing else:
-//   - Tauri:     @tauri-apps/plugin-shell   open(url)
-//   - Capacitor: @capacitor/browser         Browser.open({ url })
-// Both hand the URL to the host so it lands in the system browser. Because
-// call sites only ever spread externalLinkProps() or call openExternal(), they
-// do not change — swapping the window.open body below is the whole migration.
+//   webLinks.js     window.open(url, "_blank", "noopener,noreferrer")
+//   nativeLinks.js  Tauri  — @tauri-apps/plugin-opener openUrl(url)
+//                   future: Capacitor — @capacitor/browser Browser.open({ url })
 //
-// The anchor-interception half is already wired: on a native build
-// externalLinkProps attaches an onClick that preventDefault()s and delegates to
-// openExternal, so the <a> keeps its accessibility affordances while the
-// navigation is handed to the shell. On web that handler is not attached at
-// all and the browser's own behaviour is untouched.
+// URL validation, anchor attributes and click interception stay here, shared by
+// every target. Duplicating the safety check per platform would be the obvious
+// way for one implementation to quietly lose it.
 //
 // Deliberately not a React component: some call sites want an <a> they can
 // style as a card, others want a plain function.
 
-import { isWeb } from "./platform";
+import { isWeb } from "../platform";
+import * as webLinks from "./webLinks";
+import * as nativeLinks from "./nativeLinks";
+
+// isWeb is a build-time constant, so each build keeps only its own
+// implementation and the other folds away — the web bundle never carries the
+// Tauri plugin.
+const impl = isWeb ? webLinks : nativeLinks;
 
 // Anything that is not http(s) or mailto is refused: `javascript:` URLs are the
-// obvious hazard, but so is anything a native shell might hand to the OS.
+// obvious hazard, but so is anything a native shell might hand to the OS. That
+// second case is why this check matters more on native than on the web — here
+// the URL reaches the operating system, not a sandboxed tab.
 const SAFE_PROTOCOLS = ["http:", "https:", "mailto:"];
 
 function parse(url) {
@@ -58,18 +58,24 @@ function isSafe(url) {
 }
 
 /**
- * Open a URL outside the app. Returns false if the URL was rejected or the
- * browser blocked the window, so callers can react if they need to.
+ * Open a URL outside the app. Resolves to false if the URL was rejected or the
+ * platform refused to open it, so callers can react if they need to.
+ *
+ * Async because that is the only contract every target can meet: handing a URL
+ * to the OS is inherently asynchronous, and the web implementation adapts to it
+ * trivially while the reverse is impossible.
  */
-export function openExternal(url) {
+export async function openExternal(url) {
 	if (!isSafe(url)) {
 		console.warn("[openExternal] refused to open unsupported URL:", url);
 		return false;
 	}
-	// noopener is what keeps the opened page from reaching back through
-	// window.opener; noreferrer also strips the Referer header.
-	const opened = window.open(url, "_blank", "noopener,noreferrer");
-	return !!opened;
+	try {
+		return await impl.open(url);
+	} catch (err) {
+		console.error("[openExternal] failed to open:", url, err);
+		return false;
+	}
 }
 
 // Intercepts an anchor activation and routes it through openExternal instead.

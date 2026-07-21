@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useDialogFocus } from "./useDialogFocus";
 import "./ConfirmDialog.css";
 
 // In-app replacement for window.confirm().
@@ -22,6 +23,9 @@ function ConfirmDialog({
 	onCancel,
 }) {
 	const confirmRef = useRef(null);
+	const dialogRef = useRef(null);
+
+	useDialogFocus(open, dialogRef);
 
 	useEffect(() => {
 		if (!open) return undefined;
@@ -44,6 +48,7 @@ function ConfirmDialog({
 		<div className="confirm-overlay" onClick={onCancel} role="presentation">
 			<div
 				className="confirm-dialog hud"
+				ref={dialogRef}
 				onClick={(e) => e.stopPropagation()}
 				role="alertdialog"
 				aria-modal="true"

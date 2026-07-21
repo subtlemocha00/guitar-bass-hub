@@ -2,17 +2,18 @@
 
 Migration plan toward Tauri (desktop) and Capacitor (mobile).
 
-**Status: Phase 2 complete. Phase 3 in progress — Tauri shell built and desktop
-authentication implemented.**
+**Status: Phase 2 complete. Phase 3 in progress — Tauri shell built,
+authentication implemented, first desktop polish pass done.**
 
 A minimal Tauri shell builds and launches against `dist-native/`; see
 [tauri-poc.md](tauri-poc.md). Desktop sign-in now uses the same Firebase popup
 flow as the web build, with the shell allowing that one popup URL; see
-[tauri-auth-investigation.md](tauri-auth-investigation.md). Completing a
-sign-in end to end still needs the account owner's credentials. Storage, links
-and audio are untouched on native. **Capacitor is not installed**, so claims
-about it in this document remain analytical; claims about Tauri are marked as
-verified or not.
+[tauri-auth-investigation.md](tauri-auth-investigation.md), verified end to end
+including persistence across a restart. External links,
+window behaviour and dialog focus have had a desktop pass — see
+[desktop-polish.md](desktop-polish.md). Storage and audio are untouched on
+native. **Capacitor is not installed**, so claims about it in this document
+remain analytical; claims about Tauri are marked as verified or not.
 
 ---
 
@@ -31,7 +32,7 @@ off the critical path.
 | --- | --- |
 | Build targets | `npm run build` (web) / `npm run build:native`; one Vite config branching on `--mode native` |
 | Environment detection | `platform/platform.js`; no feature touches `navigator`/`matchMedia` |
-| External links | `platform/links.js`; native click interception already wired |
+| External links | `platform/links/`; native click interception already wired |
 | Authentication | `platform/auth/`; popup isolated from `AuthProvider` |
 | Storage | `platform/storage/`; async-capable driver contract, sync feature reads |
 | Audio lifecycle | tuner gated behind an explicit START; suspended-context detection |
@@ -47,8 +48,9 @@ off the critical path.
 | Native authentication | **implemented** — popup allow-list in the shell, `webAuth` on both targets |
 | Sign-in, persistence, sign-out | **verified end to end** in the release build |
 | YouTube embeds on Windows | **verified** — all four surfaces load and play |
+| Native links implementation | **done** — opener plugin behind `platform/links/`, [desktop-polish.md](desktop-polish.md) |
+| Desktop window behaviour | **done** — geometry persistence, centred first launch, single instance, 720×560 minimum |
 | Native storage driver | not started |
-| Native links implementation | not started |
 | Microphone / audio on native | not started |
 | Capacitor shell | not started — must reintroduce a native auth branch |
 
@@ -162,16 +164,15 @@ store and select it by build target. Features do not change. Full contract in
 
 ### Links — system browser handling
 
-`openExternal()` swaps to `@tauri-apps/plugin-shell` `open()` or
-`@capacitor/browser` `Browser.open()`. The anchor-interception half is already
-wired: on a native build `externalLinkProps` attaches an `onClick` that
-delegates to `openExternal`. Present in the native bundle but **never executed
-against a real shell** — treat as unverified.
+**Done for Tauri.** `platform/links/nativeLinks.js` calls
+`@tauri-apps/plugin-opener` `openUrl(url)`; verified end to end — clicking a tool
+card opens the system browser on the right page and creates no in-app window.
+Capacitor replaces that one file with `@capacitor/browser` `Browser.open({ url })`.
 
-Its `window.open` fallback is now explicitly denied by the shell's popup
-allow-list. That is not a regression — WebView2 discarded those requests anyway
-— but it does mean external links stay dead on desktop until this is
-implemented, and each attempt logs a denial.
+URL validation, anchor attributes and click interception stayed in the shared
+`index.js` rather than being duplicated per platform, and `openExternal` is now
+async because that is the contract every shell can meet. See
+[desktop-polish.md](desktop-polish.md).
 
 ### Microphone — native permissions
 
