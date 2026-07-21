@@ -252,7 +252,7 @@ reintroduce the branch — noted in the roadmap.
 
 ### Verified in the production build
 
-Launched `src-tauri/target/release/app.exe`, clicked SIGN IN by synthetic input,
+Launched the release binary, clicked SIGN IN by synthetic input,
 and enumerated new top-level windows:
 
 ```text

@@ -1,12 +1,11 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "enables the default permissions",
+  "description": "Opening external URLs in the system browser. Nothing else: the frontend touches no other Tauri API.",
   "windows": [
     "main"
   ],
   "permissions": [
-    "core:default",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

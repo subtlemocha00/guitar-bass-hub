@@ -1,17 +1,16 @@
 [package]
-name = "app"
+name = "guitar-bass-hub"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+description = "Practice hub for guitar and bass: tuner, metronome, fretboard, scales, songs, and backing tracks."
+authors = ["subtlemocha00"]
+repository = "https://github.com/subtlemocha00/practice-hub"
 edition = "2021"
 rust-version = "1.77.2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "app_lib"
+name = "guitar_bass_hub_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -22,11 +21,25 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 tauri = { version = "2.11.3", features = [] }
-tauri-plugin-log = "2"
 tauri-plugin-opener = "2.5.4"
+
+# Only registered in debug builds — see the cfg gate in lib.rs. Kept as a normal
+# dependency because Cargo has no debug-only dependency kind; the release build
+# compiles the registration out and LTO drops what is then unreachable.
+tauri-plugin-log = "2"
 
 # Desktop only. Window geometry and single-instance are meaningless on mobile,
 # where the OS owns both, and these crates do not build for those targets.
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-window-state = "2.4.1"
 tauri-plugin-single-instance = "2.4.3"
+
+# Size-oriented release profile. A desktop binary that ships to users is worth
+# optimising for download size rather than compile time: this is Tauri's
+# documented profile, and it took the binary from 12.5 MB to 6.6 MB.
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

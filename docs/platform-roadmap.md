@@ -50,6 +50,8 @@ off the critical path.
 | YouTube embeds on Windows | **verified** — all four surfaces load and play |
 | Native links implementation | **done** — opener plugin behind `platform/links/`, [desktop-polish.md](desktop-polish.md) |
 | Desktop window behaviour | **done** — geometry persistence, centred first launch, single instance, 720×560 minimum |
+| Distribution prep | **done, unsigned** — real icons, CSP, narrowed capabilities, NSIS installer; see [release.md](release.md) |
+| Code signing + updater | not started — the two blockers for public distribution |
 | Native storage driver | not started |
 | Microphone / audio on native | not started |
 | Capacitor shell | not started — must reintroduce a native auth branch |

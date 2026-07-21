@@ -49,13 +49,15 @@ pub fn run() {
   builder
     .plugin(tauri_plugin_opener::init())
     .setup(|app| {
-      if cfg!(debug_assertions) {
-        app.handle().plugin(
-          tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .build(),
-        )?;
-      }
+      // #[cfg] rather than `if cfg!(...)`: the runtime form leaves the logging
+      // plugin compiled into the release binary for a branch that can never be
+      // taken.
+      #[cfg(debug_assertions)]
+      app.handle().plugin(
+        tauri_plugin_log::Builder::default()
+          .level(log::LevelFilter::Info)
+          .build(),
+      )?;
 
       // The window stays declared in tauri.conf.json (create: false) so its
       // size and title remain configuration; it is built here only because

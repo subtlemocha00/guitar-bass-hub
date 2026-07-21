@@ -49,10 +49,10 @@ src-tauri/
   build.rs
   tauri.conf.json       the only file with project-specific config
   capabilities/default.json
-  src/main.rs           thin entry -> app_lib::run()
+  src/main.rs           thin entry -> guitar_bass_hub_lib::run()
   src/lib.rs            Builder::default() + log plugin in debug
                         (since extended with the auth popup allow-list)
-  icons/                default Tauri icons (placeholder)
+  icons/                app icons (placeholder at PoC time; real ones now)
 ```
 
 `src-tauri/target/` and `src-tauri/gen/schemas` are gitignored.
@@ -81,7 +81,7 @@ dist-native/
     |
 tauri build                 (frontendDist: "../dist-native")
     |
-app.exe                     assets embedded in the binary
+guitar-bass-hub.exe         assets embedded in the binary
 ```
 
 Config deltas from the generated scaffold, all in `tauri.conf.json`:
@@ -93,8 +93,8 @@ Config deltas from the generated scaffold, all in `tauri.conf.json`:
 | `build.beforeBuildCommand` | `npm run build:native` | keep the binary in sync |
 | `build.beforeDevCommand` | `npm run dev -- --mode native --port 5180 --strictPort` | see Finding 1 |
 | `build.devUrl` | `http://localhost:5180` | see Finding 2 |
-| `app.windows[0]` | 1280x800, min 900x600 | 800x600 makes a wide dashboard look broken |
-| `app.security.csp` | `null` (scaffold default) | see Finding 5 |
+| `app.windows[0]` | 1280x800, min 900x600 | 800x600 makes a wide dashboard look broken (minimum later lowered to 720x560) |
+| `app.security.csp` | `null` (scaffold default) | see Finding 5 — a real CSP was added later, see [release.md](release.md) |
 
 ---
 
@@ -259,10 +259,12 @@ Additionally verified without the UI:
   [tauri-auth-investigation.md](tauri-auth-investigation.md).
 - **Storage still uses `localStorage`** via the web driver. It works in the
   webview, but native durability (OS eviction) is unaddressed.
-- **Icons are Tauri placeholders**, not the app's own.
-- **No CSP, no signing, no installer bundle.** Built with `--no-bundle`.
-- **`productName` is `guitar-bass-hub`** and the binary is `app.exe` (the crate
-  is named `app`); cosmetic, worth renaming before any real distribution.
+- ~~**Icons are Tauri placeholders**, not the app's own.~~ Fixed — generated
+  from `public/pwa-512x512.png`.
+- ~~**No CSP, no signing, no installer bundle.**~~ CSP set and an NSIS installer
+  builds; **still unsigned**. See [release.md](release.md).
+- ~~**`productName` is `guitar-bass-hub`** and the binary is `app.exe`.~~ Fixed —
+  the crate, binary and product name are all deliberate now.
 
 ---
 
