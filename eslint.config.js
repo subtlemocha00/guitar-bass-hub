@@ -6,7 +6,8 @@ import reactRefresh from "eslint-plugin-react-refresh";
 // Flat config (ESLint v9+). Replaces the legacy .eslintrc the old `lint`
 // script expected. Covers browser app code plus the Node-context config files.
 export default [
-	{ ignores: ["dist", "dev-dist", "node_modules"] },
+	// dist-native is the native target's build output — same reason as dist.
+	{ ignores: ["dist", "dist-native", "dev-dist", "node_modules"] },
 
 	js.configs.recommended,
 

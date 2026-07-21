@@ -40,8 +40,11 @@ npm run dev
 | Command | Does |
 | --- | --- |
 | `npm run dev` | Vite dev server (service worker disabled) |
-| `npm run build` | Production build to `dist/` |
-| `npm run preview` | Serve the built output locally |
+| `npm run build` | Web/PWA build to `dist/` (default target) |
+| `npm run build:web` | Explicit alias for `npm run build` |
+| `npm run build:native` | Native-wrapper build to `dist-native/` |
+| `npm run preview` | Serve the web build locally |
+| `npm run preview:native` | Serve the native build locally |
 | `npm run lint` | ESLint (flat config, `eslint.config.js`) |
 
 ### Environment
@@ -95,7 +98,7 @@ loaded songs and tracks are available offline too.
 ```text
 src/
   main.jsx              Entry point; mounts <AuthProvider>
-  App.jsx               Routes (all lazy-loaded except Home)
+  App.jsx               Routes (all lazy-loaded)
   components/           Layout, BackLink, ConfirmDialog, ErrorBoundary, ScrollToTop
   platform/             openExternal — the one place the app leaves itself
   assets/fonts/         Self-hosted woff2 + @font-face declarations
@@ -184,12 +187,53 @@ and the metronome setup and presets fall back to local-only storage.
 
 ---
 
+## Build targets
+
+One Vite config produces two builds, selected with Vite's `--mode` flag. It
+branches in exactly two places (base path, PWA plugin) rather than duplicating
+configuration.
+
+| | **web** (default) | **native** |
+| --- | --- | --- |
+| Command | `npm run build` | `npm run build:native` |
+| Mode | `production` | `native` |
+| Output | `dist/` | `dist-native/` |
+| Base | `/` on Vercel, else `/guitar-bass-hub/` | `./` |
+| `vite-plugin-pwa` | enabled | not applied |
+| Service worker | registered | never registered |
+| Manifest / precache | yes | no |
+
+**web** is the current, shipping behaviour and is unchanged — same base logic,
+same service worker, same Workbox caching, same output directory.
+
+**native** is the target a Tauri or Capacitor shell will package. It differs
+only where a webview forces it to:
+
+- **`base: './'`** — a packaged app loads from `file://` or a custom scheme, so
+  absolute asset paths like `/guitar-bass-hub/assets/…` would 404. Relative
+  paths resolve against wherever the shell mounted the app.
+- **No service worker** — unsupported on iOS WKWebView custom schemes, and
+  elsewhere it competes with the native asset loader and can pin users to a
+  stale build. The PWA plugin is omitted from the plugin list entirely, which
+  also removes the registration snippet it injects into `index.html`.
+- **Separate output directory** so a native build can never be published to the
+  web by accident (`npm run deploy` reads `dist/`).
+
+PWA support is not removed; native simply bypasses it. Routing needs no change
+either way — `HashRouter` keeps routes in the URL fragment, so there are no
+server rewrites and no deep-link 404s from a filesystem origin.
+
+`import.meta.env.VITE_BUILD_TARGET` is defined as `"web"` or `"native"` for app
+code that needs to branch at runtime.
+
+Neither Tauri nor Capacitor is installed yet; this is build-system preparation
+only.
+
 ## Deployment
 
-Deployed as a static site on Vercel. `vite.config.js` picks the base path from
-the `VERCEL` environment variable, falling back to `/guitar-bass-hub/` for a
-project-page style deploy. A packaged desktop/mobile build would need a
-relative base (`./`) and the service worker disabled.
+The web build deploys as a static site on Vercel. `vite.config.js` picks the
+base path from the `VERCEL` environment variable, falling back to
+`/guitar-bass-hub/` for a project-page style deploy.
 
 ---
 
