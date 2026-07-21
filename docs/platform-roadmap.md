@@ -2,9 +2,13 @@
 
 Migration plan toward Tauri (desktop) and Capacitor (mobile).
 
-**Status: Phase 2 complete. Phase 3 not started.** Neither Tauri nor Capacitor
-is installed. Nothing in Phase 3 has been tested against a real shell — every
-native claim in this document is analytical until a spike proves otherwise.
+**Status: Phase 2 complete. Phase 3 started — Tauri proof of concept only.**
+
+A minimal Tauri shell builds and launches against `dist-native/`; see
+[tauri-poc.md](tauri-poc.md). **Capacitor is not installed**, and no migration
+work (auth, storage, audio) has been done on either platform. Claims about
+Capacitor in this document remain analytical; claims about Tauri are now marked
+as verified or not.
 
 ---
 
@@ -29,10 +33,43 @@ off the critical path.
 | Audio lifecycle | tuner gated behind an explicit START; suspended-context detection |
 | Audits | native compatibility sweep, YouTube embed audit |
 
-### Phase 3 — Native integration (not started)
+### Phase 3 — Native integration (in progress)
+
+| Step | Status |
+| --- | --- |
+| Tauri shell builds + launches from `dist-native/` | **done** — [tauri-poc.md](tauri-poc.md) |
+| Platform detection correct in the native binary | **done** — verified by dead-code elimination |
+| Firebase initialises inside WebView2 | **done** — Auth + heartbeat IndexedDB created |
+| Auth boundary fails loudly on native | **done** — `AuthNotImplementedError` shipped, web popup absent |
+| Native authentication | not started |
+| Native storage driver | not started |
+| Native links implementation | not started |
+| Microphone / audio on native | not started |
+| Capacitor shell | not started |
 
 Ordered by risk. Authentication first: everything signed-in depends on it, and
 it is the only item that can block the whole effort.
+
+#### Issues discovered by the PoC
+
+1. **`tauri dev` ran the app in web mode.** `devUrl` serves the Vite dev
+   server, and the scaffold's `beforeDevCommand` used the default web mode — so
+   `isNative` read `false` and dev exercised the wrong branches entirely. Fixed
+   by passing `--mode native`.
+2. **The dev port must be pinned.** Vite silently auto-increments when a port
+   is taken, leaving `devUrl` aimed at another server. Both ends pinned with
+   `--strictPort`.
+3. **The origin is `http://tauri.localhost`, not `tauri://localhost`.** Earlier
+   audits assumed a custom scheme, which drove the pessimistic Firebase and
+   YouTube forecasts. An http origin with a real hostname is friendlier to
+   both — those risks need re-testing rather than being taken as settled.
+4. **Windows toolchain ordering.** The Windows SDK `Lib` directory appears
+   before the install completes; building then fails on `dbghelp.lib`. Wait for
+   the installer to exit.
+5. **ESLint breaks after the first Tauri build.** Tauri's codegen assets are
+   compressed blobs with a `.js` extension, and flat config does not read
+   nested `.gitignore`. Fixed by ignoring `src-tauri/target` and
+   `src-tauri/gen` — the only application-repo change the PoC required.
 
 ---
 
@@ -62,9 +99,15 @@ service-worker assumptions are confirmed before installing anything.
 Today: `signInWithPopup` in `platform/auth/webAuth.js`.
 
 Popup needs a second window plus cross-origin `postMessage` back to the
-Firebase `authDomain`. **Neither wrapper can do this**, and custom schemes
-(`tauri://localhost`, `capacitor://localhost`) cannot be registered as Firebase
-authorised domains.
+Firebase `authDomain`. **Neither wrapper can do this.**
+
+The authorised-domain half of this needs re-checking. The PoC found Tauri
+serves from `http://tauri.localhost` — an http origin with a real hostname, not
+the `tauri://localhost` custom scheme assumed earlier. Whether that can be
+registered as a Firebase authorised domain is now an open question worth
+answering *before* designing the loopback flow, because a positive answer would
+simplify the desktop path considerably. Capacitor's `capacitor://localhost`
+remains a custom scheme unless `iosScheme: 'https'` is set.
 
 - **Capacitor** — native Google Sign-In returns an `idToken` →
   `GoogleAuthProvider.credential(idToken)` → `signInWithCredential()`.

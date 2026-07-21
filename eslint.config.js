@@ -6,8 +6,19 @@ import reactRefresh from "eslint-plugin-react-refresh";
 // Flat config (ESLint v9+). Replaces the legacy .eslintrc the old `lint`
 // script expected. Covers browser app code plus the Node-context config files.
 export default [
-	// dist-native is the native target's build output — same reason as dist.
-	{ ignores: ["dist", "dist-native", "dev-dist", "node_modules"] },
+	// Build output. src-tauri/target holds Tauri's codegen assets, which are
+	// brotli-compressed blobs with a .js extension — ESLint tries to parse them
+	// and reports "Unexpected character" once a Tauri build has run.
+	{
+		ignores: [
+			"dist",
+			"dist-native",
+			"dev-dist",
+			"node_modules",
+			"src-tauri/target",
+			"src-tauri/gen",
+		],
+	},
 
 	js.configs.recommended,
 

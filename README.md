@@ -247,6 +247,7 @@ Deeper background lives in [`docs/`](docs/):
 | [storage.md](docs/storage.md) | Hydration layer, why a synchronous wrapper was rejected, future native drivers |
 | [data-model.md](docs/data-model.md) | Firestore ownership, local keys, dual-write pattern, migration flags |
 | [platform-roadmap.md](docs/platform-roadmap.md) | Phase status and the expected work for Tauri/Capacitor |
+| [tauri-poc.md](docs/tauri-poc.md) | Desktop shell proof of concept: setup, findings, limitations |
 | [youtube-native-compatibility.md](docs/youtube-native-compatibility.md) | Embed audit: known behaviour, expected native risks, open decisions |
 
 ---
