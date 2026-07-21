@@ -45,8 +45,8 @@ off the critical path.
 | Platform detection correct in the native binary | **done** — verified by dead-code elimination |
 | Firebase initialises inside WebView2 | **done** — Auth + heartbeat IndexedDB created |
 | Native authentication | **implemented** — popup allow-list in the shell, `webAuth` on both targets |
-| Sign-in completes and persists | **outstanding** — needs the account owner's credentials |
-| YouTube embeds on Windows | **verified** — blog and backing-track surfaces; songs and setlist need a session |
+| Sign-in, persistence, sign-out | **verified end to end** in the release build |
+| YouTube embeds on Windows | **verified** — all four surfaces load and play |
 | Native storage driver | not started |
 | Native links implementation | not started |
 | Microphone / audio on native | not started |
@@ -121,9 +121,10 @@ denies every other `window.open`. An unrestricted bridge would give embedded
 third-party content — YouTube most obviously — an in-app browser window; the
 auth handler is the only URL the app needs opened that way.
 
-Untested: completing sign-in and session persistence, both of which need the
-account owner's credentials. Verified as far as Google's credential prompt in
-the release build.
+Verified end to end in the release build: sign-in, identity in the header,
+Firestore-backed features, session persistence across a restart, sign-out, and
+sign-in again. Note that signing out of Firebase leaves Google's own session in
+the WebView2 profile, so the next sign-in needs no password.
 
 This supersedes the earlier lean toward Option B, which had assumed gates 2 and
 3 were likely to fail. Option B remains the documented fallback; because the
@@ -214,16 +215,15 @@ the referrer is sent, and playback, fullscreen and repeat navigation all work.
 No CSP is set, so nothing is blocked. Edge Tracking Prevention partitions the
 embed's storage, which costs only playback-position persistence.
 
-Two things it turned up that are not compatibility problems:
+All four surfaces — song cards, setlist, backing tracks and blog — load and
+play. Two things it turned up that are not compatibility problems:
 
-- **The sample backing-track video IDs have rotted** — four of five are
-  unavailable and one has embedding disabled. Identical from a plain web origin,
-  so it is stale placeholder data, not a native issue.
+- **Four of the five sample backing-track video IDs have rotted.** Identical
+  failures from a plain web origin, so it is stale placeholder data, not a
+  native issue.
 - **"Watch on YouTube" is dead on desktop**, because it opens a new window and
   the popup allow-list denies everything but the auth handler. Same status as
   every other external link until `openExternal` gets its native implementation.
-
-Songs and setlist embeds are still untested: both need a signed-in session.
 
 ---
 

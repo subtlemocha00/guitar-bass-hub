@@ -1,8 +1,8 @@
 # Tauri Authentication — Investigation and Implementation
 
-**Status: Option A validated and implemented. Sign-in through Google's
-credential prompt is confirmed in the production build; completing a sign-in
-still needs the account owner.**
+**Status: Option A validated, implemented and confirmed end to end.** Sign-in,
+session persistence across a restart, sign-out and sign-in again all work in the
+release desktop build. Nothing about desktop authentication is outstanding.
 
 The question: now that the Tauri PoC has shown the app runs from
 `http://tauri.localhost` rather than a custom scheme, can the existing Firebase
@@ -267,17 +267,24 @@ Google — to continue to practice-hub-00.firebaseapp.com". No
 That is gates 1–3 reproduced outside the experiment, in the shipped shell,
 through the real UI.
 
-### Still requires the account owner
+### Gate 4 — closed
 
-Everything past the credential prompt. Entering a Google password is not
-something this validation could do:
+The account owner completed one sign-in in the release build. Everything after
+it was measured:
 
-1. Sign-in completes and the user appears in the app header.
-2. The session survives closing and reopening the app.
-3. Sign-out works.
+| Check | Result |
+| --- | --- |
+| Sign-in completes | header switched from SIGN IN to the account name |
+| Credential reaches `tauri.localhost` | yes — the popup's `postMessage` back to the app origin worked, which was the one failure mode the experiment could not rule out |
+| Firebase-backed features load | home counters read 19 songs / 8 learning / 4 completed from Firestore; song, setlist and backing-track collections all rendered |
+| Session survives a restart | app closed and relaunched — new pid, still signed in, counters intact |
+| Sign-out | header returned to SIGN IN; user data replaced by the signed-out samples |
+| Sign in again | **works with no password.** Google's own session cookie persists in the WebView2 profile, so the popup auto-selected the account and closed itself in under nine seconds |
 
-Steps 1 and 2 are the substance of gate 4. Until they are done, "desktop sign-in
-works" is proven up to the point where Google takes over and inferred after it.
+The last row is worth knowing: signing out of Firebase does not sign the user
+out of Google inside the app's webview. That is the same behaviour as a browser
+and not a defect, but it means "sign out" is weaker than a user might assume —
+the next sign-in is one click, and on a shared machine that matters.
 
 ---
 
@@ -357,13 +364,9 @@ configuration so Firebase will accept the resulting ID token.
 Option B — no OAuth client registration, no loopback listener, no PKCE, no
 Console changes — and it reuses `webAuth` verbatim behind the existing boundary.
 
-Two honest caveats remain:
+One caveat remains:
 
-1. **The final step is still unproven.** Sign-in has been driven up to Google's
-   credential prompt in the production build, not through it. Someone with the
-   account should complete one sign-in and confirm the session survives a
-   restart.
-2. **Gate 3 is a policy, not a contract.** Google could tighten
+1. **Gate 3 is a policy, not a contract.** Google could tighten
    embedded-webview detection later. The mitigation is that the abstraction
    already isolates this: if Option A ever breaks, adding a `desktopAuth.js`
    implementing Option B and selecting it in `platform/auth/index.js` is a
@@ -379,10 +382,11 @@ Option B remains the documented fallback and does not need building now.
    [Production implementation](#production-implementation).
 2. ~~Point native at `webAuth` instead of the `notImplemented` stub.~~ **Done**;
    the branch was removed rather than repointed.
-3. **Have the account owner complete one sign-in and confirm persistence across
-   a restart.** Outstanding — the only remaining unknown.
-4. Verify sign-out, token refresh, and the offline case (a returning user with
-   no network — Firestore has a persistent cache, auth does not).
+3. ~~Have the account owner complete one sign-in and confirm persistence across
+   a restart.~~ **Done** — see [Gate 4 — closed](#gate-4--closed).
+4. ~~Verify sign-out.~~ **Done.** Token refresh and the offline case (a
+   returning user with no network — Firestore has a persistent cache, auth does
+   not) are still unverified.
 5. Reintroduce a native branch when a Capacitor target is added;
    `capacitor://localhost` would fail the same `HTTP_REGEX` guard that
    `tauri://localhost` fails, so mobile cannot inherit this path untested.
@@ -397,14 +401,18 @@ Answered by the experiment and the implementation:
 - ~~Does `on_new_window` make `window.open` work?~~ Yes.
 - ~~Does it still work in the real app rather than a test page?~~ Yes —
   clicking SIGN IN in the release build opens Google's sign-in page.
+- ~~Does sign-in complete and return a valid user?~~ Yes, with Firestore data
+  loading behind it.
+- ~~Does the session survive an app restart?~~ Yes — measured, no longer
+  inferred.
+- ~~Does sign-out work?~~ Yes, and signing back in needs no password.
 
 Still open:
 
-1. Does sign-in complete and return a valid user? Needs the account owner.
-2. Does the session survive an app restart? Likely (WebView2 profile and
-   Firebase IndexedDB persistence are both verified) but untested.
-3. How should sign-in behave offline? Firestore has a persistent cache, auth
+1. Token refresh over a long-running session is unverified — every measurement
+   was inside one short session.
+2. How should sign-in behave offline? Firestore has a persistent cache, auth
    does not — a returning user with no network currently sees a signed-out app.
-4. Capacitor is unexamined. `capacitor://localhost` would fail the same
+3. Capacitor is unexamined. `capacitor://localhost` would fail the same
    `HTTP_REGEX` protocol guard, so mobile likely needs Option B regardless of
    what desktop chooses — unless `iosScheme: 'https'` changes that.

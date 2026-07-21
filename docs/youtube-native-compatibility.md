@@ -3,10 +3,10 @@
 Record of the embed audit run during Phase 2, plus the Tauri measurements that
 resolved it. **No code changes were made.**
 
-**Status: the Tauri risks are resolved. Embeds work under
-`http://tauri.localhost` — verified by driving the running desktop app over the
-WebView2 debugging protocol.** See [Measured — Tauri](#measured--tauri). The
-Capacitor section below remains analytical.
+**Status: the Tauri risks are resolved. All four embed surfaces load and play
+under `http://tauri.localhost` — verified by driving the running desktop app
+over the WebView2 debugging protocol.** See [Measured — Tauri](#measured--tauri).
+The Capacitor section below remains analytical.
 
 The audit's central worry — that a native origin would make YouTube refuse to
 play — was wrong for Tauri, for the same reason the auth forecast was wrong:
@@ -110,40 +110,52 @@ and telemetry returns 200/204. `youtube-nocookie` is designed for exactly this.
 Worth knowing rather than acting on: it means playback position and preferences
 will not persist between sessions on desktop.
 
-### The sample backing tracks are dead content, not a platform failure
+### All four surfaces play
 
-Four of the five sample tracks fail, and one is embed-restricted:
+| Surface | Component | Result |
+| --- | --- | --- |
+| Song cards | `VideoPlayer` in `features/songs/YouTubeEmbed.jsx` | plays — `qoflJn7zkFM`, 5.59 s of 356.1 |
+| Setlist | same `VideoPlayer` | plays — `kyhW2v0NDM0`, 5.66 s of 172 |
+| Backing tracks | `BackingTrackCard.jsx` | plays — `lTRiuFIWV54`, 5.6 s of 3673.7 |
+| Blog | `pages/BlogPost.jsx` | plays — `RleSyp16lLE`, ran to 35.75 s through a fullscreen cycle |
+
+Songs and setlist needed a signed-in session, so they were measured after
+desktop sign-in was completed.
+
+### The sample backing tracks are mostly dead content, not a platform failure
+
+Four of the five sample videos fail:
 
 | Video | Result |
 | --- | --- |
 | `jfKfPfyJRdk` (guitar) | "This live stream recording is not available." |
-| `lTRiuFIWV54` (guitar) | Loads, refuses inline playback — "Watch on YouTube" overlay linking to `youtube.com/watch`. Owner disabled embedding |
 | `hG4dfHs9pfk` (guitar) | "Video unavailable" |
 | `oRRr4PLEEX0` (bass) | "Video unavailable" |
 | `YsNQ0fUbVNk` (bass) | "Video unavailable" |
+| `lTRiuFIWV54` (guitar) | **plays normally** |
 
 **This is not a Tauri problem.** The same build was driven from
 `http://localhost:4173` in the same WebView2 — the only variable being the
-embedding origin — and every one produced the identical state and identical
+embedding origin — and every failure produced the identical state and identical
 error string. `sampleBackingTracks.js` is placeholder data whose video IDs have
 rotted; it is equally broken on the deployed web app.
 
 Left alone deliberately: it is content, no user's own data is affected, and the
 brief was not to change working code. Worth fixing separately.
 
-One interaction to note: the "Watch on YouTube" overlay opens a new window,
-which the shell's popup allow-list now denies. On desktop that affordance is
-dead — the same as every other external link until `platform/links.js` gets its
-native implementation. Not a regression; WebView2 discarded those requests
-before the allow-list existed too.
+> **A correction worth keeping.** `lTRiuFIWV54` was first recorded here as
+> "owner disabled embedding", inferred from a "Watch on YouTube" overlay and a
+> click that produced no playback. Both premises were wrong: that overlay is
+> standard embed chrome present on *every* embed including ones that play, and
+> the click had simply landed before the player was ready. Re-tested with a
+> retry loop, it plays. The videos with explicit error strings were never in
+> doubt — the mistake was treating absence of playback as a diagnosis.
 
-### Not yet tested
-
-Songs and setlist embeds. Both need a signed-in session to render any card, and
-sign-in inside the desktop app was still outstanding when this was measured.
-They share `VideoPlayer` from `features/songs/YouTubeEmbed.jsx`, whose iframe
-markup is byte-identical to the two declarations that were tested — so they are
-*expected* to behave identically. That is reasoning, not measurement.
+The "Watch on YouTube" overlay does open a new window, which the shell's popup
+allow-list denies, so on desktop that affordance is dead — the same as every
+other external link until `platform/links.js` gets its native implementation.
+Not a regression; WebView2 discarded those requests before the allow-list
+existed too.
 
 ## Expected — Tauri on other platforms
 
@@ -215,8 +227,12 @@ should be written down rather than discovered by a user.
 
 **Measured — Tauri** is observation from the running release app on Windows:
 navigation and clicks through the real input pipeline, player state read from
-inside the YouTube frame. Songs and setlist are the one gap, and are reasoning
-rather than measurement.
+inside the YouTube frame. All four surfaces were measured, not inferred.
+
+One methodological note that cost a wrong entry above: a single click on a
+freshly created player is unreliable — it can land before the player is ready
+and silently do nothing. Retry two or three times before concluding a video
+does not play, and trust explicit error strings over absence of playback.
 
 Everything under **Expected** remains analytical — no Capacitor shell is
 installed, Linux and macOS were not tested, and webview defaults shift between
