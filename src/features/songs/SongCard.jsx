@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ConfirmDialog from "../../components/ConfirmDialog";
-import { externalLinkProps } from "../../platform/openExternal";
+import { externalLinkProps } from "../../platform/links";
 import { STATUSES } from "./songStorage";
 import { useSongNotes } from "./useSongNotes";
 import YouTubeEmbed from "./YouTubeEmbed";

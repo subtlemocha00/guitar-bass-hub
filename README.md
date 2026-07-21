@@ -100,7 +100,7 @@ src/
   main.jsx              Entry point; mounts <AuthProvider>
   App.jsx               Routes (all lazy-loaded)
   components/           Layout, BackLink, ConfirmDialog, ErrorBoundary, ScrollToTop
-  platform/             openExternal — the one place the app leaves itself
+  platform/             Platform seams: links (leaving the app), platform (web vs native)
   assets/fonts/         Self-hosted woff2 + @font-face declarations
   features/
     auth/               AuthProvider, AuthContext, useAuthContext

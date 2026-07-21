@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import BackLink from "../components/BackLink";
-import { externalLinkProps, isExternalUrl } from "../platform/openExternal";
+import { externalLinkProps, isExternalUrl } from "../platform/links";
 import { useSongStatus } from "../features/songs/useSongStatus";
 import { useUserSongs } from "../features/songs/useUserSongs";
 import "./Bass.css";

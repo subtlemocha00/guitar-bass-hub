@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import BackLink from "../components/BackLink";
 import { loadMetronomeSettings } from "../features/metronome/metronomeStorage";
+import {
+	isOnline,
+	isServiceWorkerActive,
+	isStandalone,
+	subscribeToOnline,
+} from "../platform/platform";
 import "./ControlCenter.css";
 
 // Keyboard shortcuts reference. Data-driven so new entries are a one-line add.
@@ -15,32 +21,19 @@ const FUTURE_MODULES = [
 	{ label: "Audio Diagnostics", tag: "latency · output device" },
 ];
 
+// Environment readout for the SYSTEM STATUS card. The individual checks live
+// in src/platform/platform.js so a native build has one replacement point;
+// this hook is just the React glue that turns them into state.
 function usePwaStatus() {
-	const [online, setOnline] = useState(
-		typeof navigator !== "undefined" ? navigator.onLine : true
-	);
-	useEffect(() => {
-		const on = () => setOnline(true);
-		const off = () => setOnline(false);
-		window.addEventListener("online", on);
-		window.addEventListener("offline", off);
-		return () => {
-			window.removeEventListener("online", on);
-			window.removeEventListener("offline", off);
-		};
-	}, []);
+	const [online, setOnline] = useState(isOnline);
 
-	const standalone =
-		typeof window !== "undefined" &&
-		(window.matchMedia?.("(display-mode: standalone)").matches ||
-			window.navigator.standalone === true);
+	useEffect(() => subscribeToOnline(setOnline), []);
 
-	const swActive =
-		typeof navigator !== "undefined" &&
-		"serviceWorker" in navigator &&
-		!!navigator.serviceWorker.controller;
-
-	return { online, standalone, swActive };
+	return {
+		online,
+		standalone: isStandalone(),
+		swActive: isServiceWorkerActive(),
+	};
 }
 
 function Card({ label, count, accent, children }) {
