@@ -1,14 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-	onAuthStateChanged,
-	GoogleAuthProvider,
-	signInWithPopup,
-	signOut as firebaseSignOut,
-} from "firebase/auth";
+import { useEffect, useMemo, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
+import { platformSignIn, platformSignOut } from "../../platform/auth";
 import { AuthContext } from "./AuthContext";
-
-const provider = new GoogleAuthProvider();
 
 /**
  * Owns the single onAuthStateChanged subscription for the whole app.
@@ -17,6 +11,12 @@ const provider = new GoogleAuthProvider();
  * of the user — with one hook call per song card that meant dozens of listeners
  * and dozens of independent loading->loaded transitions. One listener here
  * means every consumer sees the same value at the same time.
+ *
+ * How a credential is obtained is *not* decided here: signIn/signOut delegate
+ * to src/platform/auth, which picks the implementation for the build target.
+ * The session listener below stays put because it is identical on every
+ * platform — popup, native Google Sign-In and desktop OAuth all end in the
+ * same Firebase session.
  */
 export function AuthProvider({ children }) {
 	const [user, setUser] = useState(null);
@@ -29,25 +29,18 @@ export function AuthProvider({ children }) {
 		});
 	}, []);
 
-	const signIn = useCallback(() => {
-		signInWithPopup(auth, provider).catch((err) => {
-			if (err.code !== "auth/popup-closed-by-user") {
-				console.error("[auth] sign-in error:", err);
-			}
-		});
-	}, []);
-
-	const signOut = useCallback(() => {
-		firebaseSignOut(auth).catch((err) => {
-			console.error("[auth] sign-out error:", err);
-		});
-	}, []);
-
 	// Stable identity while the user is unchanged, so consumers whose effects
-	// depend on the context value don't re-run on unrelated re-renders.
+	// depend on the context value don't re-run on unrelated re-renders. The two
+	// handlers are module-level functions, so they need no useCallback — they
+	// are already stable for the lifetime of the app.
 	const value = useMemo(
-		() => ({ user, loading, signIn, signOut }),
-		[user, loading, signIn, signOut]
+		() => ({
+			user,
+			loading,
+			signIn: platformSignIn,
+			signOut: platformSignOut,
+		}),
+		[user, loading]
 	);
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
