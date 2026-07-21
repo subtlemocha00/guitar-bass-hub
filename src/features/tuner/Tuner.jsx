@@ -37,8 +37,13 @@ function CyberTuner({ instrument, accent }) {
 
 	const strings = tuningOptions[tuningKey] || [];
 
+	// The microphone and AudioContext are only acquired once the user asks.
+	// Besides satisfying the browser's user-activation requirement for audio,
+	// this means opening the tuner no longer fires a permission prompt on its own.
+	const [started, setStarted] = useState(false);
+
 	const { frequency, note, cents, status, targetString, listening, error } =
-		useTuner({ strings, mode, lockedString });
+		useTuner({ strings, mode, lockedString, active: started });
 
 	function handleTuningChange(e) {
 		setTuningKey(e.target.value);
@@ -163,6 +168,17 @@ function CyberTuner({ instrument, accent }) {
 					</div>
 				</div>
 			</div>
+
+			{!started && (
+				<button
+					type="button"
+					className="btn btn--solid"
+					style={{ alignSelf: "flex-start" }}
+					onClick={() => setStarted(true)}
+				>
+					▶ START TUNER
+				</button>
+			)}
 
 			{error && <div className="tuner-error">!! MIC ACCESS // {error}</div>}
 
@@ -298,7 +314,7 @@ function CyberTuner({ instrument, accent }) {
 				</div>
 			</div>
 
-			{!listening && !error && (
+			{started && !listening && !error && (
 				<div className="tuner-hint">
 					<span className="dot" /> WAITING FOR MICROPHONE PERMISSION
 				</div>

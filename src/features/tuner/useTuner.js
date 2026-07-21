@@ -125,6 +125,10 @@ const MIC_ERROR_MESSAGES = {
 	InsecureContextError: "Requires a secure (HTTPS) connection",
 	// Hardware stopped responding mid-request.
 	AbortError: "Microphone stopped responding — reload to retry",
+	// The AudioContext would not leave "suspended". Raised below rather than by
+	// the browser: a suspended context processes no audio, so the analyser would
+	// read pure silence and the tuner would look alive while detecting nothing.
+	AudioSuspendedError: "Audio engine did not start — reload and press START TUNER",
 };
 
 const DEFAULT_MIC_ERROR = "Microphone unavailable";
@@ -161,10 +165,20 @@ async function acquireStream() {
 	});
 }
 
+/**
+ * @param active  Gate for microphone + AudioContext acquisition. Defaults to
+ *                false so nothing is acquired until the user explicitly asks:
+ *                the AudioContext must be created with user activation on the
+ *                document, otherwise autoplay policy starts it suspended and
+ *                the analyser reads silence forever. Opening the page is not
+ *                an interaction — a deep link to #/tuner involves no click at
+ *                all — so the caller flips this from a button.
+ */
 export function useTuner({
 	strings = [],
 	mode = "auto",
 	lockedString = null,
+	active = false,
 } = {}) {
 	const [state, setState] = useState(INITIAL_STATE);
 	// Bumped to re-run acquisition. Previously the effect ran once with [] deps,
@@ -200,6 +214,10 @@ export function useTuner({
 	}, []);
 
 	useEffect(() => {
+		// Nothing is acquired until the user starts the tuner. Leaving early
+		// also means no microphone permission prompt on page load.
+		if (!active) return undefined;
+
 		let cancelled = false;
 		let streamEnded = false;
 		let rafId = null;
@@ -239,6 +257,17 @@ export function useTuner({
 				audioContext = new Ctx();
 				if (audioContext.state === "suspended") {
 					await audioContext.resume();
+				}
+
+				// Autoplay policies start a context suspended unless the document
+				// has user activation. `active` guarantees a click happened first,
+				// so this should not trigger on the web — it exists because a
+				// webview can still refuse, and a silent failure here is
+				// indistinguishable from a dead microphone.
+				if (audioContext.state !== "running") {
+					const err = new Error(`AudioContext is ${audioContext.state}`);
+					err.name = "AudioSuspendedError";
+					throw err;
 				}
 
 				const source = audioContext.createMediaStreamSource(stream);
@@ -368,7 +397,7 @@ export function useTuner({
 				audioContext.close().catch(() => { });
 			}
 		};
-	}, [attempt]);
+	}, [attempt, active]);
 
 	return state;
 }
