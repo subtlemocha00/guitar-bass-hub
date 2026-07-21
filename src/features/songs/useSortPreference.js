@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuthContext } from "../auth/useAuthContext";
 import { DEFAULT_SORT, SORT_OPTIONS } from "./sortOptions";
-import { subscribeToPrefs, setPref } from "./firebaseUserPrefs";
+import { subscribeToPrefs, setPref } from "../../firebase/userPrefs";
 
 const VALID = SORT_OPTIONS.map((o) => o.value);
 const lsKey = (instrument) => `practice-hub:sort:${instrument}`;

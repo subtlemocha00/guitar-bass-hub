@@ -1,0 +1,96 @@
+/* Deliberately mirrors the add/edit modal (.add-song-overlay) so confirmations
+   read as the same surface. Kept as its own file because ConfirmDialog is
+   shared across features and shouldn't depend on a feature's stylesheet. */
+
+.confirm-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 120;
+	background: rgba(1, 1, 43, 0.75);
+	backdrop-filter: blur(4px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+}
+
+.confirm-dialog {
+	width: 100%;
+	max-width: 400px;
+	padding: 1.5rem 1.5rem 1.25rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	position: relative;
+}
+
+.confirm-eyebrow {
+	color: var(--neon-magenta);
+}
+
+.confirm-message {
+	margin: 0;
+	font-size: 0.95rem;
+	line-height: 1.5;
+	color: var(--text);
+	overflow-wrap: anywhere;
+}
+
+.confirm-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+}
+
+.confirm-btn {
+	background: transparent;
+	border: 1px solid var(--line-mid);
+	color: var(--text-mute);
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	padding: 0.55rem 1rem;
+	cursor: pointer;
+	transition: color 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.confirm-btn:hover {
+	color: var(--text);
+	border-color: var(--neon-cyan);
+}
+
+.confirm-btn:focus-visible {
+	outline: none;
+	border-color: var(--neon-cyan);
+	box-shadow: 0 0 10px var(--neon-cyan-glow);
+}
+
+.confirm-btn--danger {
+	color: var(--bg-0);
+	background: var(--neon-magenta);
+	border-color: var(--neon-magenta);
+}
+
+.confirm-btn--danger:hover {
+	color: var(--bg-0);
+	border-color: var(--neon-magenta);
+	box-shadow: 0 0 12px var(--neon-magenta-glow);
+}
+
+.confirm-btn--danger:focus-visible {
+	border-color: var(--neon-magenta);
+	box-shadow: 0 0 12px var(--neon-magenta-glow);
+}
+
+.confirm-btn--accent {
+	color: var(--bg-0);
+	background: var(--neon-cyan);
+	border-color: var(--neon-cyan);
+}
+
+.confirm-btn--accent:hover {
+	color: var(--bg-0);
+	box-shadow: 0 0 12px var(--neon-cyan-glow);
+}

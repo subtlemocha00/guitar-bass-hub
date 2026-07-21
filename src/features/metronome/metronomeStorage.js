@@ -8,7 +8,7 @@ import { SOUND_OPTIONS } from "./soundEngine";
 // ---------------------------------------------------------
 // WHERE METRONOME DATA LIVES  (see also: README, "Data model")
 // ---------------------------------------------------------
-// localStorage, this device only:
+// localStorage, this device only (the only copy when signed out):
 //   practice-hub:metronome            the live setup — every field in
 //                                     DEFAULT_SETTINGS below (bpm, beats,
 //                                     accent pattern, all four sounds,
@@ -17,22 +17,23 @@ import { SOUND_OPTIONS } from "./soundEngine";
 //   practice-hub:metronome-presets    named presets for signed-out users
 //
 // localStorage, cache only (authoritative copy is in Firestore):
-//   practice-hub:metronome-presets:{uid}            last-seen cloud presets,
-//                                                   so they paint before
+//   practice-hub:metronome                          when signed in, a mirror of
+//                                                   users/{uid}.prefs.metronome
+//                                                   so the setup paints before
 //                                                   Firestore responds
+//   practice-hub:metronome-presets:{uid}            last-seen cloud presets
 //   practice-hub:metronome-presets-migrated:{uid}   one-shot migration flag
+//   practice-hub:metronome-migrated:{uid}           one-shot flag for seeding
+//                                                   the cloud setup from this
+//                                                   device (useMetronomeSettingsSync)
 //
-// Firestore (users/{uid}/metronomePresets), syncs across devices:
-//   named presets for signed-in users
+// Firestore, syncs across devices when signed in:
+//   users/{uid}.prefs.metronome           the live setup (source of truth)
+//   users/{uid}/metronomePresets/{id}     named presets
 //
-// SHOULD MOVE TO FIRESTORE BEFORE NATIVE PACKAGING:
-//   The live setup is user-owned data sitting in device-local storage. Dial in
-//   96 BPM with swing and gap training on the desktop app, open the phone app,
-//   and it is back to 120/4 — which reads as a bug once the same account is
-//   used on two installs. It belongs in users/{uid}.prefs.metronome, keeping
-//   localStorage as the signed-out/offline fallback. useSortPreference is the
-//   working template for that dual-write pattern. Deliberately NOT changed
-//   yet: it is a data migration, not a cleanup.
+// This module stays storage-agnostic: it validates and reads/writes
+// localStorage only. useMetronomeSettingsSync layers Firestore on top, using
+// sanitizeSettings below to validate whatever the cloud returns.
 const LS_KEY = "practice-hub:metronome";
 
 export const DEFAULT_SETTINGS = {
@@ -75,8 +76,11 @@ function accents(v, beats) {
 	return arr;
 }
 
-// Coerce an arbitrary object into a known-good settings object.
-function sanitize(raw) {
+// Coerce an arbitrary object into a known-good settings object. Exported
+// because the cloud sync runs Firestore payloads through it too — a document
+// written by an older app version, or by another device, gets exactly the same
+// validation as anything read from localStorage.
+export function sanitizeSettings(raw) {
 	const d = DEFAULT_SETTINGS;
 	if (!raw || typeof raw !== "object") return { ...d };
 	const beats = int(raw.beats, 1, 12, d.beats);
@@ -105,7 +109,7 @@ export function loadMetronomeSettings() {
 	try {
 		const raw = localStorage.getItem(LS_KEY);
 		if (!raw) return { ...DEFAULT_SETTINGS };
-		return sanitize(JSON.parse(raw));
+		return sanitizeSettings(JSON.parse(raw));
 	} catch {
 		return { ...DEFAULT_SETTINGS };
 	}
@@ -113,7 +117,7 @@ export function loadMetronomeSettings() {
 
 export function saveMetronomeSettings(settings) {
 	try {
-		localStorage.setItem(LS_KEY, JSON.stringify(sanitize(settings)));
+		localStorage.setItem(LS_KEY, JSON.stringify(sanitizeSettings(settings)));
 	} catch {
 		/* ignore storage failures (private mode, quota, etc.) */
 	}
@@ -140,7 +144,7 @@ export function listPresets() {
 				id: p.id,
 				name: typeof p.name === "string" ? p.name : "Preset",
 				createdAt: typeof p.createdAt === "number" ? p.createdAt : 0,
-				settings: sanitize(p.settings),
+				settings: sanitizeSettings(p.settings),
 			}));
 	} catch {
 		return [];
@@ -161,7 +165,7 @@ export function savePreset(name, settings) {
 		id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
 		name: (typeof name === "string" && name.trim()) || `Preset ${presets.length + 1}`,
 		createdAt: Date.now(),
-		settings: sanitize(settings),
+		settings: sanitizeSettings(settings),
 	};
 	writePresets([...presets, preset]);
 	return preset;

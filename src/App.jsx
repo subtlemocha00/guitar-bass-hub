@@ -3,9 +3,14 @@ import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuthContext } from "./features/auth/useAuthContext";
 import ScrollToTop from "./components/ScrollToTop";
 import ErrorBoundary from "./components/ErrorBoundary";
-import Home from "./pages/Home";
 import "./App.css";
 
+// Home is lazy like every other route. It reads the song catalog for its
+// counters, so keeping it eager pulled the Firestore SDK — the single largest
+// dependency in the app — onto the critical path for every route, including
+// ones that never touch Firestore. Home now loads in parallel with Firestore
+// instead of behind it.
+const Home = lazy(() => import("./pages/Home"));
 const Tuner = lazy(() => import("./pages/Tuner"));
 const Metronome = lazy(() => import("./pages/Metronome"));
 const ControlCenter = lazy(() => import("./pages/ControlCenter"));

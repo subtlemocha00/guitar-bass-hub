@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import {
 	listPresets,
 	savePreset as lsSavePreset,
@@ -29,6 +30,7 @@ export default function MetronomePresets({ currentSettings, onApply }) {
 
 	const [localPresets, setLocalPresets] = useState(() => listPresets());
 	const [name, setName] = useState("");
+	const [confirmingReset, setConfirmingReset] = useState(false);
 
 	const presets = signedIn ? cloudPresets : localPresets;
 
@@ -54,7 +56,7 @@ export default function MetronomePresets({ currentSettings, onApply }) {
 	};
 
 	const handleReset = () => {
-		if (!window.confirm("Reset the metronome to default settings?")) return;
+		setConfirmingReset(false);
 		onApply(DEFAULT_SETTINGS);
 	};
 
@@ -125,11 +127,20 @@ export default function MetronomePresets({ currentSettings, onApply }) {
 				<button
 					type="button"
 					className="btn btn--magenta"
-					onClick={handleReset}
+					onClick={() => setConfirmingReset(true)}
 				>
 					RESET METRONOME
 				</button>
 			</div>
+
+			<ConfirmDialog
+				open={confirmingReset}
+				title="RESET · METRONOME"
+				message="Reset the metronome to default settings? Saved presets are not affected."
+				confirmLabel="RESET"
+				onConfirm={handleReset}
+				onCancel={() => setConfirmingReset(false)}
+			/>
 		</div>
 	);
 }

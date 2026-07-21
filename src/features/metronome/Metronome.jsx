@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { playSound, preloadSamples, SOUND_OPTIONS } from "./soundEngine";
-import { loadMetronomeSettings, saveMetronomeSettings } from "./metronomeStorage";
+import { loadMetronomeSettings } from "./metronomeStorage";
+import { useMetronomeSettingsSync } from "./useMetronomeSettingsSync";
 import MetronomePresets from "./MetronomePresets";
 import "./Metronome.css";
 
@@ -169,49 +170,9 @@ export function MetronomeView() {
 		});
 	}, [beats]);
 
-	// Persist the setup whenever any saved field changes, so it survives reloads.
-	useEffect(() => {
-		saveMetronomeSettings({
-			bpm,
-			beats,
-			accentPattern,
-			accentSound,
-			accentSound2,
-			beatSound,
-			subSound,
-			rampEnabled,
-			startBpm,
-			endBpm,
-			rampDuration,
-			subdivision,
-			swing,
-			gapEnabled,
-			gapAudibleBars,
-			gapSilentBars,
-			randomMuteLevel,
-		});
-	}, [
-		bpm,
-		beats,
-		accentPattern,
-		accentSound,
-		accentSound2,
-		beatSound,
-		subSound,
-		rampEnabled,
-		startBpm,
-		endBpm,
-		rampDuration,
-		subdivision,
-		swing,
-		gapEnabled,
-		gapAudibleBars,
-		gapSilentBars,
-		randomMuteLevel,
-	]);
-
-	// Snapshot of the live settings for the presets panel (stable across the
-	// frequent tick-driven re-renders while running).
+	// Snapshot of the live settings — passed to the presets panel and used as
+	// the payload that gets persisted. Memoized so it stays stable across the
+	// frequent tick-driven re-renders while running.
 	const currentSettings = useMemo(
 		() => ({
 			bpm,
@@ -274,6 +235,10 @@ export function MetronomeView() {
 		setGapSilentBars(s.gapSilentBars);
 		setRandomMuteLevel(s.randomMuteLevel);
 	}, []);
+
+	// Persist the setup so it survives reloads: localStorage always, plus
+	// Firestore when signed in so it follows the account to other devices.
+	useMetronomeSettingsSync(currentSettings, applySettings);
 
 	useEffect(() => {
 		if (!running) {

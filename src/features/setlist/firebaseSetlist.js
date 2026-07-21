@@ -1,4 +1,4 @@
-import { subscribeToPrefs, setPref } from "../songs/firebaseUserPrefs";
+import { subscribeToPrefs, setPref } from "../../firebase/userPrefs";
 
 export function subscribeToSetlistOrder(uid, callback) {
 	return subscribeToPrefs(uid, (prefs) => {

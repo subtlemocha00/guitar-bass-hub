@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import BackLink from "../components/BackLink";
+import { externalLinkProps, isExternalUrl } from "../platform/openExternal";
 import { useSongStatus } from "../features/songs/useSongStatus";
 import { useUserSongs } from "../features/songs/useUserSongs";
 import "./Bass.css";
@@ -12,8 +13,6 @@ const TOOLS = [
 	{ to: "https://www.all-guitar-chords.com/", code: "MOD_04", name: "Chord Finder", tag: "CHORDS", desc: "Online Chord Finder", live: true },
 	{ to: "https://guitarpickreviews.com/how-to-set-up-a-guitar/", code: "MOD_05", name: "Guitar Setup", tag: "SETUP", desc: "A well-made guide for setting up your guitar.", live: true },
 ];
-
-const isExternal = (to) => /^https?:\/\//i.test(to);
 
 function GuitarToolCard({ t, accent }) {
 	if (!t.live) {
@@ -43,19 +42,17 @@ function GuitarToolCard({ t, accent }) {
 			</div>
 			<div className="tool-block-name">{t.name}</div>
 			<p className="tool-block-desc">{t.desc}</p>
-			<div className="tool-block-cta">{isExternal(t.to) ? "OPEN ↗" : "ENGAGE → "}</div>
+			<div className="tool-block-cta">{isExternalUrl(t.to) ? "OPEN ↗" : "ENGAGE → "}</div>
 		</>
 	);
 
 	// External resources open in a separate tab/window. A router <Link> to an
 	// absolute URL navigates the current document away from the app, which in a
 	// packaged desktop/mobile webview would replace the app with no way back.
-	if (isExternal(t.to)) {
+	if (isExternalUrl(t.to)) {
 		return (
 			<a
-				href={t.to}
-				target="_blank"
-				rel="noopener noreferrer"
+				{...externalLinkProps(t.to)}
 				className="tool-block hud"
 				style={{ "--tool-accent": accent }}
 			>

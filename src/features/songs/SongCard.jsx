@@ -1,3 +1,6 @@
+import { useState } from "react";
+import ConfirmDialog from "../../components/ConfirmDialog";
+import { externalLinkProps } from "../../platform/openExternal";
 import { STATUSES } from "./songStorage";
 import { useSongNotes } from "./useSongNotes";
 import YouTubeEmbed from "./YouTubeEmbed";
@@ -36,9 +39,7 @@ function SongInfo({ song }) {
 	return (
 		<a
 			className="song-card-info song-card-info--link"
-			href={song.tabUrl}
-			target="_blank"
-			rel="noopener noreferrer"
+			{...externalLinkProps(song.tabUrl)}
 			title="Open tab in new tab"
 		>
 			{content}
@@ -55,16 +56,15 @@ function SongCard({
 	onRemove,
 	onEdit,
 }) {
+	const [confirmingRemove, setConfirmingRemove] = useState(false);
+
 	const handleCycle = () => onStatusChange(nextStatus(status));
-	const handleRemove = () => {
-		if (!onRemove) return;
-		const ok = window.confirm(
-			`Delete "${song.title}" by ${song.artist}? This cannot be undone.`
-		);
-		if (ok) onRemove();
-	};
 	const handleEdit = () => {
 		if (onEdit) onEdit();
+	};
+	const confirmRemove = () => {
+		setConfirmingRemove(false);
+		if (onRemove) onRemove();
 	};
 
 	return (
@@ -120,13 +120,22 @@ function SongCard({
 						<button
 							type="button"
 							className="song-card-remove"
-							onClick={handleRemove}
+							onClick={() => setConfirmingRemove(true)}
 						>
 							🗑 DELETE
 						</button>
 					)}
 				</div>
 			)}
+
+			<ConfirmDialog
+				open={confirmingRemove}
+				title="DELETE · SONG"
+				message={`Delete "${song.title}" by ${song.artist}? This cannot be undone.`}
+				confirmLabel="DELETE"
+				onConfirm={confirmRemove}
+				onCancel={() => setConfirmingRemove(false)}
+			/>
 		</article>
 	);
 }

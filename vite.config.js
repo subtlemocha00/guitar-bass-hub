@@ -67,17 +67,10 @@ export default defineConfig({
           /googleapis\.com/,
           /gstatic\.com/,
         ],
+        // Fonts are self-hosted, so they are picked up by globPatterns above
+        // and precached with the rest of the app shell — no runtime rule and
+        // no request to fonts.gstatic.com.
         runtimeCaching: [
-          {
-            urlPattern: ({ url }) =>
-              url.origin === 'https://fonts.googleapis.com' ||
-              url.origin === 'https://fonts.gstatic.com',
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'google-fonts',
-              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
-            },
-          },
           {
             urlPattern: ({ request }) => request.destination === 'image',
             handler: 'StaleWhileRevalidate',

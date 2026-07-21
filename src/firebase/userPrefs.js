@@ -1,8 +1,11 @@
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
-import { db } from "../../firebase/firebase";
+import { db } from "./db";
 
 // Per-user preferences live on the user document (users/{uid}) under a
 // `prefs` map, so they sync across devices when signed in.
+//
+// Shared by several features (song sort, setlist order, metronome setup), which
+// is why this sits in firebase/ rather than inside any one feature folder.
 function userDoc(uid) {
 	return doc(db, "users", uid);
 }

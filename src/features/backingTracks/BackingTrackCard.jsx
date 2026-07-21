@@ -1,12 +1,13 @@
+import { useState } from "react";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import "./BackingTrackCard.css";
 
 function BackingTrackCard({ track, videoOpen, onToggleVideo, onEdit, onRemove }) {
-	const handleRemove = () => {
-		if (!onRemove) return;
-		const ok = window.confirm(
-			`Delete "${track.title}" by ${track.artist}? This cannot be undone.`
-		);
-		if (ok) onRemove();
+	const [confirmingRemove, setConfirmingRemove] = useState(false);
+
+	const confirmRemove = () => {
+		setConfirmingRemove(false);
+		if (onRemove) onRemove();
 	};
 
 	const showActions = onEdit || onRemove;
@@ -59,7 +60,7 @@ function BackingTrackCard({ track, videoOpen, onToggleVideo, onEdit, onRemove })
 							<button
 								type="button"
 								className="bt-card-btn bt-card-btn--remove"
-								onClick={handleRemove}
+								onClick={() => setConfirmingRemove(true)}
 							>
 								🗑 DELETE
 							</button>
@@ -79,6 +80,15 @@ function BackingTrackCard({ track, videoOpen, onToggleVideo, onEdit, onRemove })
 					/>
 				</div>
 			)}
+
+			<ConfirmDialog
+				open={confirmingRemove}
+				title="DELETE · BACKING TRACK"
+				message={`Delete "${track.title}" by ${track.artist}? This cannot be undone.`}
+				confirmLabel="DELETE"
+				onConfirm={confirmRemove}
+				onCancel={() => setConfirmingRemove(false)}
+			/>
 		</article>
 	);
 }

@@ -7,7 +7,7 @@ import {
 	onSnapshot,
 	serverTimestamp,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { db } from "./db";
 
 function pickAllowed(obj, allowed) {
 	if (!allowed) return obj;

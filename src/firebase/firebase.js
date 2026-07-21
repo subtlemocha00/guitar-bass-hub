@@ -1,6 +1,13 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+
+// App + Auth only. Firestore lives in ./db so that importing auth does not drag
+// the Firestore SDK into the entry chunk.
+//
+// AuthProvider mounts at boot and gates first paint on onAuthStateChanged, so
+// everything this module imports is unavoidably eager. Firestore is roughly a
+// third of the initial bundle and is only needed once a data-bound route is
+// opened, so it must not be reachable from here.
 
 const firebaseConfig = {
 	apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,4 +20,3 @@ const firebaseConfig = {
 
 export const firebaseApp = initializeApp(firebaseConfig);
 export const auth = getAuth(firebaseApp);
-export const db = getFirestore(firebaseApp);
