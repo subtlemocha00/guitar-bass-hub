@@ -248,6 +248,7 @@ Deeper background lives in [`docs/`](docs/):
 | [data-model.md](docs/data-model.md) | Firestore ownership, local keys, dual-write pattern, migration flags |
 | [platform-roadmap.md](docs/platform-roadmap.md) | Phase status and the expected work for Tauri/Capacitor |
 | [tauri-poc.md](docs/tauri-poc.md) | Desktop shell proof of concept: setup, findings, limitations |
+| [tauri-auth-investigation.md](docs/tauri-auth-investigation.md) | Desktop sign-in options, what is proven vs unknown, open questions |
 | [youtube-native-compatibility.md](docs/youtube-native-compatibility.md) | Embed audit: known behaviour, expected native risks, open decisions |
 
 ---

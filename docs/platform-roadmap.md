@@ -41,7 +41,7 @@ off the critical path.
 | Platform detection correct in the native binary | **done** — verified by dead-code elimination |
 | Firebase initialises inside WebView2 | **done** — Auth + heartbeat IndexedDB created |
 | Auth boundary fails loudly on native | **done** — `AuthNotImplementedError` shipped, web popup absent |
-| Native authentication | not started |
+| Native authentication | **investigated, not implemented** — [tauri-auth-investigation.md](tauri-auth-investigation.md) |
 | Native storage driver | not started |
 | Native links implementation | not started |
 | Microphone / audio on native | not started |
@@ -101,13 +101,25 @@ Today: `signInWithPopup` in `platform/auth/webAuth.js`.
 Popup needs a second window plus cross-origin `postMessage` back to the
 Firebase `authDomain`. **Neither wrapper can do this.**
 
-The authorised-domain half of this needs re-checking. The PoC found Tauri
-serves from `http://tauri.localhost` — an http origin with a real hostname, not
-the `tauri://localhost` custom scheme assumed earlier. Whether that can be
-registered as a Firebase authorised domain is now an open question worth
-answering *before* designing the loopback flow, because a positive answer would
-simplify the desktop path considerably. Capacitor's `capacitor://localhost`
-remains a custom scheme unless `iosScheme: 'https'` is set.
+**Investigated for Tauri — see
+[tauri-auth-investigation.md](tauri-auth-investigation.md).** Summary:
+
+The `http://tauri.localhost` origin is confirmed, and it *is* friendlier than
+the custom scheme earlier audits assumed. But reusing the popup flow needs
+three independent gates to pass, and the first already fails: **wry suppresses
+`window.open()` unless the app registers an `on_new_window` handler**, so
+`signInWithPopup` would fail with `auth/popup-blocked`. That is fixable. The
+harder unknown is whether Google's OAuth consent screen accepts WebView2 at
+all, since embedded user agents are blocked by policy.
+
+Current lean is **Option B** (system-browser OAuth + `signInWithCredential`) —
+not because popup reuse is impossible, but because its remaining risk sits with
+a third-party policy that could break every installed desktop client at once.
+**Not a final decision**: two cheap experiments are listed in the investigation
+doc that would settle it either way.
+
+Capacitor's `capacitor://localhost` remains a custom scheme unless
+`iosScheme: 'https'` is set, so mobile may need its own answer regardless.
 
 - **Capacitor** — native Google Sign-In returns an `idToken` →
   `GoogleAuthProvider.credential(idToken)` → `signInWithCredential()`.
