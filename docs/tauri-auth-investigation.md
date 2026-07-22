@@ -413,6 +413,15 @@ Still open:
    was inside one short session.
 2. How should sign-in behave offline? Firestore has a persistent cache, auth
    does not — a returning user with no network currently sees a signed-out app.
-3. Capacitor is unexamined. `capacitor://localhost` would fail the same
-   `HTTP_REGEX` protocol guard, so mobile likely needs Option B regardless of
-   what desktop chooses — unless `iosScheme: 'https'` changes that.
+3. ~~Capacitor is unexamined.~~ **Examined in the Capacitor Phase 0
+   investigation — from current documentation, not a running shell.** The answer
+   is now settled: mobile needs a native flow, and `iosScheme: 'https'` does
+   *not* rescue the popup. Two independent, documented blocks stack:
+   `capacitor://localhost` fails the `HTTP_REGEX` protocol guard (which
+   `iosScheme: 'https'` would fix), *and* Google's OAuth "Use secure browsers"
+   policy explicitly blocks `WKWebView` and Android `WebView` with
+   `disallowed_useragent` (which it would not). Firebase's own guidance is to
+   sign in on the native layer and call `signInWithCredential` on the web layer —
+   i.e. Option B, but via a native Google Sign-In SDK rather than a loopback
+   listener. That becomes `mobileAuth.js` behind the existing `platform/auth`
+   boundary, and nothing else in the app moves.

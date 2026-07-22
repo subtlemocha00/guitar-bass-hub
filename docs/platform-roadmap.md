@@ -95,9 +95,21 @@ it is the only item that can block the whole effort.
 Separate output directories are deliberate: `npm run deploy` reads `dist/`, so
 a native build can never be published to the web by accident.
 
-**Cheap pre-flight, no toolchain needed:** build native, open
-`dist-native/index.html` from `file://`. If it runs, the relative-base and
+**Cheap pre-flight, no toolchain needed:** build native, then serve it over
+HTTP with `npm run preview:native` and open it in a browser. **Do not open
+`dist-native/index.html` from `file://`** — Vite emits the entry as
+`<script type="module" crossorigin>` (and a `crossorigin` stylesheet), and a
+browser blocks both from a `file://` document (`origin 'null'`) under the module
+CORS rules, so the app never mounts and `#root` stays empty regardless of
+correctness. Verified in the Capacitor Phase 0 investigation: the console shows
+`… blocked by CORS policy: Cross origin requests are only supported for protocol
+schemes: … http, https …`. Tauri and Capacitor both serve from an http(s)-style
+origin (`http://tauri.localhost`, `https://localhost`), which `preview:native`
+reproduces and `file://` does not. If it runs there, the relative-base and
 service-worker assumptions are confirmed before installing anything.
+(`preview:native` serves under the web base path; the native build's relative
+`./assets/` URLs resolve against whatever mount point, which is the whole point
+of `base: './'`.)
 
 ---
 
@@ -252,9 +264,16 @@ on the shared app:
 For Capacitor, in order:
 
 1. **Decide the auth flow.** Everything else is reversible; this shapes the
-   integration — and desktop's answer does not transfer, because
-   `capacitor://localhost` fails Firebase's protocol guard.
-2. **Run the `file://` pre-flight** above.
+   integration. Desktop's popup answer does **not** transfer — confirmed in
+   Phase 0 from current Google/Firebase documentation, not just forecast. Two
+   independent blocks: `capacitor://localhost` fails Firebase's `HTTP_REGEX`
+   protocol guard, *and* Google's OAuth "secure browsers" policy blocks
+   `WKWebView` (iOS) and Android `WebView` with `disallowed_useragent`. Setting
+   `iosScheme: 'https'` removes only the first, so the popup/redirect web flow
+   cannot be the mobile answer. Firebase's own recommended path — native Google
+   Sign-In → `signInWithCredential` behind `mobileAuth.js` — is the production
+   solution.
+2. **Run the HTTP pre-flight** above (`preview:native`, never `file://`).
 3. **Spike the tuner and one YouTube embed early** — the two features most
    likely to fail outright rather than degrade.
 4. **Point `subscribeToAppBackground` at `@capacitor/app`** — one line; without
