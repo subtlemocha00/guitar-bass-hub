@@ -11,9 +11,14 @@ flow as the web build, with the shell allowing that one popup URL; see
 [tauri-auth-investigation.md](tauri-auth-investigation.md), verified end to end
 including persistence across a restart. External links,
 window behaviour and dialog focus have had a desktop pass — see
-[desktop-polish.md](desktop-polish.md). Storage and audio are untouched on
-native. **Capacitor is not installed**, so claims about it in this document
-remain analytical; claims about Tauri are marked as verified or not.
+[desktop-polish.md](desktop-polish.md). Audio is untouched on native.
+
+**Capacitor is installed** (three-target build in place): native authentication
+(Phase 2) and persistence + lifecycle (Phase 3) are implemented and verified as
+far as this environment allows — lint, all three builds, per-bundle isolation and
+a browser-fallback boot/round-trip. On-device claims (native OAuth, native
+Preferences durability, real backgrounding) still need a build rig and are marked
+as such throughout. Claims about Tauri are marked as verified or not.
 
 ---
 
@@ -52,9 +57,10 @@ off the critical path.
 | Desktop window behaviour | **done** — geometry persistence, centred first launch, single instance, 720×560 minimum |
 | Distribution prep | **done, unsigned** — real icons, CSP, narrowed capabilities, NSIS installer; see [release.md](release.md) |
 | Code signing + updater | not started — the two blockers for public distribution |
-| Native storage driver | not started |
-| Microphone / audio on native | not started |
-| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done: `mobileAuth` reintroduced the native branch via the `@auth-impl` build alias, see [mobile-auth.md](mobile-auth.md) |
+| Native storage driver | **done (Capacitor)** — `capacitorStorage.js` (Preferences) behind the existing contract, via the `@storage-impl` alias; Tauri reuses `webStorage`, so no dedicated desktop driver is needed. See [storage.md](storage.md) |
+| App-background flush on Capacitor | **done** — `subscribeToAppBackground` re-exports the `@lifecycle-impl` alias; Capacitor uses `@capacitor/app` `appStateChange`, web/Tauri keep `pagehide` |
+| Microphone / audio on native | not started (Phase 5) |
+| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done (`mobileAuth`, `@auth-impl` alias, [mobile-auth.md](mobile-auth.md)); Phase 3 persistence + lifecycle done (`@storage-impl`, `@lifecycle-impl`) |
 
 Ordered by risk. Authentication first: everything signed-in depends on it, and
 it is the only item that can block the whole effort.
@@ -172,9 +178,22 @@ identity, so rules keyed on `request.auth.uid` are untouched.
 
 ### Storage — native persistence drivers
 
-Implement `loadAll()` / `persist()` against Capacitor Preferences or the Tauri
-store and select it by build target. Features do not change. Full contract in
+**Done for Capacitor.** `platform/storage/capacitorStorage.js` implements
+`loadAll()` (`Preferences.keys()` → `Preferences.get()` per key) and `persist()`
+(`Preferences.set()`) against Capacitor **Preferences**, chosen over reusing
+`localStorage` because Preferences is backed by the native key/value store and is
+not part of the evictable web-storage bucket. It is selected by the
+`@storage-impl` **build alias** — not a source-level branch — because
+`@capacitor/preferences` registers a plugin at import time; the same reasoning as
+`@auth-impl`. Features, the migration bridge and every `useState` initialiser are
+unchanged. Tauri reuses `webStorage` (localStorage in WebView2), so no dedicated
+desktop driver is needed. Full contract and the "why Preferences" note in
 [storage.md](storage.md).
+
+Verified here through the plugin's web fallback: a cold reload hydrates a seeded
+metronome BPM before first paint (no flash of defaults) and the write path lands
+in the Preferences store, with zero console errors. Native Preferences durability
+across a low-memory kill is the device-only unknown.
 
 ### Links — system browser handling
 
@@ -276,8 +295,13 @@ For Capacitor, in order:
 2. **Run the HTTP pre-flight** above (`preview:native`, never `file://`).
 3. **Spike the tuner and one YouTube embed early** — the two features most
    likely to fail outright rather than degrade.
-4. **Point `subscribeToAppBackground` at `@capacitor/app`** — one line; without
-   it, backgrounding the mobile app silently drops the last debounced note or
-   metronome edit.
-5. **Design nothing speculatively.** Each deferred abstraction in
+4. ~~**Point `subscribeToAppBackground` at `@capacitor/app`.**~~ **Done
+   (Phase 3).** Not the predicted one-liner: the plugin's import-time
+   `registerPlugin()` forced a `@lifecycle-impl` build alias
+   (`capacitorLifecycle.js` → `App.addListener("appStateChange", …)`) so nothing
+   leaks into the web/Tauri bundles. Without it, backgrounding the mobile app
+   silently dropped the last debounced note or metronome edit.
+5. ~~**Native storage driver.**~~ **Done (Phase 3)** — `capacitorStorage.js`,
+   Preferences, `@storage-impl` alias (see the Storage section above).
+6. **Design nothing speculatively.** Each deferred abstraction in
    [architecture.md](architecture.md) has a recorded trigger; wait for it.

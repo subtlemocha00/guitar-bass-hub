@@ -81,24 +81,32 @@ Three tests decide whether something belongs in `src/platform/`:
 
 | Module | Owns | Native swap |
 | --- | --- | --- |
-| `platform/platform.js` | build target, `APP_VERSION`, `runtimeLabel()`, standalone, service-worker, connectivity checks, app-background flush (`subscribeToAppBackground`) | widen `platform()` and `runtimeLabel()` to `desktop` / `ios` / `android`; point `subscribeToAppBackground` at Capacitor `App` pause |
+| `platform/platform.js` | build target, `APP_VERSION`, `runtimeLabel()`, standalone, service-worker, connectivity checks, app-background flush (`subscribeToAppBackground`) | `platform()`/`runtimeLabel()` widened to `desktop`/`ios`/`android`; `subscribeToAppBackground` is now **live** — it re-exports the `@lifecycle-impl` alias (web/Tauri `pagehide`, Capacitor `@capacitor/app` `appStateChange`) |
 | `platform/links/` | leaving the app (`openExternal`, `externalLinkProps`) | **live** — `nativeLinks.js` uses the Tauri opener plugin; Capacitor swaps that one file for `Browser.open` |
 | `platform/auth/` | credential acquisition only | **live** — web/Tauri use `webAuth` (popup); Capacitor uses `mobileAuth` (native Google Sign-In → `signInWithCredential`). Selected by the `@auth-impl` build alias, see [mobile-auth.md](mobile-auth.md) |
-| `platform/storage/` | hydration, sync reads, async writes | Capacitor Preferences / Tauri store |
+| `platform/storage/` | hydration, sync reads, async writes | **live** — web/Tauri use `webStorage` (localStorage); Capacitor uses `capacitorStorage` (Preferences). Selected by the `@storage-impl` build alias, see [storage.md](storage.md) |
+| `platform/lifecycle/` | app-background flush implementation | **live** — `webLifecycle` (`pagehide`) for web/Tauri, `capacitorLifecycle` (`@capacitor/app`) for Capacitor; surfaced through `platform.js`, selected by `@lifecycle-impl` |
 
 Each selection folds away at build time — the native bundle contains no web
 implementation and vice versa, verified per chunk rather than assumed.
 
-`platform/links/` and `platform/auth/` are worth understanding as a pair. Links
-was replaceable with a source-level `isTauri ? … : …` because every
-implementation is side-effect-free and tree-shakes cleanly. Auth could not be:
-`@capacitor-firebase/authentication` registers a plugin at import time, a side
-effect a static import cannot be tree-shaken past, so its selection uses a build
-alias (`@auth-impl`) that keeps the plugin out of the web/Tauri bundles entirely.
-Auth was also the boundary whose desktop swap turned out to be unnecessary (Tauri
-reuses the popup) — but mobile *does* differ, exactly as the boundary anticipated,
-so the native branch the Tauri work removed is now reintroduced for Capacitor.
-See [mobile-auth.md](mobile-auth.md).
+`platform/links/` and the three plugin boundaries are worth understanding as a
+pair of *kinds*. Links was replaceable with a source-level `isTauri ? … : …`
+because every implementation is side-effect-free and tree-shakes cleanly. The
+other three — **auth, storage and lifecycle** — could not be, for the identical
+reason: each pulls in a Capacitor plugin
+(`@capacitor-firebase/authentication`, `@capacitor/preferences`, `@capacitor/app`)
+whose module calls `registerPlugin()` at import time, a side effect a static
+import cannot be tree-shaken past. So each selects its implementation with a
+build alias (`@auth-impl`, `@storage-impl`, `@lifecycle-impl`, all in
+`vite.config.js`) that keeps the plugin out of the web/Tauri bundles entirely —
+verified per bundle. The rule that fell out: **a boundary whose native branch
+imports a plugin uses an alias; a side-effect-free one uses the in-source
+branch.** Auth was also the boundary whose desktop swap turned out to be
+unnecessary (Tauri reuses the popup) — but mobile *does* differ, exactly as the
+boundary anticipated, so the native branch the Tauri work removed is now
+reintroduced for Capacitor. See [mobile-auth.md](mobile-auth.md) and
+[storage.md](storage.md).
 
 ### What is intentionally deferred
 

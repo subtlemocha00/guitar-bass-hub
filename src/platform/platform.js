@@ -183,28 +183,23 @@ export function subscribeToOnline(callback) {
  * Exists because two features (song notes, live metronome settings) debounce
  * their writes and must not lose a queued edit when the app goes away. Both
  * reached for `pagehide` independently; this is the single boundary for that
- * one concern.
+ * one concern. Consumers import it from here and never change.
  *
- * Web/desktop: `pagehide`. Chosen over `beforeunload`, which is unreliable
- * inside webviews and never fires on iOS Safari; `pagehide` covers tab close,
- * navigation, and bfcache eviction, and Tauri fires it normally when the window
- * closes.
+ * The implementation is selected at BUILD TIME by the `@lifecycle-impl` Vite
+ * alias (see vite.config.js):
+ *   web + Tauri desktop -> ./lifecycle/webLifecycle       (`pagehide`)
+ *   Capacitor mobile    -> ./lifecycle/capacitorLifecycle (`@capacitor/app`)
  *
- * Native replacement point: `pagehide` does NOT fire when a mobile OS
- * backgrounds an app (home button, app switcher, an incoming call) — the
- * webview is suspended with no page transition, so a queued edit would be lost.
- * Capacitor's `@capacitor/app` `App.addListener("pause", …)` (paired with
- * `appStateChange`) is the event that fires there, and is the one line to swap
- * in. This is why the concern is wrapped rather than inlined: it is the single
- * browser assumption in the app that is actually wrong on mobile, not merely
- * suboptimal.
+ * It is re-exported through an alias rather than defined inline because the
+ * mobile implementation imports `@capacitor/app`, whose `registerPlugin()` side
+ * effect must not leak into the web/Tauri bundles — an inline `if (isCapacitor)`
+ * here could not be tree-shaken past it (the same reason platform/auth uses
+ * `@auth-impl`). This is the single browser assumption in the app that is
+ * actually *wrong* on mobile: `pagehide` never fires when a mobile OS backgrounds
+ * the app, so the flush would silently never run — see the two impl files and
+ * docs/browser-assumptions-audit.md.
  */
-export function subscribeToAppBackground(callback) {
-	if (typeof window === "undefined") return () => {};
-	const onPageHide = () => callback();
-	window.addEventListener("pagehide", onPageHide);
-	return () => window.removeEventListener("pagehide", onPageHide);
-}
+export { subscribeToAppBackground } from "@lifecycle-impl";
 
 // Deliberately NOT wrapped: import.meta.env.PROD / BASE_URL. Vite resolves
 // both at build time and they behave identically for every target, so a

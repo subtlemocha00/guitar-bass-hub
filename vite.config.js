@@ -59,24 +59,43 @@ export default defineConfig(({ mode }) => {
   // web keeps the base for wherever it's deployed.
   const base = isPackaged ? './' : process.env.VERCEL ? '/' : '/guitar-bass-hub/'
 
-  // Build-time auth implementation. Selecting the credential-acquisition module
-  // here (rather than with a source-level `isCapacitor ? mobileAuth : webAuth`)
-  // is deliberate: @capacitor-firebase/authentication calls registerPlugin() at
-  // import time — a side effect a static import cannot be tree-shaken past — so
-  // an in-source branch would leak the plugin into the web and Tauri bundles.
-  // An alias means only the selected file ever enters the module graph, so the
-  // Capacitor plugin is absent from web/Tauri and the popup path is absent from
-  // Capacitor. This still keys on the Phase 1 build target; it is compile-time
-  // selection, just resolved by the bundler instead of by dead-code elimination.
+  // Build-time platform-implementation selection.
+  //
+  // These three boundaries each pull in a Capacitor plugin whose module calls
+  // registerPlugin() at import time — a side effect a static import cannot be
+  // tree-shaken past. So they CANNOT be selected with a source-level
+  // `isCapacitor ? capacitorImpl : webImpl`: that would drag the plugin into the
+  // web and Tauri bundles even with the branch folded to a constant. Aliasing
+  // means only the selected file ever enters the module graph, so the plugin is
+  // absent from web/Tauri and the web/Tauri path is absent from Capacitor. This
+  // still keys on the Phase 1 build target — it is compile-time selection, just
+  // resolved by the bundler instead of by dead-code elimination.
+  //
+  //   @auth-impl      credential acquisition   @capacitor-firebase/authentication
+  //   @storage-impl   persistence driver       @capacitor/preferences
+  //   @lifecycle-impl app-background flush      @capacitor/app
+  //
+  // Web and Tauri share the same web implementation for all three (the desktop
+  // shell reuses the browser behaviour); only Capacitor swaps. platform/links
+  // stays a source-level `isTauri ? …` instead, because the Tauri opener is
+  // side-effect-free and tree-shakes cleanly — these three could not.
   const authImpl = isCapacitor
     ? './src/platform/auth/mobileAuth.js'
     : './src/platform/auth/webAuth.js'
+  const storageImpl = isCapacitor
+    ? './src/platform/storage/capacitorStorage.js'
+    : './src/platform/storage/webStorage.js'
+  const lifecycleImpl = isCapacitor
+    ? './src/platform/lifecycle/capacitorLifecycle.js'
+    : './src/platform/lifecycle/webLifecycle.js'
 
   return {
     base,
     resolve: {
       alias: {
         '@auth-impl': fileURLToPath(new URL(authImpl, import.meta.url)),
+        '@storage-impl': fileURLToPath(new URL(storageImpl, import.meta.url)),
+        '@lifecycle-impl': fileURLToPath(new URL(lifecycleImpl, import.meta.url)),
       },
     },
     // Separate output directories so the three targets never overwrite each

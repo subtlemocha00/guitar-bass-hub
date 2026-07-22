@@ -1,5 +1,15 @@
-import * as driver from "./webStorage";
-import { KEY_PREFIX } from "./webStorage";
+// The concrete storage driver is chosen at BUILD TIME by the `@storage-impl`
+// Vite alias (see resolve.alias in vite.config.js):
+//   web + Tauri desktop -> ./webStorage       (localStorage)
+//   Capacitor mobile    -> ./capacitorStorage (Capacitor Preferences)
+// so only the selected driver enters each bundle. It is an alias rather than a
+// source-level `isCapacitor ? … : …` because @capacitor/preferences registers a
+// plugin at import time — a side effect a static import cannot be tree-shaken
+// past (same reasoning as platform/auth's @auth-impl). Every driver exports the
+// same loadAll / persist / KEY_PREFIX contract, so nothing below this line cares
+// which one it is.
+import * as driver from "@storage-impl";
+import { KEY_PREFIX } from "@storage-impl";
 
 // Storage hydration layer.
 //

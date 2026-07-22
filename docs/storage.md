@@ -100,7 +100,7 @@ implementable on both. That was checked before committing to the design.
 `writeItem` warns on an un-prefixed key — such a value would not be picked up
 by the next hydration and would silently vanish on reload.
 
-## Future native drivers
+## Drivers
 
 A driver implements three things and nothing else:
 
@@ -110,31 +110,70 @@ export async function loadAll()           { /* -> [[key, value], ...] */ }
 export async function persist(key, value) { /* void */ }
 ```
 
-| Target | `loadAll` | `persist` |
-| --- | --- | --- |
-| Web (today) | iterate `localStorage`, filter by prefix | `localStorage.setItem` |
-| Capacitor | `Preferences.keys()` then `Preferences.get()` per key | `Preferences.set()` |
-| Tauri | `store.entries()` | `store.set()` then `store.save()` |
+| Target | `loadAll` | `persist` | Status |
+| --- | --- | --- | --- |
+| Web + Tauri | iterate `localStorage`, filter by prefix | `localStorage.setItem` | `webStorage.js` — live |
+| Capacitor | `Preferences.keys()` then `Preferences.get()` per key | `Preferences.set()` | `capacitorStorage.js` — live |
+| Tauri (dedicated) | `store.entries()` | `store.set()` then `store.save()` | not needed — desktop reuses `webStorage` |
 
-`src/platform/storage/index.js` selects the driver by build target, the same
-compile-time branch `platform/links` uses to choose `webLinks` vs the native
-implementation. (`platform/auth` was the original example here, but it no longer
-branches — desktop reuses `webAuth` — so `platform/links` is the live model.)
-Today `index.js` imports `webStorage` directly because the web driver is the only
-one; the build-target branch appears when a native driver is added.
+Values are raw strings and keys keep the `practice-hub:` prefix on every driver,
+so the serialization is identical target to target — the same bytes the callers'
+`JSON.parse`/`stringify` already produce. The Capacitor Preferences web fallback
+namespaces its own store (`CapacitorStorage.<key>` in `localStorage`) and strips
+that group in `keys()`, so the prefix filter still sees `practice-hub:…`; on a
+device the native store holds the raw key.
+
+### Selection is a build alias, not a source-level branch
+
+`src/platform/storage/index.js` imports its driver from `@storage-impl`, a **Vite
+`resolve.alias`** that resolves to `webStorage.js` (web/Tauri) or
+`capacitorStorage.js` (Capacitor) at build time (see `vite.config.js`).
+
+This is deliberately an alias rather than the source-level `isCapacitor ? … : …`
+that `platform/links` uses. `@capacitor/preferences` calls `registerPlugin()` at
+import time — a side effect a static import cannot be tree-shaken past — so an
+in-source branch would drag the plugin into the web and Tauri bundles even with
+the branch folded to a constant. An alias means only the selected driver ever
+enters the module graph. This is exactly the reasoning `platform/auth` uses for
+`@auth-impl`; the plugin-side-effect boundaries (`auth`, `storage`, `lifecycle`)
+all take the alias, while side-effect-free `links` keeps the in-source branch.
+Verified per bundle: web/Tauri carry **zero** `@capacitor/preferences`; only the
+Capacitor bundle does.
 
 **Features do not change when the driver changes.** Not the storage API, not
-the four feature modules, not a single `useState` initialiser. That is the
-whole point of hydrating up front.
+the feature modules, not a single `useState` initialiser. That is the whole
+point of hydrating up front. The metronome preset **migration bridge**
+(signed-out presets → first sign-in → cloud) runs entirely through
+`readItem`/`writeItem`, so it is driver-agnostic and works unchanged on
+Capacitor. A packaged mobile app is a fresh install with an empty Preferences
+store — it does not read the web app's `localStorage`, so there is no
+cross-driver data migration to perform.
 
-The cost lands where it should: on native, `loadAll()` takes real milliseconds
-and delays first paint by that much. That is the correct trade — the
-alternative is a visible flash of defaults on every launch.
+The cost lands where it should: on Capacitor, `loadAll()` is a handful of real
+async reads and delays first paint by that much. That is the correct trade — the
+alternative is a visible flash of defaults on every launch, which is why the
+whole layer hydrates before React mounts.
 
-## Durability note for native
+## Why Preferences (and the durability note)
 
-On mobile the OS can evict webview storage under pressure. Most keys survive
-that fine because Firestore holds the authoritative copy (see
-[data-model.md](data-model.md)), but **signed-out metronome presets exist
-nowhere else**. That is the one key with genuine data-loss exposure once
-packaged, and it is worth deciding deliberately whether to accept it.
+A mobile webview *does* expose `localStorage`, so the web driver would "work" on
+Capacitor. It was **not** reused, for one reason: the OS can evict webview
+storage (the bucket `localStorage` lives in) under storage pressure, silently.
+Most keys survive that fine because Firestore holds the authoritative copy (see
+[data-model.md](data-model.md)) — but **signed-out metronome presets exist
+nowhere else**, so on the web-storage bucket they are the one key with genuine
+data-loss exposure once packaged.
+
+Capacitor **Preferences** is backed by the platform's native key/value store
+(`UserDefaults` on iOS, `SharedPreferences` on Android), which is *not* part of
+the evictable web-storage bucket — it persists like any other native app data,
+cleared only on uninstall or an explicit user "clear data". Choosing it is what
+removes that exposure, so the durability concern that applied to a naive
+localStorage port does not apply here.
+
+**Remaining device-only unknowns** (cannot be exercised without a build rig):
+the native Preferences round-trip and its durability across relaunch/low-memory
+kill, and the exact latency `loadAll()` adds to first paint on real hardware.
+Verified here through the plugin's web fallback: hydration reads a seeded value
+before first paint (no flash of defaults) and the write path lands in the
+Preferences store — see [platform-roadmap.md](platform-roadmap.md).

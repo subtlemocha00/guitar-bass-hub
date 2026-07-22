@@ -167,9 +167,12 @@ everything still works, just without the cache.
 
 ### What is stored locally as well
 
-These use the same dual-write pattern: `localStorage` is written immediately
-(instant, works signed out and offline) and Firestore is the source of truth
-whenever the user is signed in.
+These use the same dual-write pattern: device-local storage is written
+immediately (instant, works signed out and offline) and Firestore is the source
+of truth whenever the user is signed in. Device-local storage is `localStorage`
+on web and desktop and **Capacitor Preferences** on mobile, behind one
+async-hydrated abstraction (`src/platform/storage/`) that features never see
+through — see [docs/storage.md](docs/storage.md).
 
 - **Live metronome setup** (BPM, sounds, swing, gap training…) —
   `useMetronomeSettingsSync`. Writes are debounced ~800 ms and flushed on

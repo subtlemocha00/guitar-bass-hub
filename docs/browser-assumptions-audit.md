@@ -70,6 +70,18 @@ Both hooks keep their own unmount flush, which already covers in-app navigation
 only the orthogonal case of the whole app going away while the component is still
 mounted — the case that differs by platform.
 
+> **Update (Phase 3): the Capacitor swap is now implemented.**
+> `subscribeToAppBackground` re-exports a `@lifecycle-impl` build alias:
+> `lifecycle/webLifecycle.js` (`pagehide`, web/Tauri) or
+> `lifecycle/capacitorLifecycle.js` (`@capacitor/app` `appStateChange`,
+> Capacitor). One correction to the prediction above: it was **not** a "one-line
+> change in a single file." `@capacitor/app` registers a plugin at import time,
+> so an inline `if (isCapacitor)` in `platform.js` would leak the plugin into the
+> web/Tauri bundles — the swap had to move behind a build alias, the same shape
+> `platform/auth` and `platform/storage` use. The shared hooks were untouched.
+> The mobile flush fires on the foreground→background transition (before any OS
+> kill), which is exactly what `pagehide` could not do.
+
 ---
 
 ## Already abstracted — no further action
@@ -209,16 +221,18 @@ boundary can be repointed.
 Nothing in the shared layer is now expected to *block* Capacitor. What remains is
 integration work that needs the shell installed, all already tracked:
 
-1. **Decide the mobile auth flow** — `capacitor://localhost` fails the same
-   protocol guard `tauri://localhost` would, so desktop's popup answer does not
-   transfer. Add `mobileAuth.js` and reintroduce the native branch in
-   `platform/auth/index.js` ([platform-roadmap.md](platform-roadmap.md)).
-2. **Point `subscribeToAppBackground` at `@capacitor/app`** — one line, once the
-   plugin exists.
+1. ~~**Decide the mobile auth flow.**~~ **Done (Phase 2.)** `mobileAuth.js` +
+   the `@auth-impl` alias — native Google Sign-In → `signInWithCredential`
+   ([mobile-auth.md](mobile-auth.md)).
+2. ~~**Point `subscribeToAppBackground` at `@capacitor/app`.**~~ **Done
+   (Phase 3),** behind the `@lifecycle-impl` alias — not the inline one-liner
+   predicted, because the plugin's import-time `registerPlugin()` had to be kept
+   out of the web/Tauri bundles (see the update box above).
 3. **Microphone permission plumbing** — the deferred `platform/microphone.js`,
-   designable only against a real shell.
-4. **Native storage driver** — Capacitor Preferences behind the existing
-   `platform/storage/` contract ([storage.md](storage.md)).
+   designable only against a real shell. Still open (Phase 5).
+4. ~~**Native storage driver.**~~ **Done (Phase 3)** — `capacitorStorage.js`
+   (Capacitor Preferences) behind the existing `platform/storage/` contract, via
+   the `@storage-impl` alias ([storage.md](storage.md)).
 5. **Product decisions, not assumptions:** audio interruption/background playback
    and a possible Wake Lock for the metronome/tuner — deliberately unbuilt, listed
    here so they are chosen rather than defaulted.
