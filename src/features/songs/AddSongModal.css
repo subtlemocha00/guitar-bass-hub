@@ -7,12 +7,22 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 1rem;
+	/* At least 1rem of breathing room, more where a notch/home indicator needs
+	   it. max() collapses to 1rem on every non-notched device. */
+	padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+		max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
 }
 
 .add-song-modal {
 	width: 100%;
 	max-width: 480px;
+	/* Never taller than the viewport: on a short (landscape) or keyboard-reduced
+	   screen the modal scrolls internally instead of clipping its top off-screen
+	   with no way to reach it. dvh with a vh fallback; a no-op on desktop, where
+	   the modal is far shorter than this cap. */
+	max-height: calc(100vh - 2rem);
+	max-height: calc(100dvh - 2rem);
+	overflow-y: auto;
 	padding: 1.5rem 1.5rem 1.25rem;
 	display: flex;
 	flex-direction: column;

@@ -232,13 +232,22 @@ play. Two things it turned up that are not compatibility problems:
 
 ## Before adding the next shell
 
-Tauri is installed and its auth flow is decided. The shared layer has also had a
-full browser-assumptions sweep for mobile —
-[browser-assumptions-audit.md](browser-assumptions-audit.md) — which found the
-app already close to platform-clean: it added exactly one boundary
-(`subscribeToAppBackground`, because `pagehide` does not fire when a mobile OS
-backgrounds an app) and confirmed the app uses none of the usual porting-friction
-APIs (clipboard, share, file I/O, notifications, drag-and-drop, wake lock).
+Tauri is installed and its auth flow is decided. Two mobile-prep sweeps are done
+on the shared app:
+
+- **Browser assumptions (JS/API)** —
+  [browser-assumptions-audit.md](browser-assumptions-audit.md). Found the app
+  already close to platform-clean: added one boundary (`subscribeToAppBackground`,
+  because `pagehide` does not fire when a mobile OS backgrounds an app) and
+  confirmed none of the usual porting-friction APIs are used (clipboard, share,
+  file I/O, notifications, drag-and-drop, wake lock).
+- **UX / layout / touch** —
+  [mobile-readiness-audit.md](mobile-readiness-audit.md). The responsive base was
+  sound; fixed the device-frame gaps it ignored — safe-area insets, `dvh`
+  heights, iOS input-zoom, 44px touch targets, modal overflow — all as
+  touch-scoped CSS that is inert on desktop. Verified with a CDP overflow sweep
+  across 5 mobile viewports. Keyboard resize and status-bar styling are left for
+  the Capacitor phase.
 
 For Capacitor, in order:
 

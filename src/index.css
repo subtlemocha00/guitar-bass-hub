@@ -62,13 +62,24 @@ body,
 	margin: 0;
 	padding: 0;
 	min-height: 100vh;
+	/* dvh tracks the mobile browser's dynamic toolbar; vh above is the fallback
+	   for engines without dvh. Identical to vh on desktop. */
+	min-height: 100dvh;
 	background-color: var(--bg-0);
+}
+
+html {
+	/* Stop iOS from inflating font sizes when the device rotates to landscape. */
+	-webkit-text-size-adjust: 100%;
 }
 
 body {
 	-webkit-font-smoothing: antialiased;
 	letter-spacing: 0.01em;
 	overflow-x: hidden;
+	/* The default grey tap flash clashes with the dark neon theme; state changes
+	   and :active styling provide touch feedback instead. */
+	-webkit-tap-highlight-color: transparent;
 }
 
 a {
@@ -132,6 +143,7 @@ a:hover {
 	position: relative;
 	z-index: 1;
 	min-height: 100vh;
+	min-height: 100dvh;
 	display: flex;
 	flex-direction: column;
 }
@@ -143,6 +155,10 @@ a:hover {
 	max-width: 1280px;
 	margin: 0 auto;
 	padding: clamp(1rem, 3vw, 2.5rem);
+	/* Keep content clear of a landscape notch. env() is 0 on every non-notched
+	   device (all desktops), so this is a no-op off mobile. */
+	padding-left: calc(clamp(1rem, 3vw, 2.5rem) + env(safe-area-inset-left));
+	padding-right: calc(clamp(1rem, 3vw, 2.5rem) + env(safe-area-inset-right));
 	position: relative;
 }
 
@@ -508,4 +524,62 @@ a:hover {
 	font-size: 0.85rem;
 	color: var(--text-mute);
 	letter-spacing: 0.16em;
+}
+
+/* =========================================================
+   Touch-device adjustments
+
+   Scoped to `pointer: coarse` — the PRIMARY input being touch. That is phones
+   and tablets, and NOT a touch-capable laptop (whose primary pointer is fine),
+   so desktop density is untouched. Both rules below are additive: they only
+   enlarge, never restructure.
+   ========================================================= */
+@media (pointer: coarse) {
+	/* iOS Safari zooms the page when a form control smaller than 16px is
+	   focused, shifting the whole layout. Every control in the app is 0.7–0.9rem,
+	   so pin them to 16px on touch. The design's smaller type is preserved on
+	   desktop, where the zoom behaviour does not exist.
+
+	   !important is deliberate: every control carries a class-based font-size
+	   (.song-sort-select, .metro-input, …) whose specificity outranks a bare
+	   element selector, so without it this rule silently loses and the zoom
+	   returns. It also guarantees the 16px invariant for any control added later
+	   without touching this list. Touch-scoped, so desktop is never affected. */
+	input,
+	select,
+	textarea {
+		font-size: 16px !important;
+	}
+
+	/* Meet the 44px minimum tap target (Apple HIG / WCAG 2.5.5). Every button in
+	   the app is currently 24–36px tall. min-height only grows, so no control
+	   shrinks and nothing reflows on desktop. Decorative indicators (metro dots,
+	   the setlist drag handle) are intentionally excluded. */
+	.btn,
+	.auth-btn,
+	.add-song-btn,
+	.add-song-close,
+	.confirm-btn,
+	.song-card-status,
+	.song-card-edit,
+	.song-card-remove,
+	.song-card-video-toggle,
+	.bt-card-btn,
+	.setlist-filter-btn,
+	.song-filter-tab,
+	.song-sort-select,
+	.fb-btn,
+	.tuner-mode-btn,
+	.tuner-tuning-select,
+	.metro-select,
+	.metro-input,
+	.mp-input,
+	.mp-mini {
+		min-height: 44px;
+	}
+
+	/* Square icon button: keep it square at the tap-target size. */
+	.add-song-close {
+		min-width: 44px;
+	}
 }

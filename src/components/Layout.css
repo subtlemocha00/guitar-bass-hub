@@ -2,6 +2,12 @@
 	position: sticky; top: 0; z-index: 30;
 	display: flex; align-items: center; gap: 1.25rem;
 	padding: 0.85rem clamp(1rem, 3vw, 2rem);
+	/* Sticky at top:0 under viewport-fit=cover + a translucent iOS status bar,
+	   so the bar would otherwise render under the notch/status bar. env() is 0
+	   on desktop, leaving that layout unchanged. */
+	padding-top: calc(0.85rem + env(safe-area-inset-top));
+	padding-left: calc(clamp(1rem, 3vw, 2rem) + env(safe-area-inset-left));
+	padding-right: calc(clamp(1rem, 3vw, 2rem) + env(safe-area-inset-right));
 	border-bottom: 1px solid var(--line-mid);
 	background: linear-gradient(180deg, rgba(5,2,31,0.92), rgba(5,2,31,0.72));
 	backdrop-filter: blur(10px);
@@ -79,6 +85,10 @@
 .layout-footer {
 	border-top: 1px solid var(--line-mid);
 	padding: 1.5rem clamp(1rem, 3vw, 2rem);
+	/* Keep the footer clear of the iOS home indicator and landscape notch. */
+	padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+	padding-left: calc(clamp(1rem, 3vw, 2rem) + env(safe-area-inset-left));
+	padding-right: calc(clamp(1rem, 3vw, 2rem) + env(safe-area-inset-right));
 	display: flex;
 	justify-content: space-between;
 	flex-wrap: wrap;
