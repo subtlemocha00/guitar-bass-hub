@@ -260,6 +260,7 @@ Deeper background lives in [`docs/`](docs/):
 | [desktop-polish.md](docs/desktop-polish.md) | Desktop UX pass: window behaviour, external links, dialog focus |
 | [tauri-poc.md](docs/tauri-poc.md) | Desktop shell proof of concept: setup, findings, limitations |
 | [tauri-auth-investigation.md](docs/tauri-auth-investigation.md) | Desktop sign-in options, what is proven vs unknown, open questions |
+| [mobile-auth.md](docs/mobile-auth.md) | Capacitor native Google sign-in: chosen plugin, the `@auth-impl` build alias, native config checklist |
 | [youtube-native-compatibility.md](docs/youtube-native-compatibility.md) | Embed audit: known behaviour, expected native risks, open decisions |
 
 ---

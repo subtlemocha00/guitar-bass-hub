@@ -1,5 +1,11 @@
 {
   "appId": "com.guitarbasshub.app",
   "appName": "Guitar Bass Hub",
-  "webDir": "dist-capacitor"
+  "webDir": "dist-capacitor",
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": true,
+      "providers": ["google.com"]
+    }
+  }
 }

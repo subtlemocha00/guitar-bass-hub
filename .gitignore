@@ -19,6 +19,14 @@ dist-ssr
 .env.*
 !.env.example
 
+# Native Firebase config — downloaded per-environment from the Firebase Console
+# for the mobile Google sign-in flow. Same class of client-side identifiers as
+# .env, so kept out of git the same way. See docs/mobile-auth.md.
+google-services.json
+GoogleService-Info.plist
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

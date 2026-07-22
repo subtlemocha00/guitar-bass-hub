@@ -54,7 +54,7 @@ off the critical path.
 | Code signing + updater | not started — the two blockers for public distribution |
 | Native storage driver | not started |
 | Microphone / audio on native | not started |
-| Capacitor shell | not started — must reintroduce a native auth branch |
+| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done: `mobileAuth` reintroduced the native branch via the `@auth-impl` build alias, see [mobile-auth.md](mobile-auth.md) |
 
 Ordered by risk. Authentication first: everything signed-in depends on it, and
 it is the only item that can block the whole effort.
@@ -263,16 +263,16 @@ on the shared app:
 
 For Capacitor, in order:
 
-1. **Decide the auth flow.** Everything else is reversible; this shapes the
-   integration. Desktop's popup answer does **not** transfer — confirmed in
-   Phase 0 from current Google/Firebase documentation, not just forecast. Two
-   independent blocks: `capacitor://localhost` fails Firebase's `HTTP_REGEX`
+1. ~~**Decide the auth flow.**~~ **Done and implemented (Phase 2).** Desktop's
+   popup answer does not transfer — two independent blocks confirmed from current
+   Google/Firebase docs: `capacitor://localhost` fails Firebase's `HTTP_REGEX`
    protocol guard, *and* Google's OAuth "secure browsers" policy blocks
-   `WKWebView` (iOS) and Android `WebView` with `disallowed_useragent`. Setting
-   `iosScheme: 'https'` removes only the first, so the popup/redirect web flow
-   cannot be the mobile answer. Firebase's own recommended path — native Google
-   Sign-In → `signInWithCredential` behind `mobileAuth.js` — is the production
-   solution.
+   `WKWebView` and Android `WebView` with `disallowed_useragent` (`iosScheme:
+   'https'` removes only the first). The production flow is native Google
+   Sign-In → `signInWithCredential` in `mobileAuth.js`, selected by the
+   `@auth-impl` build alias. Native OAuth config (Console, SHA fingerprints,
+   `google-services.json` / `GoogleService-Info.plist`) and the on-device test
+   remain to be completed on a build machine. See [mobile-auth.md](mobile-auth.md).
 2. **Run the HTTP pre-flight** above (`preview:native`, never `file://`).
 3. **Spike the tuner and one YouTube embed early** — the two features most
    likely to fail outright rather than degrade.

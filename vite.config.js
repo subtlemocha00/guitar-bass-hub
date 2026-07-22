@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -58,8 +59,26 @@ export default defineConfig(({ mode }) => {
   // web keeps the base for wherever it's deployed.
   const base = isPackaged ? './' : process.env.VERCEL ? '/' : '/guitar-bass-hub/'
 
+  // Build-time auth implementation. Selecting the credential-acquisition module
+  // here (rather than with a source-level `isCapacitor ? mobileAuth : webAuth`)
+  // is deliberate: @capacitor-firebase/authentication calls registerPlugin() at
+  // import time — a side effect a static import cannot be tree-shaken past — so
+  // an in-source branch would leak the plugin into the web and Tauri bundles.
+  // An alias means only the selected file ever enters the module graph, so the
+  // Capacitor plugin is absent from web/Tauri and the popup path is absent from
+  // Capacitor. This still keys on the Phase 1 build target; it is compile-time
+  // selection, just resolved by the bundler instead of by dead-code elimination.
+  const authImpl = isCapacitor
+    ? './src/platform/auth/mobileAuth.js'
+    : './src/platform/auth/webAuth.js'
+
   return {
     base,
+    resolve: {
+      alias: {
+        '@auth-impl': fileURLToPath(new URL(authImpl, import.meta.url)),
+      },
+    },
     // Separate output directories so the three targets never overwrite each
     // other. Without this, running a packaged build before `npm run deploy`
     // would publish a service-worker-less build to the web.
