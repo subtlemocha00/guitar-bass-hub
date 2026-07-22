@@ -14,28 +14,38 @@
 // real compile-time flag already set by vite.config.js, and the rest is
 // derived from it.
 //
-// HOW NATIVE WILL EXTEND IT
-// BUILD_TARGET already becomes "native" for `npm run build:native`, so isNative
-// starts working the moment a shell is added — no change needed here. What
-// this file cannot yet answer is *which* native platform, because that needs a
-// runtime probe of a shell that is not installed:
+// THREE COMPILE-TIME TARGETS
+// BUILD_TARGET is a build-time define, so isWeb / isTauri / isCapacitor each
+// fold to a literal boolean and the bundler eliminates the dead branches: the
+// web bundle carries no Tauri/Capacitor code, the Tauri bundle no Capacitor
+// code, and the Capacitor bundle no Tauri code. Verified per bundle, not
+// assumed.
 //
-//   Tauri      window.__TAURI_INTERNALS__ is defined
-//   Capacitor  window.Capacitor?.getPlatform() returns "ios" | "android"
+// Select platform implementations with these booleans, NEVER with
+// `platform() === "capacitor"`: a function-return comparison is not statically
+// foldable, so it would defeat tree-shaking and leak one shell's plugins into
+// another's bundle. `platform()` below is for runtime *information* only.
 //
-// Deliberately not guessed at now — a probe for an absent global would be
-// untestable and would silently rot. When a shell is installed, `platform()`
-// below is the one function to extend, widening its return type from
-// "web" | "native" to "web" | "desktop" | "ios" | "android". Everything that
-// only asks isWeb/isNative keeps working unchanged.
+// The one thing the build target cannot answer is ios vs android — both share
+// the single "capacitor" bundle. That split is a runtime read of the
+// Capacitor-injected `window.Capacitor` global (see platform()), not a build
+// flag and not a package import.
 
-// Set by vite.config.js: "web" for the default build, "native" for
-// `npm run build:native`. The fallback keeps this safe if the define is ever
-// missing (e.g. a test runner that does not load the Vite config).
+// Set by vite.config.js: "web" (default build), "native" (`build:native`,
+// Tauri — legacy name), "capacitor" (`build:capacitor`). The fallback keeps
+// this safe if the define is ever missing (e.g. a test runner that does not
+// load the Vite config).
 export const BUILD_TARGET = import.meta.env.VITE_BUILD_TARGET ?? "web";
 
-export const isNative = BUILD_TARGET === "native";
-export const isWeb = !isNative;
+export const isWeb = BUILD_TARGET === "web";
+export const isTauri = BUILD_TARGET === "native"; // Tauri desktop (historical target name)
+export const isCapacitor = BUILD_TARGET === "capacitor";
+
+// "Any packaged shell" — the browser-vs-app distinction the environment checks
+// below care about (standalone, service worker, storage durability). Kept
+// deliberately non-specific: true for both Tauri and Capacitor, so callers that
+// only ask "am I in a browser or an app?" keep working unchanged.
+export const isNative = !isWeb;
 
 /**
  * The app version, injected from package.json by vite.config.js.
@@ -48,28 +58,41 @@ export const isWeb = !isNative;
 export const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? "0.0.0";
 
 /**
- * The platform the app is currently running on.
- *
- * Returns "web" today. A native shell widens this to the specific platform;
- * prefer isWeb/isNative unless you genuinely need to tell desktop from mobile.
+ * The platform the app is currently running on: "web" | "desktop" | "ios" |
+ * "android". For runtime *information* (labels, telemetry) — prefer the
+ * compile-time isWeb/isTauri/isCapacitor booleans for selecting implementations,
+ * because those fold at build time and this call does not.
  */
 export function platform() {
-	return isNative ? "native" : "web";
+	if (isTauri) return "desktop";
+	if (isCapacitor) {
+		// ios vs android is the only split not known at build time — both share
+		// the "capacitor" bundle. Read the Capacitor-injected global rather than
+		// importing @capacitor/core, so no Capacitor package reference is pulled
+		// into the bundle. Outside a device (e.g. a browser preview of the
+		// capacitor build) the global is absent and this reports "ios".
+		const p =
+			typeof window !== "undefined" ? window.Capacitor?.getPlatform?.() : undefined;
+		return p === "android" ? "android" : "ios";
+	}
+	return "web";
 }
 
 /**
  * How the app is running, for display. "BROWSER" / "INSTALLED PWA" /
- * "DESKTOP (TAURI)".
+ * "DESKTOP (TAURI)" / "MOBILE (IOS)" / "MOBILE (ANDROID)".
  *
  * Exists because the Control Center's status card was describing a *browser*
  * on desktop: isStandalone() is true there, so it read "STANDALONE / PWA",
  * and "SERVICE WORKER: INACTIVE" implied something was broken rather than
  * inapplicable. The distinction the panel needs is not display-mode, it is
- * which shell — so that is what this answers, and it is the single line
- * Capacitor will extend to "MOBILE (IOS)" / "MOBILE (ANDROID)".
+ * which shell. The web case keeps its BROWSER vs INSTALLED PWA detail; the two
+ * packaged shells report themselves. Must branch on isTauri/isCapacitor, not
+ * isNative, now that isNative covers both.
  */
 export function runtimeLabel() {
-	if (isNative) return "DESKTOP (TAURI)";
+	if (isTauri) return "DESKTOP (TAURI)";
+	if (isCapacitor) return platform() === "android" ? "MOBILE (ANDROID)" : "MOBILE (IOS)";
 	return isStandalone() ? "INSTALLED PWA" : "BROWSER";
 }
 

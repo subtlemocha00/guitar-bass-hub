@@ -6,17 +6,23 @@ import reactRefresh from "eslint-plugin-react-refresh";
 // Flat config (ESLint v9+). Replaces the legacy .eslintrc the old `lint`
 // script expected. Covers browser app code plus the Node-context config files.
 export default [
-	// Build output. src-tauri/target holds Tauri's codegen assets, which are
-	// brotli-compressed blobs with a .js extension — ESLint tries to parse them
-	// and reports "Unexpected character" once a Tauri build has run.
+	// Build output and generated native projects. src-tauri/target holds Tauri's
+	// codegen assets (brotli-compressed blobs with a .js extension); android/ and
+	// ios/ are Capacitor's generated native projects and contain a copied,
+	// minified web bundle under their assets. ESLint would try to parse all of
+	// these and report "Unexpected character", so they are ignored — flat config
+	// does not read nested .gitignore files.
 	{
 		ignores: [
 			"dist",
 			"dist-native",
+			"dist-capacitor",
 			"dev-dist",
 			"node_modules",
 			"src-tauri/target",
 			"src-tauri/gen",
+			"android",
+			"ios",
 		],
 	},
 

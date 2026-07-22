@@ -20,14 +20,18 @@
 // Deliberately not a React component: some call sites want an <a> they can
 // style as a card, others want a plain function.
 
-import { isWeb } from "../platform";
+import { isTauri } from "../platform";
 import * as webLinks from "./webLinks";
 import * as nativeLinks from "./nativeLinks";
 
-// isWeb is a build-time constant, so each build keeps only its own
-// implementation and the other folds away — the web bundle never carries the
-// Tauri plugin.
-const impl = isWeb ? webLinks : nativeLinks;
+// isTauri is a build-time constant, so each build keeps only its own
+// implementation and the others fold away — only the Tauri build carries the
+// Tauri opener plugin. Web and Capacitor both use webLinks for now; selecting on
+// isTauri (rather than "not web") is what keeps the Tauri opener out of the
+// mobile bundle. Capacitor gets its own @capacitor/browser implementation in a
+// later phase — a new sibling module selected here, not a fall-through to
+// nativeLinks.
+const impl = isTauri ? nativeLinks : webLinks;
 
 // Anything that is not http(s) or mailto is refused: `javascript:` URLs are the
 // obvious hazard, but so is anything a native shell might hand to the OS. That
@@ -91,10 +95,12 @@ function handleNativeExternalClick(event) {
  * Attributes for an anchor that leaves the app. Spread onto an <a> so link
  * affordances (middle-click, copy address, focus order) are preserved.
  *
- * On web this returns exactly the attributes the app has always used — the
- * browser's own handling of target="_blank" is correct, so nothing is
- * intercepted. On native the same anchor gains a click handler that delegates
- * to openExternal. Call sites spread this either way and never change.
+ * On web (and Capacitor for now) this returns exactly the attributes the app has
+ * always used — the browser's own handling of target="_blank" is correct, so
+ * nothing is intercepted. On Tauri the same anchor gains a click handler that
+ * delegates to openExternal, because window.open is denied there. Call sites
+ * spread this either way and never change; Capacitor's interception arrives with
+ * its links implementation in a later phase.
  */
 export function externalLinkProps(url) {
 	const props = {
@@ -102,7 +108,7 @@ export function externalLinkProps(url) {
 		target: "_blank",
 		rel: "noopener noreferrer",
 	};
-	// isWeb is a build-time constant, so the web build keeps the original
-	// object and the native branch folds away entirely.
-	return isWeb ? props : { ...props, onClick: handleNativeExternalClick };
+	// isTauri is a build-time constant, so only the Tauri build keeps the click
+	// handler and the other targets fold to the plain object.
+	return isTauri ? { ...props, onClick: handleNativeExternalClick } : props;
 }

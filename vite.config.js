@@ -38,19 +38,33 @@ const { version } = JSON.parse(readFileSync(new URL('./package.json', import.met
 // Routing already suits native: HashRouter keeps routes in the URL fragment, so
 // no server rewrites and no deep-link 404s from a filesystem origin.
 export default defineConfig(({ mode }) => {
-  const isNative = mode === 'native'
-  const target = isNative ? 'native' : 'web'
+  // Three isolated build targets, selected by Vite's --mode:
+  //   (default)  -> "web"        PWA, deployed base, dist/
+  //   native     -> "native"     Tauri desktop shell, dist-native/   (legacy name)
+  //   capacitor  -> "capacitor"  Capacitor mobile shell, dist-capacitor/
+  //
+  // The Tauri target keeps its historical mode name "native" so nothing about the
+  // desktop build changes (its mode, output dir and tauri.conf.json frontendDist
+  // all stay `native`/`dist-native`). The app layer tells the two packaged shells
+  // apart via isTauri / isCapacitor — see src/platform/platform.js. This is
+  // deliberately NOT a single generic "native" target: each shell selects its own
+  // plugins at compile time so nothing leaks across targets.
+  const isTauri = mode === 'native'
+  const isCapacitor = mode === 'capacitor'
+  const isPackaged = isTauri || isCapacitor
+  const target = isCapacitor ? 'capacitor' : isTauri ? 'native' : 'web'
 
-  // Unchanged for web: correct base depending on where it's deployed.
-  const base = isNative ? './' : process.env.VERCEL ? '/' : '/guitar-bass-hub/'
+  // Packaged shells load assets relatively (a file:// or custom-scheme origin);
+  // web keeps the base for wherever it's deployed.
+  const base = isPackaged ? './' : process.env.VERCEL ? '/' : '/guitar-bass-hub/'
 
   return {
     base,
-    // Separate output directories so the two targets never overwrite each
-    // other. Without this, running the native build before `npm run deploy`
+    // Separate output directories so the three targets never overwrite each
+    // other. Without this, running a packaged build before `npm run deploy`
     // would publish a service-worker-less build to the web.
     build: {
-      outDir: isNative ? 'dist-native' : 'dist',
+      outDir: isCapacitor ? 'dist-capacitor' : isTauri ? 'dist-native' : 'dist',
     },
     // Exposed so app code can branch at runtime without re-deriving the target
     // (the future openExternal / platform seams need this).
@@ -60,8 +74,8 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
-      // Spread so the native build contains no PWA plugin at all.
-      ...(isNative
+      // Spread so packaged builds (Tauri or Capacitor) contain no PWA plugin at all.
+      ...(isPackaged
         ? []
         : [
             VitePWA({
