@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuthContext } from "../auth/useAuthContext";
+import { subscribeToAppBackground } from "../../platform/platform";
 import { subscribeToSongs, updateSong } from "./firebaseSongs";
 
 // Notes save automatically as you type. Writing on every keystroke meant one
@@ -73,13 +74,14 @@ export function useSongNotes(songId) {
 	);
 
 	// Never lose a pending edit: write it out if the card unmounts (navigating
-	// away, filtering the list) or the app is backgrounded/closed. `pagehide`
-	// covers the cases `beforeunload` misses on mobile and in webviews.
+	// away, filtering the list) or the app is backgrounded/closed. The unmount
+	// flush covers navigation; subscribeToAppBackground covers the app going away
+	// with the card still mounted — see the note there on why mobile needs a
+	// different event than the web's `pagehide`.
 	useEffect(() => {
-		const onPageHide = () => flush();
-		window.addEventListener("pagehide", onPageHide);
+		const unsubscribe = subscribeToAppBackground(flush);
 		return () => {
-			window.removeEventListener("pagehide", onPageHide);
+			unsubscribe();
 			flush();
 		};
 	}, [flush]);

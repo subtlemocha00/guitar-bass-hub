@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useAuthContext } from "../auth/useAuthContext";
 import { subscribeToPrefs, setPref } from "../../firebase/userPrefs";
 import { readItem, writeItem } from "../../platform/storage";
+import { subscribeToAppBackground } from "../../platform/platform";
 import { sanitizeSettings, saveMetronomeSettings } from "./metronomeStorage";
 
 // Cross-device sync for the live metronome setup, modelled on useSortPreference:
@@ -163,11 +164,8 @@ export function useMetronomeSettingsSync(settings, onRemoteSettings) {
 		};
 	}, [uid, flush]);
 
-	// Backgrounding or closing the app should not drop a queued change.
-	// pagehide rather than beforeunload: beforeunload is unreliable on mobile
-	// and inside webviews.
-	useEffect(() => {
-		window.addEventListener("pagehide", flush);
-		return () => window.removeEventListener("pagehide", flush);
-	}, [flush]);
+	// Backgrounding or closing the app should not drop a queued change. The
+	// event that means "app is going away" differs by platform, so it lives
+	// behind subscribeToAppBackground — see the note there on the mobile case.
+	useEffect(() => subscribeToAppBackground(flush), [flush]);
 }

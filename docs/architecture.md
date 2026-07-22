@@ -81,7 +81,7 @@ Three tests decide whether something belongs in `src/platform/`:
 
 | Module | Owns | Native swap |
 | --- | --- | --- |
-| `platform/platform.js` | build target, `APP_VERSION`, `runtimeLabel()`, standalone, service-worker and connectivity checks | widen `platform()` and `runtimeLabel()` to `desktop` / `ios` / `android` |
+| `platform/platform.js` | build target, `APP_VERSION`, `runtimeLabel()`, standalone, service-worker, connectivity checks, app-background flush (`subscribeToAppBackground`) | widen `platform()` and `runtimeLabel()` to `desktop` / `ios` / `android`; point `subscribeToAppBackground` at Capacitor `App` pause |
 | `platform/links/` | leaving the app (`openExternal`, `externalLinkProps`) | **live** — `nativeLinks.js` uses the Tauri opener plugin; Capacitor swaps that one file for `Browser.open` |
 | `platform/auth/` | credential acquisition only | none for desktop — Tauri reuses the popup; mobile needs native Google Sign-In |
 | `platform/storage/` | hydration, sync reads, async writes | Capacitor Preferences / Tauri store |

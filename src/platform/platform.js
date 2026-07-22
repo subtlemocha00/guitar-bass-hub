@@ -153,6 +153,36 @@ export function subscribeToOnline(callback) {
 	};
 }
 
+/**
+ * Run a callback when the app is about to be backgrounded or closed, so unsaved
+ * work can be flushed. Returns an unsubscribe function.
+ *
+ * Exists because two features (song notes, live metronome settings) debounce
+ * their writes and must not lose a queued edit when the app goes away. Both
+ * reached for `pagehide` independently; this is the single boundary for that
+ * one concern.
+ *
+ * Web/desktop: `pagehide`. Chosen over `beforeunload`, which is unreliable
+ * inside webviews and never fires on iOS Safari; `pagehide` covers tab close,
+ * navigation, and bfcache eviction, and Tauri fires it normally when the window
+ * closes.
+ *
+ * Native replacement point: `pagehide` does NOT fire when a mobile OS
+ * backgrounds an app (home button, app switcher, an incoming call) — the
+ * webview is suspended with no page transition, so a queued edit would be lost.
+ * Capacitor's `@capacitor/app` `App.addListener("pause", …)` (paired with
+ * `appStateChange`) is the event that fires there, and is the one line to swap
+ * in. This is why the concern is wrapped rather than inlined: it is the single
+ * browser assumption in the app that is actually wrong on mobile, not merely
+ * suboptimal.
+ */
+export function subscribeToAppBackground(callback) {
+	if (typeof window === "undefined") return () => {};
+	const onPageHide = () => callback();
+	window.addEventListener("pagehide", onPageHide);
+	return () => window.removeEventListener("pagehide", onPageHide);
+}
+
 // Deliberately NOT wrapped: import.meta.env.PROD / BASE_URL. Vite resolves
 // both at build time and they behave identically for every target, so a
 // platform helper would add indirection without a replacement point.

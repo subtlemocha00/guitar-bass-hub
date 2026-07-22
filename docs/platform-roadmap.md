@@ -232,7 +232,15 @@ play. Two things it turned up that are not compatibility problems:
 
 ## Before adding the next shell
 
-Tauri is installed and its auth flow is decided. For Capacitor, in order:
+Tauri is installed and its auth flow is decided. The shared layer has also had a
+full browser-assumptions sweep for mobile —
+[browser-assumptions-audit.md](browser-assumptions-audit.md) — which found the
+app already close to platform-clean: it added exactly one boundary
+(`subscribeToAppBackground`, because `pagehide` does not fire when a mobile OS
+backgrounds an app) and confirmed the app uses none of the usual porting-friction
+APIs (clipboard, share, file I/O, notifications, drag-and-drop, wake lock).
+
+For Capacitor, in order:
 
 1. **Decide the auth flow.** Everything else is reversible; this shapes the
    integration — and desktop's answer does not transfer, because
@@ -240,5 +248,8 @@ Tauri is installed and its auth flow is decided. For Capacitor, in order:
 2. **Run the `file://` pre-flight** above.
 3. **Spike the tuner and one YouTube embed early** — the two features most
    likely to fail outright rather than degrade.
-4. **Design nothing speculatively.** Each deferred abstraction in
+4. **Point `subscribeToAppBackground` at `@capacitor/app`** — one line; without
+   it, backgrounding the mobile app silently drops the last debounced note or
+   metronome edit.
+5. **Design nothing speculatively.** Each deferred abstraction in
    [architecture.md](architecture.md) has a recorded trigger; wait for it.
