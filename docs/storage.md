@@ -116,8 +116,12 @@ export async function persist(key, value) { /* void */ }
 | Capacitor | `Preferences.keys()` then `Preferences.get()` per key | `Preferences.set()` |
 | Tauri | `store.entries()` | `store.set()` then `store.save()` |
 
-`src/platform/storage/index.js` selects the driver by build target, exactly as
-`platform/auth` does.
+`src/platform/storage/index.js` selects the driver by build target, the same
+compile-time branch `platform/links` uses to choose `webLinks` vs the native
+implementation. (`platform/auth` was the original example here, but it no longer
+branches — desktop reuses `webAuth` — so `platform/links` is the live model.)
+Today `index.js` imports `webStorage` directly because the web driver is the only
+one; the build-target branch appears when a native driver is added.
 
 **Features do not change when the driver changes.** Not the storage API, not
 the four feature modules, not a single `useState` initialiser. That is the
