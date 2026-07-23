@@ -11,9 +11,13 @@
 	border-bottom: 1px solid var(--line-mid);
 	background: linear-gradient(180deg, rgba(5,2,31,0.92), rgba(5,2,31,0.72));
 	backdrop-filter: blur(10px);
-	flex-wrap: wrap;
+	/* Single row at every width — the promoted tool controls must never wrap,
+	   overlap or clip. Fit is guaranteed instead by the breadcrumb shrinking
+	   (below) and the width-driven collapses in the media queries, so there is
+	   never overflow to wrap. */
 }
 .topbar-brand {
+	flex: 0 0 auto;
 	display: flex; align-items: center; gap: 0.65rem;
 	font-family: var(--font-display);
 	font-weight: 700;
@@ -22,7 +26,9 @@
 	color: var(--text);
 	text-decoration: none;
 	text-transform: uppercase;
+	white-space: nowrap;
 }
+.topbar-brand-short { display: none; }
 .topbar-brand .dot {
 	width: 10px; height: 10px; border-radius: 999px;
 	background: var(--neon-cyan);
@@ -30,14 +36,22 @@
 	animation: pulse-dot 1.6s infinite ease-in-out;
 }
 .topbar-bread {
+	/* Absorbs slack and truncates before it would push the tool buttons off the
+	   row — min-width:0 is what lets a flex item shrink below its content. */
+	flex: 0 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 	font-family: var(--font-mono);
 	font-size: 0.78rem;
 	color: var(--text-mute);
 	letter-spacing: 0.08em;
 }
 .topbar-bread .sep { margin: 0 0.5em; color: rgba(214,246,255,0.18); }
-.topbar-spacer { flex: 1; }
+.topbar-spacer { flex: 1 1 auto; }
 .topbar-clock {
+	flex: 0 0 auto;
 	font-family: var(--font-mono);
 	font-size: 0.72rem;
 	color: var(--text-dim);
@@ -46,17 +60,53 @@
 }
 .topbar-clock .blip { width: 6px; height: 6px; border-radius: 99px; background: var(--neon-magenta); box-shadow: 0 0 8px var(--neon-magenta-glow); }
 
+/* Permanent tool controls. flex:0 0 auto so they never shrink or clip — the
+   breadcrumb yields space first. Styled to match .auth-btn (same outline, mono
+   caps, hover/active/focus) so the header reads as one control set. */
+.topbar-tools {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.topbar-tool {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	padding: 0.4rem 0.7rem;
+	background: transparent;
+	border: 1px solid var(--neon-cyan);
+	color: var(--neon-cyan);
+	border-radius: 2px;
+	cursor: pointer;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: background 0.15s, color 0.15s, box-shadow 0.2s;
+}
+.topbar-tool:hover,
+.topbar-tool:focus-visible {
+	background: var(--neon-cyan);
+	color: var(--bg-0);
+	box-shadow: 0 0 12px var(--neon-cyan-glow);
+	outline: none;
+}
+.topbar-tool:active { filter: brightness(0.92); }
+.topbar-tool-icon {
+	width: 18px;
+	height: 18px;
+	flex: 0 0 auto;
+	display: block;
+}
+
 .layout-auth {
+	flex: 0 0 auto;
 	display: flex;
 	align-items: center;
 	gap: 0.75rem;
-}
-.auth-name {
-	font-family: var(--font-mono);
-	font-size: 0.75rem;
-	color: var(--neon-cyan);
-	letter-spacing: 0.08em;
-	opacity: 0.8;
 }
 .auth-btn {
 	font-family: var(--font-mono);
@@ -101,15 +151,33 @@
 	margin-top: auto;
 }
 
-@media (max-width: 480px) {
-	.topbar {
-		gap: 0.75rem;
-	}
-	.topbar-clock {
-		display: none;
-	}
-	.topbar-bread {
-		font-size: 0.7rem;
-		letter-spacing: 0.04em;
-	}
+/* Breakpoints are chosen from where the layout actually stops fitting (measured
+   across 320–1280px), not round numbers. Progressive collapse, decorative-first:
+   the clock goes, then — when the full brand + labelled tools no longer share the
+   row — the brand abbreviates, tool labels drop to icon-only and the redundant
+   breadcrumb hides. The tool buttons themselves never shrink or clip. */
+
+/* The clock is decorative; reclaim its width before it can crowd the tools.
+   Measured: with the clock shown, the full brand + labelled tools stop fitting
+   below ~900px. */
+@media (max-width: 900px) {
+	.topbar-clock { display: none; }
+}
+
+/* Compact header. Measured: the full brand + labelled tools + SIGN OUT stop
+   sharing one row at ~710px, so switch to the short brand, icon-only tools and
+   drop the (redundant) breadcrumb at 720px. The tool buttons — the point of this
+   pass — stay fully visible and stay 44px tap targets (see index.css). */
+@media (max-width: 720px) {
+	.topbar { gap: 0.55rem; }
+	.topbar-brand-full { display: none; }
+	.topbar-brand-short { display: inline; }
+	.topbar-brand { font-size: 0.95rem; letter-spacing: 0.08em; }
+	/* The pulsing identity dot is decorative; drop it here to give the short
+	   brand and the two tool buttons room down to the 320px minimum width. */
+	.topbar-brand .dot { display: none; }
+	.topbar-bread { display: none; }
+	.topbar-tool-text { display: none; }
+	/* icon-only: square the button around the 18px glyph */
+	.topbar-tool { padding: 0.4rem; }
 }

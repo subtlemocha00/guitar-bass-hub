@@ -72,9 +72,10 @@ function InstrumentDeck({ instrument, count, learning, completed, sunHue }) {
 	);
 }
 
+// Tuner and Metronome are no longer here: they were promoted to permanent
+// controls in the top navigation bar (see components/Layout.jsx), so every page
+// can reach them, not just Home. The remaining Quick Access tools stay.
 const SHARED_TOOLS = [
-	{ label: "Tuner", tag: "guitar + bass · pitch ref", path: "/tuner" },
-	{ label: "Metronome", tag: "guitar + bass · tempo lock", path: "/metronome" },
 	{ label: "Setlist", tag: "completed songs · reorderable", path: "/setlist" },
 	{ label: "Control Center", tag: "system · settings + utils", path: "/control-center" },
 ];

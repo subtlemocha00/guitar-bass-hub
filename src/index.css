@@ -557,6 +557,7 @@ a:hover {
 	   the setlist drag handle) are intentionally excluded. */
 	.btn,
 	.auth-btn,
+	.topbar-tool,
 	.add-song-btn,
 	.add-song-close,
 	.confirm-btn,
@@ -581,5 +582,12 @@ a:hover {
 	/* Square icon button: keep it square at the tap-target size. */
 	.add-song-close {
 		min-width: 44px;
+	}
+
+	/* Tool buttons stay a full tap target even when they collapse to icon-only
+	   on narrow (touch) screens. */
+	.topbar-tool {
+		min-width: 44px;
+		justify-content: center;
 	}
 }
