@@ -91,7 +91,7 @@ Listed for completeness; each already has exactly one file to change per target.
 
 | Concern | Boundary | Native swap point |
 | --- | --- | --- |
-| Leaving the app (external links) | `platform/links/` | `nativeLinks.js` → Tauri opener (live); Capacitor swaps for `@capacitor/browser` `Browser.open` |
+| Leaving the app (external links) | `platform/links/` | `tauriLinks.js` → Tauri opener; `capacitorLinks.js` → `@capacitor/browser` `Browser.open` — both live, selected by the `@links-impl` alias (Phase 4) |
 | Credential acquisition | `platform/auth/` | mobile adds `mobileAuth.js` (native Google Sign-In → `signInWithCredential`) |
 | Key/value persistence | `platform/storage/` | Capacitor Preferences / Tauri store; async contract already in place |
 | Environment + connectivity | `platform/platform.js` | `isStandalone`, `isServiceWorkerActive`, `isOnline`, `subscribeToOnline` — Capacitor `Network`, and `platform()` widens to `ios` / `android` |

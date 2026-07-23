@@ -53,14 +53,14 @@ off the critical path.
 | Native authentication | **implemented** — popup allow-list in the shell, `webAuth` on both targets |
 | Sign-in, persistence, sign-out | **verified end to end** in the release build |
 | YouTube embeds on Windows | **verified** — all four surfaces load and play |
-| Native links implementation | **done** — opener plugin behind `platform/links/`, [desktop-polish.md](desktop-polish.md) |
+| Native links implementation | **done (both shells)** — Tauri opener (`tauriLinks.js`) and Capacitor `@capacitor/browser` (`capacitorLinks.js`), selected by the `@links-impl` alias; [desktop-polish.md](desktop-polish.md) |
 | Desktop window behaviour | **done** — geometry persistence, centred first launch, single instance, 720×560 minimum |
 | Distribution prep | **done, unsigned** — real icons, CSP, narrowed capabilities, NSIS installer; see [release.md](release.md) |
 | Code signing + updater | not started — the two blockers for public distribution |
 | Native storage driver | **done (Capacitor)** — `capacitorStorage.js` (Preferences) behind the existing contract, via the `@storage-impl` alias; Tauri reuses `webStorage`, so no dedicated desktop driver is needed. See [storage.md](storage.md) |
 | App-background flush on Capacitor | **done** — `subscribeToAppBackground` re-exports the `@lifecycle-impl` alias; Capacitor uses `@capacitor/app` `appStateChange`, web/Tauri keep `pagehide` |
 | Microphone / audio on native | not started (Phase 5) |
-| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done (`mobileAuth`, `@auth-impl` alias, [mobile-auth.md](mobile-auth.md)); Phase 3 persistence + lifecycle done (`@storage-impl`, `@lifecycle-impl`) |
+| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done (`mobileAuth`, `@auth-impl` alias, [mobile-auth.md](mobile-auth.md)); Phase 3 persistence + lifecycle done (`@storage-impl`, `@lifecycle-impl`); Phase 4 external links done (`capacitorLinks`, `@links-impl` alias) |
 
 Ordered by risk. Authentication first: everything signed-in depends on it, and
 it is the only item that can block the whole effort.
@@ -197,14 +197,28 @@ across a low-memory kill is the device-only unknown.
 
 ### Links — system browser handling
 
-**Done for Tauri.** `platform/links/nativeLinks.js` calls
-`@tauri-apps/plugin-opener` `openUrl(url)`; verified end to end — clicking a tool
-card opens the system browser on the right page and creates no in-app window.
-Capacitor replaces that one file with `@capacitor/browser` `Browser.open({ url })`.
+**Done for both shells.** Tauri's `platform/links/tauriLinks.js` calls
+`@tauri-apps/plugin-opener` `openUrl(url)` (verified end to end — clicking a tool
+card opens the system browser on the right page and creates no in-app window);
+Capacitor's `platform/links/capacitorLinks.js` (Phase 4) calls `@capacitor/browser`
+`Browser.open({ url })`, which presents the OS in-app browser (SFSafariViewController
+/ Custom Tabs) over the app.
+
+The implementation is chosen by the `@links-impl` Vite alias — a three-way select
+across `webLinks` / `tauriLinks` / `capacitorLinks`. It moved from the old
+source-level `isTauri ? …` because `@capacitor/browser` calls `registerPlugin()`
+at import time (confirmed by reading its ESM entry), a side effect a static import
+cannot be tree-shaken past; an alias keeps that plugin out of the web and Tauri
+bundles, and keeps `@tauri-apps/plugin-opener` out of the Capacitor bundle —
+verified per bundle. `nativeLinks.js` was renamed to `tauriLinks.js` since it is
+no longer the generic native impl.
 
 URL validation, anchor attributes and click interception stayed in the shared
-`index.js` rather than being duplicated per platform, and `openExternal` is now
-async because that is the contract every shell can meet. See
+`index.js` rather than being duplicated per platform. The one part that is *not*
+aliased is the interception decision itself — whether `externalLinkProps` attaches
+a click handler — which stays an in-source `isWeb` branch (now covering both
+packaged shells, not just Tauri) because attaching an `onClick` imports no plugin.
+`openExternal` is async because that is the contract every shell can meet. See
 [desktop-polish.md](desktop-polish.md).
 
 ### Microphone — native permissions

@@ -27,7 +27,7 @@ genuinely varies from the policy that must not:
 | --- | --- |
 | `index.js` | URL validation, anchor attributes, click interception — shared |
 | `webLinks.js` | `window.open(url, "_blank", "noopener,noreferrer")` |
-| `nativeLinks.js` | `@tauri-apps/plugin-opener` `openUrl(url)` |
+| `tauriLinks.js` | `@tauri-apps/plugin-opener` `openUrl(url)` (named `nativeLinks.js` here; renamed in Phase 4 when Capacitor got `capacitorLinks.js`) |
 
 Verified: clicking a tool card on `#/guitar` opens Chrome on
 `all-guitar-chords.com`, the app stays on its route, and no in-app window is
@@ -157,10 +157,14 @@ on the process tree exiting cleanly rather than on a direct observation.
 
 Nothing here is Tauri-only except the two plugin registrations in `lib.rs`.
 
-- **`platform/links/`** — mobile adds `Browser.open({ url })` in place of
-  `nativeLinks.js`'s `openUrl`. The async contract, the safe-protocol list and
-  the anchor interception are already shared, and the interception matters more
-  on mobile, where `target="_blank"` inside a webview is reliably useless.
+- **`platform/links/`** — **done in Phase 4.** Mobile's `capacitorLinks.js` uses
+  `@capacitor/browser` `Browser.open({ url })`, a sibling to the renamed
+  `tauriLinks.js` selected by the `@links-impl` alias (the plugin's
+  `registerPlugin()` side effect ruled out an in-source branch — see
+  [architecture.md](architecture.md)). The async contract, the safe-protocol list
+  and the anchor interception were already shared; interception now fires on both
+  packaged shells (`isWeb` branch), and it matters more on mobile, where
+  `target="_blank"` inside a webview is reliably useless.
 - **`platform.runtimeLabel()`** — extends to `MOBILE (IOS)` / `MOBILE (ANDROID)`.
 - **`APP_VERSION`** — already build-time and platform-independent. If a mobile
   build ever needs the *store* version rather than the source version, that

@@ -90,9 +90,13 @@ means only the selected file ever enters the module graph, so:
 - web / Tauri bundles: **zero** `@capacitor-firebase`, popup path only;
 - Capacitor bundle: native path only, **zero** Tauri auth references.
 
-Verified per bundle — see below. `platform/links` still uses the in-source
-`isTauri ? … : …` form because the Tauri opener is side-effect-free and tree-
-shakes cleanly; auth needed the stronger guarantee.
+Verified per bundle — see below. `platform/links` used the in-source
+`isTauri ? … : …` form through Phase 3 because the Tauri opener is
+side-effect-free and tree-shakes cleanly; auth needed the stronger guarantee.
+(Phase 4 moved links to its own `@links-impl` alias too, once its Capacitor
+branch imported `@capacitor/browser` — another `registerPlugin()` side effect.
+Its click-interception sub-decision stays in-source. See
+[architecture.md](architecture.md).)
 
 ## Native configuration required (not performed here)
 

@@ -61,24 +61,33 @@ export default defineConfig(({ mode }) => {
 
   // Build-time platform-implementation selection.
   //
-  // These three boundaries each pull in a Capacitor plugin whose module calls
+  // These four boundaries each pull in a native plugin whose module calls
   // registerPlugin() at import time — a side effect a static import cannot be
   // tree-shaken past. So they CANNOT be selected with a source-level
   // `isCapacitor ? capacitorImpl : webImpl`: that would drag the plugin into the
   // web and Tauri bundles even with the branch folded to a constant. Aliasing
   // means only the selected file ever enters the module graph, so the plugin is
-  // absent from web/Tauri and the web/Tauri path is absent from Capacitor. This
-  // still keys on the Phase 1 build target — it is compile-time selection, just
-  // resolved by the bundler instead of by dead-code elimination.
+  // absent from the bundles that do not select it. This still keys on the Phase 1
+  // build target — it is compile-time selection, just resolved by the bundler
+  // instead of by dead-code elimination.
   //
   //   @auth-impl      credential acquisition   @capacitor-firebase/authentication
   //   @storage-impl   persistence driver       @capacitor/preferences
   //   @lifecycle-impl app-background flush      @capacitor/app
+  //   @links-impl     leaving the app          @capacitor/browser (mobile) /
+  //                                            @tauri-apps/plugin-opener (desktop)
   //
-  // Web and Tauri share the same web implementation for all three (the desktop
-  // shell reuses the browser behaviour); only Capacitor swaps. platform/links
-  // stays a source-level `isTauri ? …` instead, because the Tauri opener is
-  // side-effect-free and tree-shakes cleanly — these three could not.
+  // For the first three, web and Tauri share the same web implementation (the
+  // desktop shell reuses the browser behaviour) and only Capacitor swaps.
+  //
+  // @links-impl is the odd one out: three genuinely distinct implementations
+  // (web window.open, Tauri opener, Capacitor Browser), so it is a three-way
+  // select. It moved from a source-level `isTauri ? …` to an alias in Phase 4:
+  // the Tauri opener is side-effect-free and tree-shook cleanly, but the new
+  // Capacitor branch imports `@capacitor/browser`, whose registerPlugin() side
+  // effect does not — so the whole boundary now takes the alias. The click-
+  // interception decision in links/index.js stays an in-source `isWeb` branch,
+  // because attaching an onClick handler pulls in no plugin.
   const authImpl = isCapacitor
     ? './src/platform/auth/mobileAuth.js'
     : './src/platform/auth/webAuth.js'
@@ -88,6 +97,11 @@ export default defineConfig(({ mode }) => {
   const lifecycleImpl = isCapacitor
     ? './src/platform/lifecycle/capacitorLifecycle.js'
     : './src/platform/lifecycle/webLifecycle.js'
+  const linksImpl = isCapacitor
+    ? './src/platform/links/capacitorLinks.js'
+    : isTauri
+      ? './src/platform/links/tauriLinks.js'
+      : './src/platform/links/webLinks.js'
 
   return {
     base,
@@ -96,6 +110,7 @@ export default defineConfig(({ mode }) => {
         '@auth-impl': fileURLToPath(new URL(authImpl, import.meta.url)),
         '@storage-impl': fileURLToPath(new URL(storageImpl, import.meta.url)),
         '@lifecycle-impl': fileURLToPath(new URL(lifecycleImpl, import.meta.url)),
+        '@links-impl': fileURLToPath(new URL(linksImpl, import.meta.url)),
       },
     },
     // Separate output directories so the three targets never overwrite each

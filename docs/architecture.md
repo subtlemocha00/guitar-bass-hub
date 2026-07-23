@@ -82,7 +82,7 @@ Three tests decide whether something belongs in `src/platform/`:
 | Module | Owns | Native swap |
 | --- | --- | --- |
 | `platform/platform.js` | build target, `APP_VERSION`, `runtimeLabel()`, standalone, service-worker, connectivity checks, app-background flush (`subscribeToAppBackground`) | `platform()`/`runtimeLabel()` widened to `desktop`/`ios`/`android`; `subscribeToAppBackground` is now **live** — it re-exports the `@lifecycle-impl` alias (web/Tauri `pagehide`, Capacitor `@capacitor/app` `appStateChange`) |
-| `platform/links/` | leaving the app (`openExternal`, `externalLinkProps`) | **live** — `nativeLinks.js` uses the Tauri opener plugin; Capacitor swaps that one file for `Browser.open` |
+| `platform/links/` | leaving the app (`openExternal`, `externalLinkProps`) | **live** — `webLinks`/`tauriLinks`/`capacitorLinks` selected by the `@links-impl` build alias (web `window.open`, Tauri opener, Capacitor `@capacitor/browser` `Browser.open`); the click-interception decision stays an in-source `isWeb` branch |
 | `platform/auth/` | credential acquisition only | **live** — web/Tauri use `webAuth` (popup); Capacitor uses `mobileAuth` (native Google Sign-In → `signInWithCredential`). Selected by the `@auth-impl` build alias, see [mobile-auth.md](mobile-auth.md) |
 | `platform/storage/` | hydration, sync reads, async writes | **live** — web/Tauri use `webStorage` (localStorage); Capacitor uses `capacitorStorage` (Preferences). Selected by the `@storage-impl` build alias, see [storage.md](storage.md) |
 | `platform/lifecycle/` | app-background flush implementation | **live** — `webLifecycle` (`pagehide`) for web/Tauri, `capacitorLifecycle` (`@capacitor/app`) for Capacitor; surfaced through `platform.js`, selected by `@lifecycle-impl` |
@@ -90,21 +90,33 @@ Three tests decide whether something belongs in `src/platform/`:
 Each selection folds away at build time — the native bundle contains no web
 implementation and vice versa, verified per chunk rather than assumed.
 
-`platform/links/` and the three plugin boundaries are worth understanding as a
-pair of *kinds*. Links was replaceable with a source-level `isTauri ? … : …`
-because every implementation is side-effect-free and tree-shakes cleanly. The
-other three — **auth, storage and lifecycle** — could not be, for the identical
-reason: each pulls in a Capacitor plugin
-(`@capacitor-firebase/authentication`, `@capacitor/preferences`, `@capacitor/app`)
-whose module calls `registerPlugin()` at import time, a side effect a static
-import cannot be tree-shaken past. So each selects its implementation with a
-build alias (`@auth-impl`, `@storage-impl`, `@lifecycle-impl`, all in
-`vite.config.js`) that keeps the plugin out of the web/Tauri bundles entirely —
-verified per bundle. The rule that fell out: **a boundary whose native branch
-imports a plugin uses an alias; a side-effect-free one uses the in-source
-branch.** Auth was also the boundary whose desktop swap turned out to be
-unnecessary (Tauri reuses the popup) — but mobile *does* differ, exactly as the
-boundary anticipated, so the native branch the Tauri work removed is now
+All four platform boundaries now select their implementation with a build alias
+(`@auth-impl`, `@storage-impl`, `@lifecycle-impl`, `@links-impl`, all in
+`vite.config.js`), for one reason: each has a native branch that pulls in a
+plugin — `@capacitor-firebase/authentication`, `@capacitor/preferences`,
+`@capacitor/app`, and (Phase 4) `@capacitor/browser` — whose module calls
+`registerPlugin()` at import time, a side effect a static import cannot be
+tree-shaken past. A source-level `isCapacitor ? … : …` would drag that plugin
+into every bundle even folded to a constant; an alias means only the selected
+file enters the module graph, so the plugin is absent from the bundles that do
+not select it — verified per bundle.
+
+`platform/links` was the last to convert, and it sharpens the rule. Through
+Phase 3 it used a source-level `isTauri ? …` because its only native branch (the
+Tauri opener) is side-effect-free and tree-shook cleanly. Phase 4 added a
+Capacitor branch that imports `@capacitor/browser`, which does *not* tree-shake,
+so the **implementation selection** moved to `@links-impl` (a three-way alias:
+`webLinks` / `tauriLinks` / `capacitorLinks` — `nativeLinks.js` was renamed to
+`tauriLinks.js` since it is no longer the generic native impl). But links also
+carries a **side-effect-free sub-decision** — whether an external-link anchor
+gets a click handler that routes through `openExternal` — and that stays an
+in-source `isWeb` branch, because attaching an `onClick` pulls in no plugin.
+
+So the refined rule: **a plugin-importing selection uses an alias; a
+side-effect-free decision uses an in-source branch — even when both live inside
+the same boundary.** Auth was also the boundary whose desktop swap turned out to
+be unnecessary (Tauri reuses the popup) — but mobile *does* differ, exactly as
+the boundary anticipated, so the native branch the Tauri work removed is now
 reintroduced for Capacitor. See [mobile-auth.md](mobile-auth.md) and
 [storage.md](storage.md).
 
