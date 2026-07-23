@@ -60,7 +60,7 @@ off the critical path.
 | Native storage driver | **done (Capacitor)** — `capacitorStorage.js` (Preferences) behind the existing contract, via the `@storage-impl` alias; Tauri reuses `webStorage`, so no dedicated desktop driver is needed. See [storage.md](storage.md) |
 | App-background flush on Capacitor | **done** — `subscribeToAppBackground` re-exports the `@lifecycle-impl` alias; Capacitor uses `@capacitor/app` `appStateChange`, web/Tauri keep `pagehide` |
 | Microphone boundary + permissions | **done (Phase 5)** — `platform/microphone/` (`requestPermission`/`acquireStream`/`stopStream`); compile-time boolean (no plugin); `RECORD_AUDIO` + `NSMicrophoneUsageDescription` added. Device-only: the native OS prompt itself. Audio interruption/background stays deferred below |
-| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done (`mobileAuth`, `@auth-impl` alias, [mobile-auth.md](mobile-auth.md)); Phase 3 persistence + lifecycle done (`@storage-impl`, `@lifecycle-impl`); Phase 4 external links done (`capacitorLinks`, `@links-impl` alias); Phase 5 microphone boundary done (`platform/microphone/`, compile-time boolean); Phase 6 YouTube compatibility done (universal `WatchOnYouTube` fallback via `platform/links`; native config inspected, none required — [youtube-native-compatibility.md](youtube-native-compatibility.md)) |
+| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done (`mobileAuth`, `@auth-impl` alias, [mobile-auth.md](mobile-auth.md)); Phase 3 persistence + lifecycle done (`@storage-impl`, `@lifecycle-impl`); Phase 4 external links done (`capacitorLinks`, `@links-impl` alias); Phase 5 microphone boundary done (`platform/microphone/`, compile-time boolean); Phase 6 YouTube compatibility done (universal `WatchOnYouTube` fallback via `platform/links`; native config inspected, none required — [youtube-native-compatibility.md](youtube-native-compatibility.md)); Phase 7 mobile-shell polish done (status-bar theming via new `@nativeui-impl` alias + `@capacitor/status-bar`; keyboard resize + splash/webview dark background via native config; `@capacitor/keyboard` native-only — [mobile-readiness-audit.md](mobile-readiness-audit.md)) |
 
 Ordered by risk. Authentication first: everything signed-in depends on it, and
 it is the only item that can block the whole effort.
@@ -323,8 +323,10 @@ on the shared app:
   sound; fixed the device-frame gaps it ignored — safe-area insets, `dvh`
   heights, iOS input-zoom, 44px touch targets, modal overflow — all as
   touch-scoped CSS that is inert on desktop. Verified with a CDP overflow sweep
-  across 5 mobile viewports. Keyboard resize and status-bar styling are left for
-  the Capacitor phase.
+  across 5 mobile viewports. The three items it deferred to the Capacitor phase —
+  keyboard resize, status-bar styling and splash white-flash — were resolved in
+  **Phase 7** (see that doc's "Resolved in the Capacitor phase" section); the
+  sticky-hover pass remains an independent follow-up.
 
 For Capacitor, in order:
 

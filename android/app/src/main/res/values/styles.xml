@@ -16,7 +16,11 @@
     </style>
 
 
+    <!-- Phase 7: launch background is the dark theme colour, not the default white
+         @drawable/splash, so Android cold start does not flash white on this dark
+         app. android:background is the framework attribute honoured across API
+         levels; it hands off to the (also-dark) WebView. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="android:background">@color/splashBackground</item>
     </style>
 </resources>

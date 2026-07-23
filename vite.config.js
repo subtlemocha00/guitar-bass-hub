@@ -76,9 +76,11 @@ export default defineConfig(({ mode }) => {
   //   @lifecycle-impl app-background flush      @capacitor/app
   //   @links-impl     leaving the app          @capacitor/browser (mobile) /
   //                                            @tauri-apps/plugin-opener (desktop)
+  //   @nativeui-impl  status-bar theming        @capacitor/status-bar
   //
-  // For the first three, web and Tauri share the same web implementation (the
-  // desktop shell reuses the browser behaviour) and only Capacitor swaps.
+  // For the auth/storage/lifecycle/nativeui boundaries, web and Tauri share the
+  // same web implementation (the desktop shell reuses the browser behaviour, and
+  // there is no mobile status bar to theme) and only Capacitor swaps.
   //
   // @links-impl is the odd one out: three genuinely distinct implementations
   // (web window.open, Tauri opener, Capacitor Browser), so it is a three-way
@@ -102,6 +104,9 @@ export default defineConfig(({ mode }) => {
     : isTauri
       ? './src/platform/links/tauriLinks.js'
       : './src/platform/links/webLinks.js'
+  const nativeUIImpl = isCapacitor
+    ? './src/platform/nativeUI/capacitorNativeUI.js'
+    : './src/platform/nativeUI/webNativeUI.js'
 
   return {
     base,
@@ -111,6 +116,7 @@ export default defineConfig(({ mode }) => {
         '@storage-impl': fileURLToPath(new URL(storageImpl, import.meta.url)),
         '@lifecycle-impl': fileURLToPath(new URL(lifecycleImpl, import.meta.url)),
         '@links-impl': fileURLToPath(new URL(linksImpl, import.meta.url)),
+        '@nativeui-impl': fileURLToPath(new URL(nativeUIImpl, import.meta.url)),
       },
     },
     // Separate output directories so the three targets never overwrite each

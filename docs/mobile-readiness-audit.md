@@ -24,7 +24,7 @@ inert on desktop.
 | Bucket | Count | Items |
 | --- | --- | --- |
 | **Fixed** | 6 | safe-area insets, `dvh` heights, iOS input-zoom, 44px touch targets, modal overflow, mobile quirks reset |
-| **Deferred to Capacitor** | 3 | virtual-keyboard overlap, status-bar theming, sticky-hover on touch |
+| **Deferred to Capacitor** | 3 | virtual-keyboard overlap, status-bar theming, sticky-hover on touch (first two **resolved in Phase 7** — see below; splash white-flash also fixed there) |
 | **No action required** | 6 | drag-and-drop (already touch-ready), fretboard overflow (already scoped), responsive breakpoints, body overflow guard, hover-only interactions (none exist), animation performance |
 | **Incidental (out of scope)** | 1 | undefined `--border` token in Setlist.css (a shared bug, not mobile-specific) |
 
@@ -168,6 +168,8 @@ analytical argument alone would have shipped a broken zoom fix.
 ## Deferred to Capacitor
 
 Documented rather than implemented, because a correct fix needs the native shell.
+The first two were **resolved in Phase 7** (see "Resolved in the Capacitor phase"
+below); the third is still open.
 
 - **Virtual-keyboard overlap.** Fix 5 stops the modal from *clipping*, but on iOS
   a `position: fixed` overlay is not resized when the keyboard appears, so the
@@ -175,15 +177,118 @@ Documented rather than implemented, because a correct fix needs the native shell
   needs the keyboard height, which the web platform only exposes unreliably
   (`visualViewport`). Capacitor's `@capacitor/keyboard` (resize modes,
   `keyboardWillShow` height) is the right tool. Belongs to the Capacitor phase.
+  **→ Resolved in Phase 7.**
 - **Status-bar theming.** The web metas (`theme-color`, `black-translucent`) are
   set, and the safe-area fix (1) makes content sit correctly beneath the bar. The
   bar's *style* (icon colour, background) on native is a `@capacitor/status-bar`
-  concern, not a web-CSS one.
+  concern, not a web-CSS one. **→ Resolved in Phase 7.**
 - **Sticky-hover on touch.** All `:hover` styles are subtle glows; on touch, a
   hover style can "stick" after a tap until the next interaction. Guarding every
   `:hover` with `@media (hover: hover)` would touch ~30 files and risk desktop
   regressions for a low-severity, self-clearing cosmetic effect. Better as its
-  own focused pass than folded into this one.
+  own focused pass than folded into this one. **→ Still open** (independent of
+  Capacitor; not part of Phase 7).
+
+---
+
+## Resolved in the Capacitor phase (Phase 7)
+
+The mobile-shell polish pass. The rule throughout: **inspect Capacitor 8's actual
+defaults before configuring**, add nothing speculative, and change CSS/layout only
+where a genuine device-frame issue exists (there were none left — the audit above
+had already fixed them). Two plugins were added, both justified below; the
+abstraction boundaries were preserved and no platform check entered a feature
+module.
+
+### Keyboard handling — `@capacitor/keyboard` (native-only, no JS)
+
+The deferred overlap is fixed by the plugin's **default `resize: "native"` mode**
+(confirmed in the plugin's `definitions.d.ts`: `@default native`, iOS): the whole
+WebView resizes when the keyboard opens, so a `position: fixed` modal reflows into
+the shrunken viewport above the keyboard instead of being covered. That behaviour
+is applied entirely by the native plugin once it is installed and synced — it
+needs **no JavaScript and no `resize` config** (setting it would just restate the
+default, which the discipline forbids). So the plugin is imported nowhere in JS;
+it is a pure native dependency. The only Keyboard config is a declarative
+`Keyboard.style: "DARK"` in `capacitor.config.json`, so the on-screen keyboard
+matches the permanently-dark UI instead of following the device's light/dark
+setting (iOS). No CSS changed — the existing `dvh`/`max-height` modal rules from
+fix 5 do the rest once the viewport resizes.
+
+### Status-bar theming — `@capacitor/status-bar` via a new `@nativeui-impl` alias
+
+Themed to the dark UI: **light icons** (`Style.Dark` = "light text for dark
+backgrounds") on both platforms. iOS keeps the status bar as a translucent overlay
+(its platform convention) — the WebView already extends underneath it and the
+`env(safe-area-inset-top)` padding from fix 1 keeps the topbar clear. Android
+follows *its* convention — a solid bar — so at runtime we call
+`setOverlaysWebView(false)` + `setBackgroundColor(#05021f)` there; this also avoids
+relying on Android's less-reliable CSS safe-area insets and sidesteps the
+documented Android full-screen keyboard-resize bug. `capacitor.config.json` sets
+`StatusBar.style: "DARK"` so the very first frame already has light icons before
+JS runs.
+
+Because `@capacitor/status-bar` calls `registerPlugin()` at import time, it sits
+behind a **new build alias `@nativeui-impl`** (mirroring `@lifecycle-impl`):
+`capacitorNativeUI.js` for Capacitor, `webNativeUI.js` (a no-op that imports
+nothing) for web and Tauri. `platform.js` re-exports `initNativeUI`, which
+`main.jsx` calls once after first paint. An inline `if (isCapacitor)` would have
+leaked the plugin into the browser and desktop bundles — the same reason the other
+four boundaries are aliased. The bootstrap is wrapped in `try/catch`: on web/Tauri
+(and desktop verification) the plugin is unavailable and the call degrades to a
+single warning with **zero errors**.
+
+### Splash — white-flash removal by native config (no plugin)
+
+The generated splash was a **white** image on a **white** `systemBackgroundColor`
+(iOS `LaunchScreen.storyboard`) and a white `@drawable/splash` (Android) — a
+white flash on a dark app. No splash-screen *plugin* was added: the genuine issue
+is only colour, and a plugin would add a post-load splash overlay with its own
+duration, which "avoid excessive display duration / preserve fast startup"
+explicitly argues against. Instead, three coordinated native settings make the
+launch → WebView → first-paint handoff one continuous dark surface (`#05021f`, the
+app's real `--bg-0`):
+
+| Layer | Change |
+| --- | --- |
+| WebView background | `backgroundColor: "#05021f"` in `capacitor.config.json` — the frame revealed when the launch screen dismisses is dark, not white (both platforms) |
+| iOS launch screen | `LaunchScreen.storyboard` — removed the white image, set the view's background to `#05021f` |
+| Android launch window | new `colors.xml` `splashBackground #05021F`; launch theme `android:background` now `@color/splashBackground` instead of `@drawable/splash` |
+
+CDP confirmed the served build paints `body` at exactly `rgb(5, 2, 31)`, so the
+handoff target matches.
+
+### Verified only — no change was warranted
+
+The remaining objectives were inspected and found already-correct; changing them
+would have been speculative:
+
+- **Safe areas.** Already handled by fixes 1/5 (topbar/footer/page/modals use
+  `env(safe-area-inset-*)`). Re-verified: 0 horizontal overflow, portrait and
+  landscape. The status-bar choice above keeps those insets meaningful (iOS
+  overlay) or moot (Android solid bar).
+- **Overscroll / momentum.** `overflow-x: hidden` on `body` already blocks
+  accidental horizontal scroll (0px overflow measured); momentum scrolling is the
+  WebView default; vertical rubber-band is *expected* native behaviour, not an
+  "unwanted" effect. Adding `overscroll-behavior` would have changed real-browser
+  (web-target) swipe-nav behaviour for no genuine defect, so it was not added.
+- **Orientation.** `Info.plist` already permits portrait + both landscapes and the
+  Android activity handles orientation config changes; landscape layout measured
+  clean. **Not locked** — there is no architectural reason to, and the objective
+  forbids a gratuitous lock.
+- **General polish.** Tap targets (44px), viewport sizing (`dvh`), modal centering
+  and safe-area padding were all done in the audit above; fixed elements
+  (`.bg-stage`) are correct; soft-keyboard resize is the keyboard item above.
+  One minor observation left as an independent follow-up (not a Phase 7 fix, to
+  avoid modal-component churn): the page can still scroll behind an open modal —
+  a body-scroll-lock is a deliberate behaviour change, not compatibility work.
+
+### Plugins added (2) — justification
+
+| Plugin | Why required | Bundle |
+| --- | --- | --- |
+| `@capacitor/status-bar` | Theme the native status bar (light icons; Android solid dark bar) to the dark UI — a native-only surface with no CSS equivalent | Capacitor JS only, via `@nativeui-impl` |
+| `@capacitor/keyboard` | Enable the native `resize: "native"` WebView behaviour so modals/inputs are not covered by the keyboard (the deferred overlap) | **Native only** — imported in no JS bundle |
 
 ---
 
@@ -259,11 +364,17 @@ change, not smuggled into this pass.
 
 ## Remaining work before / during the Capacitor phase
 
-1. **Virtual-keyboard resize** via `@capacitor/keyboard` (see Deferred).
-2. **Status-bar and splash** via `@capacitor/status-bar` / `@capacitor/splash-screen`.
-3. **On-device pass on real iOS/Android hardware** — emulation proved layout and
-   overflow, but the actual notch inset rendering, momentum scrolling and the
-   keyboard interaction can only be confirmed on device. This is the honest
-   empirical gap and is naturally part of bringing up the mobile shell.
-4. **Optional:** the sticky-hover `@media (hover: hover)` pass, and the
-   incidental `--border` token fix — both independent of Capacitor.
+1. ~~**Virtual-keyboard resize** via `@capacitor/keyboard`.~~ **Done (Phase 7)** —
+   native `resize: "native"` default; see "Resolved in the Capacitor phase".
+2. ~~**Status-bar and splash.**~~ **Done (Phase 7)** — status bar via
+   `@capacitor/status-bar` (`@nativeui-impl` alias); splash white-flash via native
+   background config, **no splash-screen plugin** (it would only add duration).
+3. **On-device pass on real iOS/Android hardware** — still open. Emulation and CDP
+   proved layout, overflow and clean boot, but these are **device-only**: the
+   actual notch/safe-area rendering, momentum/rubber-band feel, the keyboard
+   `resize: "native"` reflow, the light status-bar icons and Android solid bar, and
+   the dark cold-start launch screen can only be confirmed on device. This is the
+   honest empirical gap and is naturally part of bringing up the mobile shell.
+4. **Optional, still open:** the sticky-hover `@media (hover: hover)` pass, the
+   incidental `--border` token fix, and a body-scroll-lock behind open modals —
+   all independent of Capacitor.

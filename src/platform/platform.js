@@ -201,6 +201,23 @@ export function subscribeToOnline(callback) {
  */
 export { subscribeToAppBackground } from "@lifecycle-impl";
 
+/**
+ * Theme the native mobile chrome (status bar) to match the dark synthwave UI.
+ * Called once from main.jsx at startup; a no-op on web and Tauri.
+ *
+ * Selected at BUILD TIME by the `@nativeui-impl` Vite alias (see vite.config.js):
+ *   web + Tauri desktop -> ./nativeUI/webNativeUI       (no-op, imports nothing)
+ *   Capacitor mobile    -> ./nativeUI/capacitorNativeUI (@capacitor/status-bar)
+ *
+ * Aliased rather than an inline `if (isCapacitor)` for the same reason as
+ * @lifecycle-impl: the mobile implementation imports @capacitor/status-bar,
+ * whose registerPlugin() side effect must not leak into the web/Tauri bundles.
+ * The companion @capacitor/keyboard concern needs no JS — its native WebView
+ * resize is configured entirely in capacitor.config.json (see that file and
+ * docs/mobile-readiness-audit.md).
+ */
+export { initNativeUI } from "@nativeui-impl";
+
 // Deliberately NOT wrapped: import.meta.env.PROD / BASE_URL. Vite resolves
 // both at build time and they behave identically for every target, so a
 // platform helper would add indirection without a replacement point.
