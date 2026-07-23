@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Phase 7: the app's real painted background (web index.css --bg-0). Used as
+    <!-- Phase 7: the app's real painted background from web index.css. Used as
          the launch/splash window background so cold start is dark instead of the
-         default white splash image, matching the WebView (capacitor.config.json
-         backgroundColor) and the first React paint. -->
+         default white splash image, matching the WebView background and the first React paint. -->
     <color name="splashBackground">#05021F</color>
 </resources>
