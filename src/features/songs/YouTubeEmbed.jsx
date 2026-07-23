@@ -1,4 +1,7 @@
+import { externalLinkProps } from "../../platform/links";
+import { youtubeWatchUrl } from "./youtubeUtils";
 import "./SongCard.css";
+import "./YouTubeEmbed.css";
 
 export function VideoToggleButton({ videoOpen, onToggleVideo }) {
 	return (
@@ -16,17 +19,45 @@ export function VideoToggleButton({ videoOpen, onToggleVideo }) {
 	);
 }
 
+// The universal "Open on YouTube" fallback. Shown beside every embed on every
+// platform, because a YouTube iframe's in-document failure ("Video unavailable",
+// a bot-check, or a webview refusing to play a custom-scheme embed) is invisible
+// to the parent frame — the iframe is cross-origin and `onError` does not fire
+// for it, so an automatic fallback is impossible (youtube-native-compatibility.md).
+// Making it always-present is the only reliable escape hatch.
+//
+// It leaves the app through externalLinkProps, the platform/links seam: on web a
+// plain target="_blank"; on Capacitor and Tauri the same anchor's click is routed
+// through openExternal (in-app Browser / system opener). No feature component
+// touches Browser.open or window.open directly.
+export function WatchOnYouTube({ youtubeId, title }) {
+	const url = youtubeWatchUrl(youtubeId);
+	if (!url) return null;
+	return (
+		<a
+			className="youtube-fallback-link"
+			{...externalLinkProps(url)}
+			aria-label={title ? `Open "${title}" on YouTube` : "Open on YouTube"}
+		>
+			<span aria-hidden="true">↗</span> Open on YouTube
+		</a>
+	);
+}
+
 export function VideoPlayer({ youtubeId, title }) {
 	return (
-		<div className="song-card-video">
-			<iframe
-				src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
-				title={title}
-				allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-				allowFullScreen
-				loading="lazy"
-			/>
-		</div>
+		<>
+			<div className="song-card-video">
+				<iframe
+					src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
+					title={title}
+					allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+					allowFullScreen
+					loading="lazy"
+				/>
+			</div>
+			<WatchOnYouTube youtubeId={youtubeId} title={title} />
+		</>
 	);
 }
 

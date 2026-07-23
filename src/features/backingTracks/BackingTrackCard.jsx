@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import { WatchOnYouTube } from "../songs/YouTubeEmbed";
 import "./BackingTrackCard.css";
 
 function BackingTrackCard({ track, videoOpen, onToggleVideo, onEdit, onRemove }) {
@@ -70,15 +71,21 @@ function BackingTrackCard({ track, videoOpen, onToggleVideo, onEdit, onRemove })
 			</div>
 
 			{track.youtubeId && videoOpen && (
-				<div className="bt-card-video">
-					<iframe
-						src={`https://www.youtube-nocookie.com/embed/${track.youtubeId}`}
+				<>
+					<div className="bt-card-video">
+						<iframe
+							src={`https://www.youtube-nocookie.com/embed/${track.youtubeId}`}
+							title={`${track.title} — ${track.artist}`}
+							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+							allowFullScreen
+							loading="lazy"
+						/>
+					</div>
+					<WatchOnYouTube
+						youtubeId={track.youtubeId}
 						title={`${track.title} — ${track.artist}`}
-						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-						allowFullScreen
-						loading="lazy"
 					/>
-				</div>
+				</>
 			)}
 
 			<ConfirmDialog

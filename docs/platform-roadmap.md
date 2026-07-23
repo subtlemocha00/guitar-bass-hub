@@ -60,7 +60,7 @@ off the critical path.
 | Native storage driver | **done (Capacitor)** — `capacitorStorage.js` (Preferences) behind the existing contract, via the `@storage-impl` alias; Tauri reuses `webStorage`, so no dedicated desktop driver is needed. See [storage.md](storage.md) |
 | App-background flush on Capacitor | **done** — `subscribeToAppBackground` re-exports the `@lifecycle-impl` alias; Capacitor uses `@capacitor/app` `appStateChange`, web/Tauri keep `pagehide` |
 | Microphone boundary + permissions | **done (Phase 5)** — `platform/microphone/` (`requestPermission`/`acquireStream`/`stopStream`); compile-time boolean (no plugin); `RECORD_AUDIO` + `NSMicrophoneUsageDescription` added. Device-only: the native OS prompt itself. Audio interruption/background stays deferred below |
-| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done (`mobileAuth`, `@auth-impl` alias, [mobile-auth.md](mobile-auth.md)); Phase 3 persistence + lifecycle done (`@storage-impl`, `@lifecycle-impl`); Phase 4 external links done (`capacitorLinks`, `@links-impl` alias); Phase 5 microphone boundary done (`platform/microphone/`, compile-time boolean) |
+| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done (`mobileAuth`, `@auth-impl` alias, [mobile-auth.md](mobile-auth.md)); Phase 3 persistence + lifecycle done (`@storage-impl`, `@lifecycle-impl`); Phase 4 external links done (`capacitorLinks`, `@links-impl` alias); Phase 5 microphone boundary done (`platform/microphone/`, compile-time boolean); Phase 6 YouTube compatibility done (universal `WatchOnYouTube` fallback via `platform/links`; native config inspected, none required — [youtube-native-compatibility.md](youtube-native-compatibility.md)) |
 
 Ordered by risk. Authentication first: everything signed-in depends on it, and
 it is the only item that can block the whole effort.
@@ -273,27 +273,37 @@ unimplemented:
   off needs the iOS `audio` background mode and an Android foreground service —
   and a decision about whether that is wanted at all.
 
-### YouTube embeds — verified on Tauri/Windows
+### YouTube embeds — verified on Tauri; fallback built for Capacitor (Phase 6)
 
-Audited in Phase 2, then measured in the running desktop app. No code changes
-were required at either point. See
+Audited in Phase 2, measured in the running desktop app, then completed for
+Capacitor in Phase 6. See
 [youtube-native-compatibility.md](youtube-native-compatibility.md).
 
 The audit's highest-ranked risk — that a native origin would make YouTube refuse
-to play — does not apply: `http://tauri.localhost` is an ordinary http origin,
-the referrer is sent, and playback, fullscreen and repeat navigation all work.
-No CSP is set, so nothing is blocked. Edge Tracking Prevention partitions the
-embed's storage, which costs only playback-position persistence.
+to play — does not apply to Tauri: `http://tauri.localhost` is an ordinary http
+origin, the referrer is sent, and playback, fullscreen and repeat navigation all
+work. No CSP is set, so nothing is blocked. Edge Tracking Prevention partitions
+the embed's storage, which costs only playback-position persistence.
 
-All four surfaces — song cards, setlist, backing tracks and blog — load and
-play. Two things it turned up that are not compatibility problems:
+All four Tauri surfaces — song cards, setlist, backing tracks and blog — load and
+play. Two things it turned up that are not compatibility problems: four of the
+five sample backing-track video IDs have rotted (identical failures from a plain
+web origin — stale data, not native), and "Watch on YouTube" was dead on desktop
+until `openExternal` got its native implementation (now live via `capacitorLinks`
+/ the opener).
 
-- **Four of the five sample backing-track video IDs have rotted.** Identical
-  failures from a plain web origin, so it is stale placeholder data, not a
-  native issue.
-- **"Watch on YouTube" is dead on desktop**, because it opens a new window and
-  the popup allow-list denies everything but the auth handler. Same status as
-  every other external link until `openExternal` gets its native implementation.
+**Capacitor Phase 6 (done).** The native WebView config was inspected rather than
+assumed: on Capacitor 8.4.2, iOS inline playback is already a hardcoded default,
+Android already serves from `https://localhost`, and `iosScheme: 'https'` is
+invalid (WKWebView reserves the scheme) — so **nothing needed adding** and
+`capacitor.config.json` is unchanged. The iOS `capacitor://localhost` origin risk
+cannot be configured away, so the always-visible **"Open on YouTube"** fallback
+(`WatchOnYouTube`, routed through `platform/links`, using a new `youtubeWatchUrl`
+helper) is built on all four surfaces. Embed-failure detection is impossible
+(cross-origin iframe, no `onError`), which is why the fallback is always present.
+Verified via CDP on the served build (fallback renders + routes through
+`@capacitor/browser`, zero console errors, isolation unregressed); real on-device
+playback from the iOS origin remains the device-only unknown.
 
 ---
 

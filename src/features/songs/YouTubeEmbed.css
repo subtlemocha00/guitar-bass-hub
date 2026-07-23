@@ -1,0 +1,28 @@
+/* The always-visible "Open on YouTube" fallback (WatchOnYouTube). Shared by
+   every embed surface — song cards, the setlist, backing tracks and the blog —
+   so it lives with the shared component rather than any one surface's styles.
+   Sits below the aspect-ratio player container (which clips its own overflow),
+   never inside it. Chrome matches the app's mono/neon control style. */
+.youtube-fallback-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	align-self: flex-start;
+	width: fit-content;
+	margin-top: 0.5rem;
+	padding: 0.35rem 0.65rem;
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--text-mute);
+	text-decoration: none;
+	border: 1px solid var(--line-mid);
+	transition: color 0.15s, border-color 0.15s;
+}
+
+.youtube-fallback-link:hover,
+.youtube-fallback-link:focus-visible {
+	color: var(--neon-cyan);
+	border-color: var(--neon-cyan);
+}

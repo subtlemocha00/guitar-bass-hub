@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import BackLink from "../components/BackLink";
+import { WatchOnYouTube } from "../features/songs/YouTubeEmbed";
 import { getPostById } from "../data/blogPosts";
 import "./Blog.css";
 
@@ -39,6 +40,7 @@ function renderBlock(block, i) {
 							loading="lazy"
 						/>
 					</div>
+					<WatchOnYouTube youtubeId={block.youtubeId} title={block.title || "YouTube video"} />
 					{block.title && <figcaption>{block.title}</figcaption>}
 				</figure>
 			);
