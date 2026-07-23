@@ -86,11 +86,12 @@ Three tests decide whether something belongs in `src/platform/`:
 | `platform/auth/` | credential acquisition only | **live** — web/Tauri use `webAuth` (popup); Capacitor uses `mobileAuth` (native Google Sign-In → `signInWithCredential`). Selected by the `@auth-impl` build alias, see [mobile-auth.md](mobile-auth.md) |
 | `platform/storage/` | hydration, sync reads, async writes | **live** — web/Tauri use `webStorage` (localStorage); Capacitor uses `capacitorStorage` (Preferences). Selected by the `@storage-impl` build alias, see [storage.md](storage.md) |
 | `platform/lifecycle/` | app-background flush implementation | **live** — `webLifecycle` (`pagehide`) for web/Tauri, `capacitorLifecycle` (`@capacitor/app`) for Capacitor; surfaced through `platform.js`, selected by `@lifecycle-impl` |
+| `platform/microphone/` | mic permission + live-stream acquisition (`requestPermission`, `acquireStream`, `stopStream`) | **live** — `webMicrophone` (getUserMedia) for web/Tauri; `capacitorMicrophone` reuses that getUserMedia and adds a Permissions-API pre-check. Selected by a compile-time **boolean**, not an alias — it imports no plugin (see below) |
 
 Each selection folds away at build time — the native bundle contains no web
 implementation and vice versa, verified per chunk rather than assumed.
 
-All four platform boundaries now select their implementation with a build alias
+Four of the five boundaries select their implementation with a build alias
 (`@auth-impl`, `@storage-impl`, `@lifecycle-impl`, `@links-impl`, all in
 `vite.config.js`), for one reason: each has a native branch that pulls in a
 plugin — `@capacitor-firebase/authentication`, `@capacitor/preferences`,
@@ -100,6 +101,20 @@ tree-shaken past. A source-level `isCapacitor ? … : …` would drag that plugi
 into every bundle even folded to a constant; an alias means only the selected
 file enters the module graph, so the plugin is absent from the bundles that do
 not select it — verified per bundle.
+
+The fifth — `platform/microphone/` (Phase 5) — is the deliberate counter-example,
+and it is why the decision must be *inspected* rather than assumed. Its Capacitor
+branch imports **no plugin**: a tuner needs a live `MediaStream`, which only the
+WebView's own `getUserMedia` provides (Capacitor has no first-party microphone
+plugin, and the community recorders capture to a file, not a stream), and the
+native OS permission is delivered by Capacitor's WebView bridge from static
+config — `RECORD_AUDIO` / `NSMicrophoneUsageDescription` — not a JS import. With
+no `registerPlugin()` side effect anywhere in its module graph, there is nothing
+an alias would keep out, so it stays a source-level `isCapacitor ? …` boolean —
+exactly the in-source form `platform/links` used before Phase 4. Verified per
+bundle: the Capacitor-only Permissions-API pre-check ships **only** in the
+Capacitor bundle, and no microphone plugin appears in any bundle because none was
+added.
 
 `platform/links` was the last to convert, and it sharpens the rule. Through
 Phase 3 it used a source-level `isTauri ? …` because its only native branch (the
@@ -126,7 +141,6 @@ reintroduced for Capacitor. See [mobile-auth.md](mobile-auth.md) and
 | --- | --- |
 | `platform/dialogs.js` | zero call sites. `window.confirm` was replaced by the React `ConfirmDialog` precisely because blocking dialogs misbehave in webviews |
 | `platform/audio/` | Web Audio is identical in every webview; the tuner and metronome share no code beyond the name `AudioContext` |
-| `platform/microphone.js` | boundary is documented in `useTuner.js`, but Capacitor needs a pre-request while Tauri needs an OS entitlement — the interface cannot be designed without a shell to test |
 | `desktopAuth.js` | desktop turned out not to need one — Tauri reuses the popup flow. (`mobileAuth.js` is now **built** — Capacitor's native Google Sign-In, see [mobile-auth.md](mobile-auth.md).) |
 | `platform/window.js` | window geometry and single-instance are desktop concepts the OS owns everywhere else. Wrapping them would produce functions that no-op on every other target. Both live in the Tauri shell instead — see [desktop-polish.md](desktop-polish.md) |
 

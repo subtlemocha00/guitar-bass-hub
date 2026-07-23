@@ -24,6 +24,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Tuner microphone (Phase 5). WKWebView shows this string when the tuner's
+	     getUserMedia triggers the native mic prompt; a missing key crashes the app. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>The tuner uses the microphone to detect the pitch of your instrument.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { PitchDetector } from "pitchy";
+import {
+	requestPermission,
+	acquireStream,
+	stopStream,
+} from "../../platform/microphone";
 
 const NOTE_NAMES = [
 	"C",
@@ -83,20 +88,16 @@ const INITIAL_STATE = {
 // ---------------------------------------------------------
 // Microphone acquisition
 //
-// FUTURE NATIVE ABSTRACTION BOUNDARY
-// acquireStream() below, plus the stream teardown in the effect cleanup, is
-// what a src/platform/microphone.js would eventually own:
-//     requestPermission()      explicit on mobile; implicit in getUserMedia on web
-//     acquireStream()          -> MediaStream
-//     stopStream(stream)
-//     enumerateMicrophones()   only if a device picker is ever added
-//
-// Deliberately NOT extracted yet. There is exactly one caller, and the native
-// shape is not knowable until a shell exists: Capacitor requires an explicit
-// permission request *before* getUserMedia and needs iOS Info.plist /Android
-// manifest entries, while Tauri uses the same web API behind an OS
-// entitlement. Extracting now would encode a guess at an interface that has to
-// serve two different permission models.
+// Acquisition now lives in the platform boundary src/platform/microphone/
+// (requestPermission / acquireStream / stopStream), extracted in Phase 5. Every
+// target hands back a live MediaStream from the WebView's getUserMedia, but the
+// native OS permission model differs (web/Tauri prompt inside getUserMedia;
+// Capacitor declares RECORD_AUDIO / NSMicrophoneUsageDescription and prompts via
+// the WebView bridge), so acquisition sits behind the boundary and this hook
+// stays platform-agnostic — it never touches navigator.mediaDevices for the
+// stream. Error *mapping* stays here: the boundary throws the same named errors
+// (e.g. InsecureContextError) this hook already translates. See
+// docs/architecture.md.
 // ---------------------------------------------------------
 
 // Browser error names -> messages we control. The UI must never render
@@ -121,7 +122,7 @@ const MIC_ERROR_MESSAGES = {
 	// Insecure origin, or a policy/permissions-policy block.
 	SecurityError: "Blocked by browser security — requires a secure (HTTPS) connection",
 	// getUserMedia itself is missing (non-secure context, or a webview that has
-	// not been granted the API). Raised by acquireStream below.
+	// not been granted the API). Raised by acquireStream in platform/microphone.
 	InsecureContextError: "Requires a secure (HTTPS) connection",
 	// Hardware stopped responding mid-request.
 	AbortError: "Microphone stopped responding — reload to retry",
@@ -136,33 +137,6 @@ const DISCONNECTED_MIC_ERROR = "Microphone disconnected — reconnect to resume"
 
 function micErrorMessage(err) {
 	return MIC_ERROR_MESSAGES[err?.name] ?? DEFAULT_MIC_ERROR;
-}
-
-async function acquireStream() {
-	const mediaDevices =
-		typeof navigator !== "undefined" ? navigator.mediaDevices : null;
-
-	// navigator.mediaDevices is undefined outside a secure context. Reading
-	// .getUserMedia off it threw a TypeError whose raw text ("Cannot read
-	// properties of undefined…") would have been shown to the user. Throw a
-	// named error instead so it flows through the same mapping as the rest.
-	if (!mediaDevices?.getUserMedia) {
-		const err = new Error("getUserMedia is unavailable in this context");
-		err.name = "InsecureContextError";
-		throw err;
-	}
-
-	// Plain booleans are *ideal* constraints, not required ones, so they can
-	// never cause OverconstrainedError or narrow device selection. No deviceId
-	// is requested: the browser picks the system default, which is what keeps
-	// this working after a mic is swapped.
-	return mediaDevices.getUserMedia({
-		audio: {
-			echoCancellation: false,
-			noiseSuppression: false,
-			autoGainControl: false,
-		},
-	});
 }
 
 /**
@@ -200,6 +174,11 @@ export function useTuner({
 	// for the rest of the session. Retry only while nothing is running, so a
 	// healthy stream is never interrupted mid-tuning by an unrelated device
 	// change (headphones, a webcam, a virtual device).
+	//
+	// This stays here rather than in platform/microphone: `devicechange` is a
+	// neutral W3C event a retry hook listens for, not a stream-acquisition or
+	// permission concern, and it behaves the same in every WebView — it reveals
+	// nothing about the platform, so the hook is still Capacitor/OS-agnostic.
 	useEffect(() => {
 		const mediaDevices =
 			typeof navigator !== "undefined" ? navigator.mediaDevices : null;
@@ -230,10 +209,21 @@ export function useTuner({
 
 		async function start() {
 			try {
+				// Ask the platform for permission first. On web/Tauri this resolves
+				// "prompt" and the real prompt happens inside acquireStream (no
+				// behaviour change); on Capacitor it can report a hard "denied" up
+				// front, which we surface through the existing NotAllowedError mapping
+				// rather than a silent getUserMedia failure.
+				if ((await requestPermission()) === "denied") {
+					const err = new Error("microphone permission denied");
+					err.name = "NotAllowedError";
+					throw err;
+				}
+
 				stream = await acquireStream();
 
 				if (cancelled) {
-					stream.getTracks().forEach((t) => t.stop());
+					stopStream(stream);
 					return;
 				}
 
@@ -392,7 +382,7 @@ export function useTuner({
 			cancelled = true;
 			activeRef.current = false;
 			if (rafId !== null) cancelAnimationFrame(rafId);
-			if (stream) stream.getTracks().forEach((t) => t.stop());
+			stopStream(stream);
 			if (audioContext && audioContext.state !== "closed") {
 				audioContext.close().catch(() => { });
 			}

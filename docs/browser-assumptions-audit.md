@@ -21,11 +21,11 @@ a boundary already documented and correctly deferred.
 
 | Bucket | Count | Items |
 | --- | --- | --- |
-| **Implemented** (new abstraction) | 1 | app-background flush (`subscribeToAppBackground`) |
+| **Implemented** (new abstraction) | 2 | app-background flush (`subscribeToAppBackground`), microphone boundary (`platform/microphone/`, Phase 5) |
 | **Already abstracted** | 4 | links, auth, storage, environment/connectivity |
-| **Intentionally deferred** (boundary documented, needs a shell) | 1 | microphone (`getUserMedia`) |
+| **Intentionally deferred** (boundary documented, needs a shell) | 0 | — microphone was the last one; built in Phase 5 |
 | **No action — portable web standard** | many | Web Audio, `requestAnimationFrame`, DOM events, `fetch` of local assets, scroll/reload, URL parsing |
-| **Not present at all** | — | clipboard, Web Share, file download/import, drag-and-drop, Blob/ObjectURL, FileReader, Fullscreen API, Notifications, Wake Lock, Permissions API, History API, cookies, geolocation, vibration |
+| **Not present at all** | — | clipboard, Web Share, file download/import, drag-and-drop, Blob/ObjectURL, FileReader, Fullscreen API, Notifications, Wake Lock, History API, cookies, geolocation, vibration |
 
 The single most important finding: **`pagehide` does not fire when a mobile OS
 backgrounds an app.** Two features debounce Firestore writes and flushed on
@@ -106,15 +106,19 @@ webview. No separate action.
 
 ### Microphone — `navigator.mediaDevices.getUserMedia`
 
+> **Update (Phase 5): built.** The boundary is now `src/platform/microphone/`
+> (`requestPermission` / `acquireStream` / `stopStream`); `useTuner` consumes it
+> and no longer touches `navigator.mediaDevices` for the stream. The row below is
+> kept for the record, with the prediction it corrected.
+
 | | |
 | --- | --- |
-| **Location** | `src/features/tuner/useTuner.js` (`acquireStream`, `devicechange` listener) |
+| **Location** | `src/platform/microphone/` (acquisition + permission); `useTuner.js` keeps only the neutral `devicechange` retry |
 | **Purpose** | Capture the mic stream for pitch detection |
-| **Current implementation** | `navigator.mediaDevices.getUserMedia({ audio: … })`, guarded for insecure-context / missing-API, with a `devicechange` retry |
+| **Current implementation** | `navigator.mediaDevices.getUserMedia({ audio: … })` in `webMicrophone.js`, guarded for insecure-context / missing-API; `capacitorMicrophone.js` reuses it and adds a Permissions-API pre-check. Selected by a compile-time boolean |
 | **Desktop behaviour** | WebView2 inherits the Windows OS microphone privacy setting; the guard already maps a blocked/absent device to a named error |
-| **Expected Capacitor behaviour** | `getUserMedia` exists in the mobile webview, but iOS needs `NSMicrophoneUsageDescription` and an **explicit** `requestPermissions()` *before* the call (implicit prompting is web-only), and Android needs `RECORD_AUDIO` + a runtime request |
-| **Action taken** | **No — deferred by design.** The permission-request shape cannot be written or tested without a shell, and it differs between Capacitor (pre-request) and Tauri (OS entitlement). Wrapping it now would produce an interface that can't be validated |
-| **Rationale** | Recorded in `useTuner.js` and the microphone section of [platform-roadmap.md](platform-roadmap.md), and listed as `platform/microphone.js` in the deferred table of [architecture.md](architecture.md). Acquisition is already gated behind an explicit START press, which satisfies the user-activation requirement every target shares — so the shared side of the boundary is already correct |
+| **Prediction that was wrong** | The audit expected Capacitor to need an **explicit** `requestPermissions()` *before* `getUserMedia`. In fact there is no first-party mic plugin to call (`@capacitor/microphone` 404s) and the tuner needs a live stream a recorder plugin cannot give — so acquisition stays `getUserMedia` and the OS prompt is delivered by Capacitor's WebView bridge from `RECORD_AUDIO` / `NSMicrophoneUsageDescription`. No explicit JS request, and therefore no plugin and no build alias |
+| **Action taken** | **Built (Phase 5).** Compile-time boolean (no plugin); `RECORD_AUDIO` added to `AndroidManifest.xml`, `NSMicrophoneUsageDescription` to `Info.plist`. Acquire + error-mapping + the Capacitor `requestPermission` denied path verified via CDP; the native OS prompt is the device-only unknown. See [platform-roadmap.md](platform-roadmap.md) and [architecture.md](architecture.md) |
 
 ---
 
@@ -160,8 +164,11 @@ is a conscious decision:
 - **Wake Lock API** (`navigator.wakeLock`) — none. (A candidate *feature* for a
   metronome/tuner that should keep the mobile screen awake — noted as a future
   product decision, not a current assumption.)
-- **Permissions API** (`navigator.permissions.query`) — none; the mic path uses
-  `getUserMedia` directly.
+- **Permissions API** (`navigator.permissions.query`) — used only in
+  `capacitorMicrophone.js` (Phase 5) as a best-effort pre-check for a hard-denied
+  mic on Android's Chromium WebView; wrapped so an unsupported query falls back to
+  letting `getUserMedia` prompt. Web/Tauri do not query it (that branch tree-shakes
+  out), so it ships in the Capacitor bundle only.
 - **History API** (`history.pushState` / `replaceState`) — routing is
   `HashRouter`, chosen precisely so navigation needs no server rewrites or
   History manipulation ([architecture.md](architecture.md)). The `history`
@@ -228,8 +235,11 @@ integration work that needs the shell installed, all already tracked:
    (Phase 3),** behind the `@lifecycle-impl` alias — not the inline one-liner
    predicted, because the plugin's import-time `registerPlugin()` had to be kept
    out of the web/Tauri bundles (see the update box above).
-3. **Microphone permission plumbing** — the deferred `platform/microphone.js`,
-   designable only against a real shell. Still open (Phase 5).
+3. ~~**Microphone permission plumbing.**~~ **Done (Phase 5)** — `platform/microphone/`
+   (`requestPermission`/`acquireStream`/`stopStream`), a compile-time boolean
+   rather than a plugin/alias because acquisition is the WebView's own
+   `getUserMedia` on every target and the OS permission is native config
+   (`RECORD_AUDIO` / `NSMicrophoneUsageDescription`), not a JS import.
 4. ~~**Native storage driver.**~~ **Done (Phase 3)** — `capacitorStorage.js`
    (Capacitor Preferences) behind the existing `platform/storage/` contract, via
    the `@storage-impl` alias ([storage.md](storage.md)).

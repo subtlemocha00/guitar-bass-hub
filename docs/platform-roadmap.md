@@ -59,8 +59,8 @@ off the critical path.
 | Code signing + updater | not started — the two blockers for public distribution |
 | Native storage driver | **done (Capacitor)** — `capacitorStorage.js` (Preferences) behind the existing contract, via the `@storage-impl` alias; Tauri reuses `webStorage`, so no dedicated desktop driver is needed. See [storage.md](storage.md) |
 | App-background flush on Capacitor | **done** — `subscribeToAppBackground` re-exports the `@lifecycle-impl` alias; Capacitor uses `@capacitor/app` `appStateChange`, web/Tauri keep `pagehide` |
-| Microphone / audio on native | not started (Phase 5) |
-| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done (`mobileAuth`, `@auth-impl` alias, [mobile-auth.md](mobile-auth.md)); Phase 3 persistence + lifecycle done (`@storage-impl`, `@lifecycle-impl`); Phase 4 external links done (`capacitorLinks`, `@links-impl` alias) |
+| Microphone boundary + permissions | **done (Phase 5)** — `platform/microphone/` (`requestPermission`/`acquireStream`/`stopStream`); compile-time boolean (no plugin); `RECORD_AUDIO` + `NSMicrophoneUsageDescription` added. Device-only: the native OS prompt itself. Audio interruption/background stays deferred below |
+| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done (`mobileAuth`, `@auth-impl` alias, [mobile-auth.md](mobile-auth.md)); Phase 3 persistence + lifecycle done (`@storage-impl`, `@lifecycle-impl`); Phase 4 external links done (`capacitorLinks`, `@links-impl` alias); Phase 5 microphone boundary done (`platform/microphone/`, compile-time boolean) |
 
 Ordered by risk. Authentication first: everything signed-in depends on it, and
 it is the only item that can block the whole effort.
@@ -223,17 +223,39 @@ packaged shells, not just Tauri) because attaching an `onClick` imports no plugi
 
 ### Microphone — native permissions
 
-Boundary documented in `useTuner.js`. Acquisition is already gated behind an
-explicit START press, which satisfies the user-activation requirement for
-`AudioContext`.
+**Boundary built in Phase 5.** `src/platform/microphone/` owns acquisition and
+permission (`requestPermission` / `acquireStream` / `stopStream`); `useTuner`
+consumes it and no longer touches `navigator.mediaDevices` for the stream.
+Acquisition is still gated behind the explicit START press, which satisfies the
+user-activation requirement for `AudioContext`.
 
-| Target | Required |
-| --- | --- |
-| Capacitor iOS | `NSMicrophoneUsageDescription`; explicit `requestPermissions()` **before** `getUserMedia` — implicit prompting is web-only |
-| Capacitor Android | `RECORD_AUDIO` in the manifest plus a runtime request (API 23+) |
-| Tauri macOS | `NSMicrophoneUsageDescription`; `com.apple.security.device.audio-input` entitlement when sandboxed |
-| Tauri Windows | WebView2 inherits the OS microphone privacy setting |
-| Tauri Linux | WebKitGTK permission handling varies — verify early, least predictable target |
+**Why a compile-time boolean, not a `@…-impl` alias.** Unlike auth/storage/
+lifecycle/links, the Capacitor implementation imports no plugin. A tuner needs a
+live `MediaStream`, which only the WebView's own `getUserMedia` provides — there
+is no first-party `@capacitor/microphone` (verified: the package 404s), and the
+community recorders capture to a file, not a stream (their ESM *does* call
+`registerPlugin()`, so using one would have forced an alias — but a recorder is
+the wrong tool). So acquisition is the same `getUserMedia` on every target, and
+the native OS permission is delivered by Capacitor's WebView bridge from static
+config, not a JS import. With no `registerPlugin()` side effect, a source-level
+`isCapacitor ? …` boolean is correct and an alias would be pure ceremony.
+
+**Native config performed** (persists across `cap sync` — it does not overwrite
+these):
+
+| Target | Required | Status |
+| --- | --- | --- |
+| Capacitor Android | `RECORD_AUDIO` in the manifest; Capacitor's `onPermissionRequest` turns the tuner's `getUserMedia` into the runtime prompt (API 23+) | **added** to `AndroidManifest.xml` |
+| Capacitor iOS | `NSMicrophoneUsageDescription`; WKWebView prompts natively on `getUserMedia` | **added** to `Info.plist` |
+| Tauri Windows | WebView2 inherits the OS microphone privacy setting | no change needed |
+| Tauri macOS | `NSMicrophoneUsageDescription` + `com.apple.security.device.audio-input` entitlement when sandboxed | deferred to a macOS build |
+| Tauri Linux | WebKitGTK permission handling varies — verify early, least predictable target | deferred to a Linux build |
+
+**Device-only unknowns** (cannot be exercised without a build rig): the Android
+runtime `RECORD_AUDIO` dialog and iOS mic prompt actually appearing, and whether
+Capacitor's WebView bridge grants `getUserMedia` once permission is held. The
+capacitor `requestPermission` Permissions-API pre-check and the full acquire /
+error-mapping paths were verified in a browser via CDP (see the deliverable).
 
 ### Audio — interruption and background decisions
 

@@ -38,4 +38,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Tuner microphone (Phase 5). Capacitor's WebView bridge turns the tuner's
+         getUserMedia into a runtime RECORD_AUDIO prompt; without this declaration
+         the request is denied outright. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 </manifest>
