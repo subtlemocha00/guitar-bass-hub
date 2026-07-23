@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { playSound, preloadSamples, SOUND_OPTIONS } from "./soundEngine";
 import { loadMetronomeSettings } from "./metronomeStorage";
 import { useMetronomeSettingsSync } from "./useMetronomeSettingsSync";
+import { useAudioInterruption } from "../../hooks/useAudioInterruption";
+import { useWakeLock } from "../../hooks/useWakeLock";
 import MetronomePresets from "./MetronomePresets";
 import "./Metronome.css";
 
@@ -152,6 +154,17 @@ export function MetronomeView() {
 		randomMuteLevel,
 	};
 
+	// Detect the AudioContext being suspended mid-run (incoming call, alarm,
+	// another app taking audio focus). While suspended, ctx.currentTime freezes,
+	// so the scheduler stops emitting and the dots stop — previously with no
+	// explanation and no sound. resume() is a user-gesture button in the banner.
+	const { interrupted, watch, unwatch, resume } = useAudioInterruption();
+
+	// Keep the screen awake while the metronome runs, so a hands-off practice
+	// session is not stopped by the display sleeping (which also suspends the
+	// audio on mobile). Released the moment it stops.
+	const { supported: wakeLockSupported } = useWakeLock(running);
+
 	useEffect(() => {
 		if (!running || !rampEnabled) {
 			setDisplayBpm(bpm);
@@ -258,6 +271,12 @@ export function MetronomeView() {
 		}
 		const ctx = ctxRef.current;
 		if (ctx.state === "suspended") ctx.resume();
+
+		// Surface OS interruptions while running (see the hook). Attached here so it
+		// is torn down on stop; the initial suspended->running resume above is not a
+		// mid-session interruption and is filtered by the hook (it only flags
+		// transitions into suspended/interrupted).
+		watch(ctx);
 
 		// Preload WAV samples once, right after the AudioContext exists. Runs
 		// outside the scheduler and never blocks playback (fire-and-forget).
@@ -420,6 +439,7 @@ export function MetronomeView() {
 		rafIdRef.current = requestAnimationFrame(visualTick);
 
 		return () => {
+			unwatch();
 			if (schedulerIdRef.current) {
 				clearInterval(schedulerIdRef.current);
 				schedulerIdRef.current = null;
@@ -431,7 +451,22 @@ export function MetronomeView() {
 			visualQueueRef.current = [];
 			rampStartTimeRef.current = null;
 		};
-	}, [running]);
+	}, [running, watch, unwatch]);
+
+	// After an interruption clears, re-anchor the scheduler to the live clock. Per
+	// the Web Audio spec currentTime does not advance while suspended, so this is
+	// usually a no-op; the guard only fires (and drops the stale visual queue) if a
+	// platform let the clock jump forward, which would otherwise flood a burst of
+	// catch-up beats.
+	useEffect(() => {
+		if (running && !interrupted && ctxRef.current) {
+			const ctx = ctxRef.current;
+			if (ctx.currentTime > nextNoteTimeRef.current) {
+				nextNoteTimeRef.current = ctx.currentTime + 0.1;
+				visualQueueRef.current = [];
+			}
+		}
+	}, [interrupted, running]);
 
 	// Release the AudioContext when the metronome leaves the screen. The context
 	// is deliberately kept alive across start/stop (recreating it per press adds
@@ -558,6 +593,27 @@ export function MetronomeView() {
 								● {muteReason === "random" ? "RANDOM SILENCE" : "MUTED MEASURE"}
 							</span>
 						)}
+					</div>
+				)}
+
+				{running && interrupted && (
+					<div className="metro-interrupt" role="alert">
+						<span className="metro-interrupt-msg">
+							● AUDIO INTERRUPTED · PAUSED BY SYSTEM
+						</span>
+						<button
+							type="button"
+							className="btn btn--solid metro-interrupt-btn"
+							onClick={resume}
+						>
+							▶ RESUME
+						</button>
+					</div>
+				)}
+
+				{running && !wakeLockSupported && (
+					<div className="metro-wakelock-note">
+						// SCREEN MAY SLEEP · WAKE LOCK UNAVAILABLE
 					</div>
 				)}
 

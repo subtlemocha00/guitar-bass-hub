@@ -60,7 +60,7 @@ off the critical path.
 | Native storage driver | **done (Capacitor)** — `capacitorStorage.js` (Preferences) behind the existing contract, via the `@storage-impl` alias; Tauri reuses `webStorage`, so no dedicated desktop driver is needed. See [storage.md](storage.md) |
 | App-background flush on Capacitor | **done** — `subscribeToAppBackground` re-exports the `@lifecycle-impl` alias; Capacitor uses `@capacitor/app` `appStateChange`, web/Tauri keep `pagehide` |
 | Microphone boundary + permissions | **done (Phase 5)** — `platform/microphone/` (`requestPermission`/`acquireStream`/`stopStream`); compile-time boolean (no plugin); `RECORD_AUDIO` + `NSMicrophoneUsageDescription` added. Device-only: the native OS prompt itself. Audio interruption/background stays deferred below |
-| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done (`mobileAuth`, `@auth-impl` alias, [mobile-auth.md](mobile-auth.md)); Phase 3 persistence + lifecycle done (`@storage-impl`, `@lifecycle-impl`); Phase 4 external links done (`capacitorLinks`, `@links-impl` alias); Phase 5 microphone boundary done (`platform/microphone/`, compile-time boolean); Phase 6 YouTube compatibility done (universal `WatchOnYouTube` fallback via `platform/links`; native config inspected, none required — [youtube-native-compatibility.md](youtube-native-compatibility.md)); Phase 7 mobile-shell polish done (status-bar theming via new `@nativeui-impl` alias + `@capacitor/status-bar`; keyboard resize + splash/webview dark background via native config; `@capacitor/keyboard` native-only — [mobile-readiness-audit.md](mobile-readiness-audit.md)) |
+| Capacitor shell | **in progress** — Phase 1 (shell + three-target build) done; Phase 2 native auth done (`mobileAuth`, `@auth-impl` alias, [mobile-auth.md](mobile-auth.md)); Phase 3 persistence + lifecycle done (`@storage-impl`, `@lifecycle-impl`); Phase 4 external links done (`capacitorLinks`, `@links-impl` alias); Phase 5 microphone boundary done (`platform/microphone/`, compile-time boolean); Phase 6 YouTube compatibility done (universal `WatchOnYouTube` fallback via `platform/links`; native config inspected, none required — [youtube-native-compatibility.md](youtube-native-compatibility.md)); Phase 7 mobile-shell polish done (status-bar theming via new `@nativeui-impl` alias + `@capacitor/status-bar`; keyboard resize + splash/webview dark background via native config; `@capacitor/keyboard` native-only — [mobile-readiness-audit.md](mobile-readiness-audit.md)); Phase 8 mobile-experience done (audio-interruption detection + RESUME recovery and screen wake lock for the tuner/metronome via shared `src/hooks/`; standard web APIs, **no plugin** — see the Audio section below) |
 
 Ordered by risk. Authentication first: everything signed-in depends on it, and
 it is the only item that can block the whole effort.
@@ -257,21 +257,32 @@ Capacitor's WebView bridge grants `getUserMedia` once permission is held. The
 capacitor `requestPermission` Permissions-API pre-check and the full acquire /
 error-mapping paths were verified in a browser via CDP (see the deliverable).
 
-### Audio — interruption and background decisions
+### Audio — interruption handling (Phase 8, done) and background (deferred)
 
-**Product decisions, not yet made.** Two known gaps, both deliberately
-unimplemented:
-
-- **Interruption.** No `statechange` listener on the metronome's
-  `AudioContext`. If the OS suspends it (phone call, another app taking audio
-  focus) the UI keeps showing RUNNING with no sound. Recovery today needs a
-  STOP→START toggle. Implementing detection requires a policy: auto-resume,
-  surface a banner, or stop.
-- **Background playback.** The scheduler is a 25 ms `setInterval` against a
-  100 ms horizon; background tabs throttle to ≥1 s and mobile suspends JS
-  entirely, so audio stops shortly after backgrounding. Running with the screen
-  off needs the iOS `audio` background mode and an Android foreground service —
-  and a decision about whether that is wanted at all.
+- **Interruption — done (Phase 8).** Both the tuner and the metronome now watch
+  their `AudioContext`'s `statechange`. When the OS suspends it (incoming call,
+  alarm, another app taking audio focus, a route change — WebKit reports state
+  `interrupted`, Chromium `suspended`) each surfaces an amber banner explaining
+  the audio was paused and offers a user-gesture **RESUME** that calls
+  `ctx.resume()`. The shared `useAudioInterruption` hook (`src/hooks/`) owns the
+  detection; it is pure Web Audio, identical on every target, so it needs no
+  plugin. The chosen policy is **surface-and-recover**, not silent auto-resume:
+  iOS will not resume a context outside a user gesture, and a visible RESUME is
+  honest about what happened. The metronome re-anchors its scheduler on recovery
+  (a no-op unless the clock jumped) so there is no burst of catch-up beats.
+- **Wake Lock — done (Phase 8).** `useWakeLock` (`src/hooks/`) holds a
+  `navigator.wakeLock('screen')` while the tuner is live or the metronome runs,
+  and releases it the instant either stops. It is a feature-detected web API
+  (Android WebView / WebView2 / iOS WKWebView 16.4+), re-acquired on
+  `visibilitychange`; where unsupported it degrades to a no-op and the tool shows
+  a "screen may sleep" note. No native keep-awake plugin was added — the web API
+  covers every target, verified via CDP.
+- **Background playback — still deferred (out of Phase 8 scope).** The scheduler
+  is a 25 ms `setInterval` against a 100 ms horizon; background tabs throttle to
+  ≥1 s and mobile suspends JS entirely, so audio stops shortly after
+  backgrounding. Running with the screen off needs the iOS `audio` background
+  mode and an Android foreground service — explicitly excluded from Phase 8 and
+  still a product decision.
 
 ### YouTube embeds — verified on Tauri; fallback built for Capacitor (Phase 6)
 

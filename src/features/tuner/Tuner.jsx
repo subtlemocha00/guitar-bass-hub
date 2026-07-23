@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTuner } from "./useTuner";
+import { useWakeLock } from "../../hooks/useWakeLock";
 import { INSTRUMENT_CONFIGS } from "./strings";
 import "./Tuner.css";
 
@@ -42,8 +43,22 @@ function CyberTuner({ instrument, accent }) {
 	// this means opening the tuner no longer fires a permission prompt on its own.
 	const [started, setStarted] = useState(false);
 
-	const { frequency, note, cents, status, targetString, listening, error } =
-		useTuner({ strings, mode, lockedString, active: started });
+	const {
+		frequency,
+		note,
+		cents,
+		status,
+		targetString,
+		listening,
+		error,
+		interrupted,
+		resume,
+	} = useTuner({ strings, mode, lockedString, active: started });
+
+	// Keep the screen awake while the tuner is live (a hands-off tune should not
+	// be cut short by the display sleeping, which also suspends the audio on
+	// mobile). Released automatically when stopped or on an error.
+	const { supported: wakeLockSupported } = useWakeLock(started && !error);
 
 	function handleTuningChange(e) {
 		setTuningKey(e.target.value);
@@ -181,6 +196,25 @@ function CyberTuner({ instrument, accent }) {
 			)}
 
 			{error && <div className="tuner-error">!! MIC ACCESS // {error}</div>}
+
+			{!error && interrupted && (
+				<div className="tuner-error tuner-error--interrupt" role="alert">
+					<span>!! AUDIO INTERRUPTED // playback was paused by the system</span>
+					<button
+						type="button"
+						className="btn btn--solid tuner-resume-btn"
+						onClick={resume}
+					>
+						▶ RESUME
+					</button>
+				</div>
+			)}
+
+			{started && !error && !wakeLockSupported && (
+				<div className="tuner-hint tuner-hint--warn">
+					<span className="dot" /> SCREEN MAY SLEEP · WAKE LOCK UNAVAILABLE
+				</div>
+			)}
 
 			<div className="tuner-meter hud">
 				<span className="hud-corner-tr" />

@@ -124,6 +124,27 @@
 	text-transform: uppercase;
 }
 
+/* Interruption is a recoverable amber warning, not a red mic error, and carries
+   the RESUME action inline. Reuses the .tuner-error box; only the accent and the
+   row layout change. */
+.tuner-error--interrupt {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	flex-wrap: wrap;
+	border-color: var(--neon-amber);
+	color: var(--neon-amber);
+}
+.tuner-resume-btn {
+	flex: 0 0 auto;
+}
+.tuner-hint--warn {
+	border-style: solid;
+	border-color: var(--neon-amber);
+	color: var(--neon-amber);
+}
+
 .tuner-meter {
 	padding: 1.5rem 1.25rem 1rem;
 }

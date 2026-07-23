@@ -5,6 +5,7 @@ import {
 	acquireStream,
 	stopStream,
 } from "../../platform/microphone";
+import { useAudioInterruption } from "../../hooks/useAudioInterruption";
 
 const NOTE_NAMES = [
 	"C",
@@ -155,6 +156,11 @@ export function useTuner({
 	active = false,
 } = {}) {
 	const [state, setState] = useState(INITIAL_STATE);
+	// Detect the AudioContext being suspended out from under us mid-session (a
+	// phone call, an alarm, another app taking audio focus). Without this the
+	// analyser would keep reading silence and the tuner would look LIVE while
+	// detecting nothing. resume() is wired to a user-gesture button in the UI.
+	const { interrupted, watch, unwatch, resume } = useAudioInterruption();
 	// Bumped to re-run acquisition. Previously the effect ran once with [] deps,
 	// so any failure was permanent until the component remounted.
 	const [attempt, setAttempt] = useState(0);
@@ -259,6 +265,12 @@ export function useTuner({
 					err.name = "AudioSuspendedError";
 					throw err;
 				}
+
+				// Watch for interruptions now that the context is confirmed running,
+				// so the initial suspended->running start is not mistaken for one. The
+				// tick loop keeps running while interrupted (reading silence) and
+				// recovers on its own once the context resumes — no restart needed.
+				watch(audioContext);
 
 				const source = audioContext.createMediaStreamSource(stream);
 				const analyser = audioContext.createAnalyser();
@@ -381,13 +393,17 @@ export function useTuner({
 		return () => {
 			cancelled = true;
 			activeRef.current = false;
+			unwatch();
 			if (rafId !== null) cancelAnimationFrame(rafId);
 			stopStream(stream);
 			if (audioContext && audioContext.state !== "closed") {
 				audioContext.close().catch(() => { });
 			}
 		};
-	}, [attempt, active]);
+	}, [attempt, active, watch, unwatch]);
 
-	return state;
+	// `interrupted` and `resume` ride alongside the detection state so the UI can
+	// surface the interruption and offer recovery from the same place it renders
+	// mic errors.
+	return { ...state, interrupted, resume };
 }
