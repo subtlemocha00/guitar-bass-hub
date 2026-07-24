@@ -297,6 +297,52 @@ deliverable).
   mode and an Android foreground service — explicitly excluded from Phase 8 and
   still a product decision.
 
+### Native Android branding — app icon, name, splash (Phase 9, done)
+
+Polish pass so the Android build reads as a real app, not a wrapped web page.
+No React / routing / auth / tuner / metronome / platform-abstraction code was
+touched — the change set is entirely `android/app/src/main/res/` plus the
+`appName` in `capacitor.config.json`.
+
+- **Launcher icon.** Replaced the default Capacitor bugdroid with the app's own
+  brand art (the neon synthwave guitar already shipping as the PWA icons in
+  `public/`). Generated all densities from those source PNGs:
+  `ic_launcher.png` (legacy square) and `ic_launcher_round.png` (circular-masked)
+  from `pwa-512x512.png`; the adaptive-icon `ic_launcher_foreground.png` from
+  `pwa-maskable-512x512.png` (its safe-zone padding is exactly what an adaptive
+  foreground needs). The adaptive background colour (`values/ic_launcher_background.xml`)
+  went from default `#FFFFFF` to brand dark `#05021F`. The default bugdroid vector
+  art (`drawable-v24/ic_launcher_foreground.xml`, `drawable/ic_launcher_background.xml`)
+  was deleted — it was unreferenced once the adaptive icon points at the mipmap
+  PNGs.
+- **App name.** `strings.xml` `app_name` / `title_activity_main` and
+  `capacitor.config.json` `appName` are all now **"Guitar & Bass Hub"** (the
+  installed label the launcher and recents show). In `strings.xml` the ampersand
+  is escaped `&amp;`; in JSON it is a literal `&`.
+- **Splash.** Already correct from Phase 7 — the launch theme paints a solid
+  `@color/splashBackground` (`#05021F`), so cold start is dark end-to-end with no
+  white flash and no Capacitor logo. This phase only removed the now-confirmed-unused
+  default Capacitor splash images (`drawable*/splash.png`, a Capacitor mark on
+  white) that the theme never referenced. The `androidx.core:core-splashscreen`
+  library resources remain — they are the no-flash mechanism, not branding.
+
+**Regenerating icons (future updates).** The launcher PNGs are generated, not
+hand-drawn. To refresh them, update the source art in `public/` (`pwa-512x512.png`
+full-bleed, `pwa-maskable-512x512.png` with safe-zone padding) and rerun the
+density resize into `android/app/src/main/res/mipmap-*/` (LANCZOS resample; sizes
+48/72/96/144/192 for `ic_launcher[_round].png`, 108/162/216/324/432 for
+`ic_launcher_foreground.png`). Any icon tool works — Android Studio's *Image
+Asset* wizard, `@capacitor/assets`, or a short Pillow/ImageMagick script. No
+runtime plugin is involved. To add a **centred logo at launch** (instead of the
+plain dark screen), set `windowSplashScreenAnimatedIcon` on
+`AppTheme.NoActionBarLaunch` in `styles.xml` (Android 12+ splash API) with a logo
+drawable — deliberately not done here to keep the dark, seam-free launch intact.
+
+**Device-only checks** (build integrity, packaged label/icon and both audio
+permissions were verified from the assembled APK via `aapt2`): the icon actually
+rendering on a launcher, the dark splash on cold start, and that Firebase
+sign-in / tuner mic / metronome still work — none of their code changed.
+
 ### YouTube embeds — verified on Tauri; fallback built for Capacitor (Phase 6)
 
 Audited in Phase 2, measured in the running desktop app, then completed for
