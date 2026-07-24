@@ -28,6 +28,16 @@ import { auth } from "../../firebase/firebase";
 
 const provider = new GoogleAuthProvider();
 
+// Always show Google's account chooser, even when a Google session cookie is
+// already present in the webview. Signing out of Firebase does not sign the user
+// out of Google inside the app's WebView2/browser profile, so without this the
+// next sign-in silently re-selects the previous account. `select_account` makes
+// account switching (and confirming which account you are signing in as) possible
+// on a shared machine. Applies to this Firebase popup provider only — the
+// Capacitor native Google Sign-In (mobileAuth.js) has its own chooser and is
+// untouched.
+provider.setCustomParameters({ prompt: "select_account" });
+
 export async function signIn() {
 	try {
 		await signInWithPopup(auth, provider);
