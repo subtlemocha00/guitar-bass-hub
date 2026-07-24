@@ -82,6 +82,49 @@ an upgrade.
 
 ---
 
+## Continuous integration (GitHub Actions)
+
+Phase 11.1 added reproducible CI builds for all three targets, so a build no
+longer depends on a maintainer running local commands. Workflows live in
+`.github/workflows/`:
+
+| Workflow | File | Runner | Artifact |
+| --- | --- | --- | --- |
+| Web / PWA — Build | `web.yml` | `ubuntu-latest` | `web-dist` (the `dist/` bundle) |
+| Android — Capacitor APK | `android.yml` | `ubuntu-latest` | `android-debug-apk` (`app-debug.apk`) |
+| Windows — Tauri Installer | `windows.yml` | `windows-latest` | `windows-nsis-installer` (`*-setup.exe`) |
+
+Each runs on push to `main` and on manual **Run workflow** (`workflow_dispatch`)
+from the Actions tab. They **build and upload artifacts only** — nothing is
+deployed or released. Web deployment is unchanged: still manual via
+`npm run deploy` (gh-pages) from a maintainer's machine, so CI cannot clobber the
+live site.
+
+**Caching.** npm via `actions/setup-node` (keyed on `package-lock.json`, added
+this phase); Gradle via `actions/setup-java` (`cache: gradle`); the Rust registry
+and `src-tauri/target` via `Swatinem/rust-cache` (keyed on `Cargo.lock`).
+
+**Secrets.** All optional — every build succeeds without them, but the artifact
+cannot sign in / use native Firebase until they are set (repo → Settings →
+Secrets and variables → Actions):
+
+| Secret | Used by | Effect if absent |
+| --- | --- | --- |
+| `VITE_FIREBASE_API_KEY` … `VITE_FIREBASE_APP_ID` (6 vars) | all three | build inlines empty Firebase config; app cannot sign in |
+| `ANDROID_GOOGLE_SERVICES_JSON_BASE64` | Android | `google-services` plugin is skipped; native Google sign-in unconfigured |
+
+These are the same client-side identifiers described in `.env.example` and
+`docs/mobile-auth.md` — kept in secrets only because `.env` and
+`google-services.json` are gitignored, not because they are true secrets. The
+`ANDROID_…` value is `base64 -w0 android/app/google-services.json`.
+
+**Signing.** CI matches the local build: the Android APK is **debug-signed** and
+the Windows installer is **unsigned** (see [Known limitations](#known-limitations)).
+Release signing for either would need keystore/certificate secrets and is out of
+scope for this phase.
+
+---
+
 ## Installer behaviour
 
 NSIS, `installMode: currentUser` — installs to the user's AppData with **no
