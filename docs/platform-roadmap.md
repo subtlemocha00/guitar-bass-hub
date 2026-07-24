@@ -245,7 +245,7 @@ these):
 
 | Target | Required | Status |
 | --- | --- | --- |
-| Capacitor Android | `RECORD_AUDIO` in the manifest; Capacitor's `onPermissionRequest` turns the tuner's `getUserMedia` into the runtime prompt (API 23+) | **added** to `AndroidManifest.xml` |
+| Capacitor Android | `RECORD_AUDIO` **and** `MODIFY_AUDIO_SETTINGS` in the manifest; Capacitor's `onPermissionRequest` turns the tuner's `getUserMedia` into the runtime prompt (API 23+). It requests **both** for an `AUDIO_CAPTURE` request and grants the WebView only if every one is granted — `MODIFY_AUDIO_SETTINGS` is a normal permission auto-granted only if declared, so omitting it makes Capacitor deny the whole request (`NotAllowedError`) even with `RECORD_AUDIO` allowed | **both added** to `AndroidManifest.xml` |
 | Capacitor iOS | `NSMicrophoneUsageDescription`; WKWebView prompts natively on `getUserMedia` | **added** to `Info.plist` |
 | Tauri Windows | WebView2 inherits the OS microphone privacy setting | no change needed |
 | Tauri macOS | `NSMicrophoneUsageDescription` + `com.apple.security.device.audio-input` entitlement when sandboxed | deferred to a macOS build |

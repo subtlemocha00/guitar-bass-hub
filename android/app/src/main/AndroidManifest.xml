@@ -39,8 +39,15 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Tuner microphone (Phase 5). Capacitor's WebView bridge turns the tuner's
-         getUserMedia into a runtime RECORD_AUDIO prompt; without this declaration
-         the request is denied outright. -->
+    <!-- Tuner microphone (Phase 5). Capacitor's WebView bridge (BridgeWebChromeClient
+         .onPermissionRequest) turns the tuner's getUserMedia into a runtime permission
+         request. For an AUDIO_CAPTURE request it asks for BOTH permissions below and
+         grants the WebView only if EVERY one is granted. RECORD_AUDIO is the runtime
+         (dangerous) prompt; MODIFY_AUDIO_SETTINGS is a normal permission auto-granted
+         at install *only if declared here*. Omitting MODIFY_AUDIO_SETTINGS makes its
+         runtime check return denied with no dialog, so Capacitor denies the whole
+         request and getUserMedia rejects with NotAllowedError even though RECORD_AUDIO
+         shows as allowed. Both are required. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 </manifest>
