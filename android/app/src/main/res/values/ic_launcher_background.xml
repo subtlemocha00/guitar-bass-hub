@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Adaptive-icon background layer. Brand dark (matches the web bg-0 token and
+         the splash colour), not the default white. The foreground is the full-bleed
+         maskable art, so this shows only at the mask edges — kept dark so the icon
+         reads well on both light and dark launchers. -->
+    <color name="ic_launcher_background">#05021F</color>
 </resources>

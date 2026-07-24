@@ -16,10 +16,16 @@
     </style>
 
 
-    <!-- Phase 7: launch background is the dark theme colour, not the default white
-         @drawable/splash, so Android cold start does not flash white on this dark
-         app. android:background is the framework attribute honoured across API
-         levels; it hands off to the (also-dark) WebView. -->
+    <!-- Phase 7: launch background is the dark theme colour so Android cold start
+         does not flash white on this dark app; it hands off to the (also-dark)
+         WebView, then the dark React app — one continuous dark surface, no seam.
+         android:background is the framework attribute honoured across API levels.
+         Phase 9 (native polish): the default Capacitor splash images
+         (drawable*/splash.png — a Capacitor logo on white) were removed, since this
+         solid-colour launch theme is what actually renders and they carried default
+         branding. To show a centred brand logo at launch instead of a plain dark
+         screen, add a windowSplashScreenAnimatedIcon here (Android 12+ splash API)
+         with a logo drawable — see docs/platform-roadmap.md. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@color/splashBackground</item>
     </style>
