@@ -251,11 +251,24 @@ these):
 | Tauri macOS | `NSMicrophoneUsageDescription` + `com.apple.security.device.audio-input` entitlement when sandboxed | deferred to a macOS build |
 | Tauri Linux | WebKitGTK permission handling varies — verify early, least predictable target | deferred to a Linux build |
 
+**Permission-flow correction (post-Phase 5, real-device fix).** The first cut of
+`capacitorMicrophone.requestPermission()` used `navigator.permissions.query({ name:
+"microphone" })` to detect a hard denial up front. On a real Android device this
+returned `"denied"` even with `RECORD_AUDIO` granted, so `useTuner` threw before
+`acquireStream()` and `getUserMedia()` never ran — while the PWA on the same device
+worked. Android System WebView exposes the Permissions API but does not back it
+with a persistent capture-permission grant; permission is decided per request by
+Capacitor's `onPermissionRequest` bridge when `getUserMedia()` runs. Fix:
+`requestPermission()` now returns `"prompt"` on Capacitor (identical to web), and
+`getUserMedia()` is the sole authoritative permission request on every target. A
+genuine refusal still comes back as `getUserMedia()`'s `NotAllowedError` through the
+existing mapping. No interface, plugin, or bundle-isolation change.
+
 **Device-only unknowns** (cannot be exercised without a build rig): the Android
 runtime `RECORD_AUDIO` dialog and iOS mic prompt actually appearing, and whether
-Capacitor's WebView bridge grants `getUserMedia` once permission is held. The
-capacitor `requestPermission` Permissions-API pre-check and the full acquire /
-error-mapping paths were verified in a browser via CDP (see the deliverable).
+Capacitor's WebView bridge grants `getUserMedia` once permission is held. The full
+acquire / error-mapping paths were verified in a browser via CDP (see the
+deliverable).
 
 ### Audio — interruption handling (Phase 8, done) and background (deferred)
 

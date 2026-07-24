@@ -86,7 +86,7 @@ Three tests decide whether something belongs in `src/platform/`:
 | `platform/auth/` | credential acquisition only | **live** — web/Tauri use `webAuth` (popup); Capacitor uses `mobileAuth` (native Google Sign-In → `signInWithCredential`). Selected by the `@auth-impl` build alias, see [mobile-auth.md](mobile-auth.md) |
 | `platform/storage/` | hydration, sync reads, async writes | **live** — web/Tauri use `webStorage` (localStorage); Capacitor uses `capacitorStorage` (Preferences). Selected by the `@storage-impl` build alias, see [storage.md](storage.md) |
 | `platform/lifecycle/` | app-background flush implementation | **live** — `webLifecycle` (`pagehide`) for web/Tauri, `capacitorLifecycle` (`@capacitor/app`) for Capacitor; surfaced through `platform.js`, selected by `@lifecycle-impl` |
-| `platform/microphone/` | mic permission + live-stream acquisition (`requestPermission`, `acquireStream`, `stopStream`) | **live** — `webMicrophone` (getUserMedia) for web/Tauri; `capacitorMicrophone` reuses that getUserMedia and adds a Permissions-API pre-check. Selected by a compile-time **boolean**, not an alias — it imports no plugin (see below) |
+| `platform/microphone/` | mic permission + live-stream acquisition (`requestPermission`, `acquireStream`, `stopStream`) | **live** — `webMicrophone` (getUserMedia) for web/Tauri; `capacitorMicrophone` reuses that same getUserMedia and lets it be the authoritative permission request (no Permissions-API pre-check — see below). Selected by a compile-time **boolean**, not an alias — it imports no plugin (see below) |
 
 Each selection folds away at build time — the native bundle contains no web
 implementation and vice versa, verified per chunk rather than assumed.
@@ -112,9 +112,22 @@ config — `RECORD_AUDIO` / `NSMicrophoneUsageDescription` — not a JS import. 
 no `registerPlugin()` side effect anywhere in its module graph, there is nothing
 an alias would keep out, so it stays a source-level `isCapacitor ? …` boolean —
 exactly the in-source form `platform/links` used before Phase 4. Verified per
-bundle: the Capacitor-only Permissions-API pre-check ships **only** in the
-Capacitor bundle, and no microphone plugin appears in any bundle because none was
-added.
+bundle: only the selected implementation enters each bundle, and no microphone
+plugin appears in any bundle because none was added.
+
+**Permission correction (post-Phase 5, real-device fix).** The original
+`capacitorMicrophone` added a `navigator.permissions.query({ name: "microphone" })`
+pre-check to read a hard "denied" up front. On a real Android device this was
+wrong: with `RECORD_AUDIO` granted, the query still resolved `"denied"`, so
+`useTuner` threw before `acquireStream()` and `getUserMedia()` never ran (the PWA,
+which has no such pre-check, worked on the same device). Android System WebView
+exposes the Permissions API but does not back it with a persistent per-origin
+grant for capture devices — permission is decided per request by Capacitor's
+`onPermissionRequest` bridge when `getUserMedia()` runs. The pre-check was removed:
+`capacitorMicrophone.requestPermission()` now returns `"prompt"` like the web path,
+and `getUserMedia()` is the single authoritative permission request on every
+target. A genuine refusal still surfaces as `getUserMedia()`'s `NotAllowedError`
+through `useTuner`'s existing mapping.
 
 `platform/links` was the last to convert, and it sharpens the rule. Through
 Phase 3 it used a source-level `isTauri ? …` because its only native branch (the

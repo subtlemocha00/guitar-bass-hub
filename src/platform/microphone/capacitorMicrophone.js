@@ -21,31 +21,40 @@
 // boolean, unlike auth/storage/lifecycle/links. See docs/architecture.md.
 
 // acquireStream / stopStream are the identical WebView getUserMedia call on every
-// target, so reuse them rather than duplicate. Only permission handling differs.
+// target, so reuse them rather than duplicate. Permission handling is now also
+// identical to the web path (see requestPermission below) — getUserMedia is the
+// single authoritative request on every target.
 export { acquireStream, stopStream } from "./webMicrophone";
 
 /**
- * Current mic permission on Capacitor, best-effort and non-throwing.
+ * Current mic permission on Capacitor. Always "prompt" — deliberately.
  *
- * The Android System WebView (Chromium) supports the W3C Permissions API, so a
- * hard "denied" can be read up front and surfaced through useTuner's existing
- * NotAllowedError mapping instead of a silent getUserMedia failure. iOS WKWebView
- * exposes no Permissions API for the microphone, so it falls through to "prompt"
- * and the OS prompt fires during acquireStream() via the WebView bridge. Either
- * way the actual grant still happens in getUserMedia — there is no plugin to
- * request ahead of it — so this only *observes* state, never blocks acquisition.
+ * WHY WE DO NOT USE navigator.permissions.query({ name: "microphone" }) HERE
+ * The obvious idea — read the permission up front on Android's Chromium WebView
+ * and surface a hard "denied" through useTuner's NotAllowedError mapping — is
+ * wrong, and a real device proved it: with RECORD_AUDIO in the manifest and the
+ * OS microphone permission *granted*, the query still resolves to "denied", so
+ * useTuner threw before acquireStream() and getUserMedia() never ran. The same
+ * device's PWA worked, because the PWA never runs this pre-check.
+ *
+ * The Permissions API is present in Android System WebView but does NOT reflect
+ * capture-device state: WebView has no persistent per-origin grant store for the
+ * microphone. Capture permission is decided per request by Capacitor's native
+ * bridge (WebChromeClient.onPermissionRequest, backed by the OS RECORD_AUDIO
+ * grant) at the moment getUserMedia() runs. With no stored grant to report, the
+ * query returns "denied" by default (or, on some WebView versions, rejects the
+ * unrecognised name). Neither is a trustworthy signal, so we consult neither.
+ *
+ * Instead getUserMedia() is the authoritative permission request on every target,
+ * exactly as it already is on web/Tauri: on Android it drives onPermissionRequest
+ * and the OS prompt; on iOS WKWebView prompts natively; on web/Tauri the browser
+ * folds the prompt in. A genuine refusal comes back as getUserMedia()'s own
+ * NotAllowedError, which useTuner already maps — so reporting "prompt" here loses
+ * no legitimate error, it only stops fabricating a false denial. This makes the
+ * Capacitor path byte-for-byte identical to webMicrophone; it is kept as its own
+ * function purely to document the Android-WebView reasoning at the site it
+ * applies. See docs/architecture.md and docs/browser-assumptions-audit.md.
  */
 export async function requestPermission() {
-	try {
-		const perms =
-			typeof navigator !== "undefined" ? navigator.permissions : null;
-		if (perms?.query) {
-			const status = await perms.query({ name: "microphone" });
-			return status.state; // "granted" | "denied" | "prompt"
-		}
-	} catch {
-		// "microphone" is not a recognised PermissionName here (WKWebView, or an
-		// engine that rejects the query) — fall through and let acquireStream prompt.
-	}
 	return "prompt";
 }

@@ -215,11 +215,16 @@ export function useTuner({
 
 		async function start() {
 			try {
-				// Ask the platform for permission first. On web/Tauri this resolves
-				// "prompt" and the real prompt happens inside acquireStream (no
-				// behaviour change); on Capacitor it can report a hard "denied" up
-				// front, which we surface through the existing NotAllowedError mapping
-				// rather than a silent getUserMedia failure.
+				// Ask the platform for permission first. Every target resolves
+				// "prompt" today — the real prompt happens inside acquireStream's
+				// getUserMedia (web/Tauri fold it in; Capacitor drives it through the
+				// WebView bridge on Android and WKWebView on iOS). This guard stays
+				// because the boundary's contract still permits a hard "denied", and
+				// if a platform ever reports one we surface it through the existing
+				// NotAllowedError mapping rather than a silent getUserMedia failure.
+				// Note: Capacitor deliberately never returns "denied" from a
+				// Permissions-API pre-check — that check is unreliable in Android
+				// WebView; see platform/microphone/capacitorMicrophone.js.
 				if ((await requestPermission()) === "denied") {
 					const err = new Error("microphone permission denied");
 					err.name = "NotAllowedError";
