@@ -235,8 +235,14 @@ the `google-services` plugin from it — and now fails the build if it is absent
 The Android build ends with a verification step that asserts, against the APK
 itself, that the Firebase Authentication plugin is listed in
 `capacitor.plugins.json`, that its class is in the dex, and that the
-`google_app_id` resource is present. All three have to hold for native Google
-sign-in to work at runtime.
+`google_app_id`, `google_api_key` and `project_id` string resources hold
+well-formed values. All of those have to hold for native Google sign-in to work
+at runtime.
+
+The resource values are decoded with `aapt2 dump resources` rather than grepping
+`resources.arsc` for the resource name: a name-only grep proves a resource
+exists, not that `google-services.json` was processed into a usable value. Values
+are checked but never printed to the log.
 
 ### Artifacts
 

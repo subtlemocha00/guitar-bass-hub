@@ -107,16 +107,33 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
         working-directory: android
 
-      # Assert the three things that have to be true for native Google sign-in,
-      # checked against the APK itself rather than Gradle's intermediates (whose
-      # paths move between AGP versions). Each failed independently in practice:
-      # the first two passed while the third did not, which is what made the
-      # runtime error point at the wrong thing.
-      - name: Verify native plugins in APK
+      # Assert what has to be true for native Google sign-in, checked against the
+      # APK itself rather than Gradle's intermediates (whose paths move between
+      # AGP versions — AGP 9 renamed the google-services output directory).
+      #
+      # The plugin checks and the Firebase-resource checks fail independently:
+      # the first two passed while the config was missing, which is exactly what
+      # made the runtime error ('plugin is not implemented on android') point at
+      # plugin registration instead of at Firebase initialisation.
+      #
+      # Resource VALUES are decoded with aapt2 rather than grepping
+      # resources.arsc for the resource name. A name-only grep proves a resource
+      # exists, not that google-services.json was actually processed into a
+      # usable value — an empty or wrong-project config would still pass it.
+      - name: Verify Firebase init + native plugins in APK
         run: |
           apk=android/app/build/outputs/apk/debug/app-debug.apk
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          aapt2=$(find "$sdk/build-tools" -maxdepth 2 -name aapt2 -type f 2>/dev/null | sort -V | tail -1)
+          if [ -z "$aapt2" ]; then
+            echo "::error::aapt2 not found under $sdk/build-tools; cannot verify the APK"
+            exit 1
+          fi
+          res=$("$aapt2" dump resources "$apk")
           fail=0
-          check() {
+
+          # A file/class must be present inside the APK.
+          contains() {
             if unzip -p "$apk" "$2" | grep -aq "$3"; then
               echo "ok:   $1"
             else
@@ -124,9 +141,27 @@ jobs:
               fail=1
             fi
           }
-          check "FirebaseAuthentication listed in capacitor.plugins.json" assets/capacitor.plugins.json FirebaseAuthenticationPlugin
-          check "FirebaseAuthenticationPlugin class compiled into the APK"  'classes*.dex'               FirebaseAuthenticationPlugin
-          check "google_app_id resource present (FirebaseApp can initialise)" resources.arsc             google_app_id
+
+          # A string resource must exist AND hold a well-formed value. These are
+          # what FirebaseInitProvider reads at process start to build the default
+          # FirebaseApp; without them FirebaseAuth.getInstance() throws inside
+          # FirebaseAuthenticationPlugin.load() and Capacitor drops the plugin.
+          # Values are never echoed — only whether they are well-formed.
+          assert_res() {
+            val=$(printf '%s\n' "$res" | grep -A1 -- "string/$1\$" | tail -1 | sed -n 's/.*() "\(.*\)"$/\1/p')
+            if [ -n "$val" ] && printf '%s' "$val" | grep -Eq "$2"; then
+              echo "ok:   string/$1 present and well-formed"
+            else
+              echo "::error::string/$1 is missing or malformed — google-services.json was not processed into Firebase resources, so FirebaseApp cannot initialise at startup and native Google sign-in will fail."
+              fail=1
+            fi
+          }
+
+          contains "FirebaseAuthentication listed in capacitor.plugins.json"  assets/capacitor.plugins.json FirebaseAuthenticationPlugin
+          contains "FirebaseAuthenticationPlugin class compiled into the APK" 'classes*.dex'                FirebaseAuthenticationPlugin
+          assert_res google_app_id  '^1:[0-9]+:android:[0-9a-f]+$'
+          assert_res google_api_key '^AIza[0-9A-Za-z_-]{10,}$'
+          assert_res project_id     '^.+$'
           exit $fail
 
       # Gradle always emits app-debug.apk. Rename on the way out so the download
