@@ -318,11 +318,55 @@ repository secret**.
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | all three | recommended | ” |
 | `VITE_FIREBASE_APP_ID` | all three | recommended | ” |
 | `ANDROID_GOOGLE_SERVICES_JSON_BASE64` | Android | **yes** | the Android workflow fails at the restore step |
+| `ANDROID_DEBUG_KEYSTORE_BASE64` | Android | **yes** | the Android workflow fails at the restore step |
 
 The six `VITE_` secrets are not enforced: web and Windows builds are still useful
 artifacts without a Firebase config, and a fork PR never receives secrets at all.
-The Android one is enforced because the failure it causes is silent and
+The two Android ones are enforced because the failures they cause are silent and
 misleading.
+
+#### Why the debug keystore has to come from a secret
+
+Google authorises an app by **(package name + signing certificate SHA-1)**, so
+the certificate signing the APK must be one registered in the Firebase console.
+
+AGP signs debug builds with `~/.android/debug.keystore` and **generates a random
+one if that file is absent**. On a fresh, ephemeral GitHub runner it is always
+absent — so without this secret every CI run produces an APK signed by a
+different, unregistered certificate. The plugin loads, Firebase initialises,
+`signInWithGoogle()` runs, and then Credential Manager refuses:
+
+```text
+androidx.credentials.exceptions.NoCredentialException: No credentials available
+```
+
+Restoring the same debug keystore used locally makes the CI APK's SHA-1 match the
+registered one. It needs no Gradle change — AGP's default debug signing config
+already reads that path. Produce the value with:
+
+```bash
+base64 -w0 ~/.android/debug.keystore                                   # Linux/macOS
+```
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:USERPROFILE\.android\debug.keystore"))
+```
+
+This is a **debug** keystore with the well-known password `android`; it is not a
+release credential. Release signing remains out of scope.
+
+Check which SHA-1 an existing APK carries with:
+
+```bash
+apksigner verify --print-certs <apk> | grep "SHA-1"
+keytool -list -v -keystore ~/.android/debug.keystore \
+  -alias androiddebugkey -storepass android            # the local one
+```
+
+The Android workflow asserts, after building, that the APK's signing certificate
+is one of the `certificate_hash` values in `google-services.json` — compared
+against the config rather than a hardcoded value, so re-registering a certificate
+needs no workflow edit.
 
 Values come from the Firebase console (Project settings → General → Your apps →
 SDK setup and configuration) — the same ones described in `.env.example` and

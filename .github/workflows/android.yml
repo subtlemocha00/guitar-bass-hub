@@ -33,6 +33,7 @@ jobs:
     # read this value from the `env` context, so it has to be declared here.
     env:
       ANDROID_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON_BASE64 }}
+      ANDROID_DEBUG_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
 
     steps:
       - name: Checkout
@@ -85,6 +86,35 @@ jobs:
               process.exit(1);
             }
           '
+
+      # Google sign-in authorises an app by (package name + signing certificate
+      # SHA-1), so the certificate that signs the APK has to be one registered in
+      # Firebase. AGP signs debug builds with ~/.android/debug.keystore and
+      # GENERATES a random one if that file is absent — which it is on a fresh
+      # runner, and runners are ephemeral. A CI APK would therefore carry a
+      # different, unregistered SHA-1 on every single run, and Google Identity
+      # Services refuses to issue a credential for it:
+      #
+      #     androidx.credentials.exceptions.NoCredentialException:
+      #     No credentials available
+      #
+      # Restoring the same debug keystore used locally makes the CI APK's SHA-1
+      # match the one already registered. This needs no Gradle change: AGP's
+      # default debug signing config reads exactly this path.
+      #
+      # This is a DEBUG keystore with the well-known password "android" — it is
+      # not a release credential. Release signing remains out of scope.
+      - name: Restore debug keystore
+        run: |
+          if [ -z "$ANDROID_DEBUG_KEYSTORE_BASE64" ]; then
+            echo "::error::Repository secret ANDROID_DEBUG_KEYSTORE_BASE64 is not set. Without it AGP generates a random debug keystore whose SHA-1 is not registered in Firebase, and Google sign-in fails with NoCredentialException. Generate with: base64 -w0 ~/.android/debug.keystore"
+            exit 1
+          fi
+          mkdir -p ~/.android
+          printf '%s' "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 -d > ~/.android/debug.keystore
+          keytool -list -keystore ~/.android/debug.keystore -alias androiddebugkey \
+            -storepass android -keypass android > /dev/null
+          echo "debug keystore restored"
 
       # Firebase config is supplied as environment variables rather than a .env
       # file — see the equivalent note in web.yml for why.
@@ -159,9 +189,41 @@ jobs:
 
           contains "FirebaseAuthentication listed in capacitor.plugins.json"  assets/capacitor.plugins.json FirebaseAuthenticationPlugin
           contains "FirebaseAuthenticationPlugin class compiled into the APK" 'classes*.dex'                FirebaseAuthenticationPlugin
-          assert_res google_app_id  '^1:[0-9]+:android:[0-9a-f]+$'
-          assert_res google_api_key '^AIza[0-9A-Za-z_-]{10,}$'
-          assert_res project_id     '^.+$'
+          assert_res google_app_id        '^1:[0-9]+:android:[0-9a-f]+$'
+          assert_res google_api_key       '^AIza[0-9A-Za-z_-]{10,}$'
+          assert_res default_web_client_id '^[0-9]+-[0-9a-z]+\.apps\.googleusercontent\.com$'
+          assert_res project_id           '^.+$'
+
+          # Google authorises an app by (package name + signing certificate
+          # SHA-1). Assert the certificate that actually signed this APK is one
+          # registered in google-services.json — otherwise sign-in fails at
+          # runtime with NoCredentialException even though every check above
+          # passes. Compared against the config rather than a hardcoded value,
+          # so re-registering a certificate needs no workflow edit.
+          apksigner=$(find "$sdk/build-tools" -maxdepth 2 -name apksigner -type f 2>/dev/null | sort -V | tail -1)
+          if [ -z "$apksigner" ]; then
+            echo "::error::apksigner not found under $sdk/build-tools; cannot verify the signing certificate"
+            exit 1
+          fi
+          actual=$("$apksigner" verify --print-certs "$apk" | grep -m1 -i "SHA-1 digest" | tr -d ' ' | sed 's/.*://' | tr 'A-Z' 'a-z')
+          expected=$(node -e '
+            const c = require("./android/app/google-services.json");
+            console.log(c.client
+              .flatMap((cl) => cl.oauth_client ?? [])
+              .filter((o) => o.client_type === 1)
+              .map((o) => o.android_info?.certificate_hash?.toLowerCase())
+              .filter(Boolean)
+              .join(" "));
+          ')
+          if [ -z "$expected" ]; then
+            echo "::error::google-services.json contains no Android OAuth client (client_type 1) with a certificate_hash, so Google sign-in cannot work. Add the signing certificate's SHA-1 in the Firebase console and re-download the config."
+            fail=1
+          elif printf '%s' " $expected " | grep -q " $actual "; then
+            echo "ok:   APK signing certificate is registered for Google sign-in"
+          else
+            echo "::error::APK is signed with SHA-1 $actual, which is not registered in google-services.json (registered: $expected). Google sign-in will fail with NoCredentialException. Check ANDROID_DEBUG_KEYSTORE_BASE64 matches the keystore whose SHA-1 is in the Firebase console."
+            fail=1
+          fi
           exit $fail
 
       # Gradle always emits app-debug.apk. Rename on the way out so the download
