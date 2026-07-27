@@ -1,5 +1,21 @@
 apply plugin: 'com.android.application'
 
+// Version comes from the root package.json, the single source of truth already
+// shared by Vite (VITE_APP_VERSION) and Tauri (tauri.conf.json reads
+// "../package.json"). Android was the last target carrying a hand-maintained
+// copy; deriving it here means `npm version` is the only place a release
+// number is edited.
+//
+// versionCode has to be a monotonically increasing integer, which semver is
+// not, so it is packed as MAJOR*10000 + MINOR*100 + PATCH. That rises with the
+// version for any component below 100 and needs no separate counter. Any
+// pre-release suffix is dropped for the code but kept in versionName, which is
+// the human-readable string.
+def packageJson = new groovy.json.JsonSlurper().parse(file('../../package.json'))
+def appVersionName = packageJson.version
+def semver = appVersionName.split('-')[0].tokenize('.').collect { it.toInteger() }
+def appVersionCode = semver[0] * 10000 + semver[1] * 100 + semver[2]
+
 android {
     namespace = "com.guitarbasshub.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +23,8 @@ android {
         applicationId "com.guitarbasshub.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

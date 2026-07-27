@@ -241,11 +241,19 @@ base path from the `VERCEL` environment variable, falling back to
 ### Desktop
 
 A Tauri shell wraps the same codebase for Windows. `npm run tauri:build`
-produces `guitar-bass-hub.exe` and an NSIS installer; full prerequisites,
+produces `Guitar-and-Bass-Hub.exe` and an NSIS installer; full prerequisites,
 security posture and known gaps are in [docs/release.md](docs/release.md).
 
 The desktop build is **not yet distributable** — it is unsigned, so SmartScreen
 warns on first run, and there is no update mechanism.
+
+### Continuous integration
+
+Three GitHub Actions workflows build the web, Android and Windows targets on
+every push to `main` and on demand, uploading each result as an artifact.
+Nothing is deployed or released automatically. Required secrets, artifact names
+and branding conventions are documented in
+[docs/release.md](docs/release.md#continuous-integration-github-actions).
 
 ---
 
@@ -259,7 +267,7 @@ Deeper background lives in [`docs/`](docs/):
 | [storage.md](docs/storage.md) | Hydration layer, why a synchronous wrapper was rejected, future native drivers |
 | [data-model.md](docs/data-model.md) | Firestore ownership, local keys, dual-write pattern, migration flags |
 | [platform-roadmap.md](docs/platform-roadmap.md) | Phase status and the expected work for Tauri/Capacitor |
-| [release.md](docs/release.md) | Building the desktop app and its installer, security posture, distribution blockers |
+| [release.md](docs/release.md) | Building every target locally and in CI, required secrets, branding, versioning, artifacts, security posture, distribution blockers |
 | [desktop-polish.md](docs/desktop-polish.md) | Desktop UX pass: window behaviour, external links, dialog focus |
 | [tauri-poc.md](docs/tauri-poc.md) | Desktop shell proof of concept: setup, findings, limitations |
 | [tauri-auth-investigation.md](docs/tauri-auth-investigation.md) | Desktop sign-in options, what is proven vs unknown, open questions |

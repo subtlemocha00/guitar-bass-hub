@@ -1,11 +1,11 @@
-# Web / PWA — Build
+# Guitar + Bass // Hub — Web / PWA
 #
 # Builds the production Vite web/PWA bundle so it is reproducible in CI without
 # running local commands. It BUILDS ONLY and uploads the bundle as an artifact —
 # it deliberately does NOT deploy. Deployment stays exactly as before: manual,
 # via `npm run deploy` (gh-pages) from a maintainer's machine. This preserves the
 # existing deployment behavior while making the build reproducible.
-name: Web / PWA — Build
+name: Guitar + Bass // Hub — Web / PWA
 
 on:
   workflow_dispatch: {} # manual trigger from the Actions tab
@@ -17,16 +17,24 @@ on:
 permissions:
   contents: read # build-only; no deploy, so no write scopes needed
 
+# One build per ref. A rapid second push supersedes the first instead of queuing
+# behind it; `main` is excluded from cancellation so every landed commit keeps a
+# completed artifact.
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   build:
     name: Build web bundle
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22" # satisfies Vite 8 (>= 22.12); matches local toolchain
           cache: npm # keyed on package-lock.json
@@ -35,25 +43,29 @@ jobs:
         run: npm ci
 
       # Firebase config is client-side (see .env.example) but .env is gitignored,
-      # so CI provides the values from secrets. Empty secrets still build — auth
-      # just won't be configured in the artifact.
-      - name: Write .env from secrets
-        run: |
-          cat > .env <<'EOF'
-          VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-          VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
-          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
-          VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
-          EOF
-
+      # so CI supplies the values from secrets. They are passed as environment
+      # variables rather than written to a .env file: Vite's loadEnv() merges any
+      # VITE_-prefixed process.env entry into import.meta.env (and it wins over a
+      # .env file), so the inlined result is identical. This keeps secrets off the
+      # workspace filesystem, where an artifact upload could otherwise pick them
+      # up, and avoids interpolating secret text into a shell script.
+      #
+      # Unset secrets are fine — the build still succeeds, the artifact just has
+      # an empty Firebase config and cannot sign in.
       - name: Build web/PWA bundle
         run: npm run build:web
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
 
       - name: Upload web bundle artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: web-dist
+          name: Guitar-and-Bass-Hub-Web
           path: dist/
           if-no-files-found: error
+          retention-days: 30

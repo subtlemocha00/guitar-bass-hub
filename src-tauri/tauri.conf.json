@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Guitar Bass Hub",
-  "mainBinaryName": "guitar-bass-hub",
+  "productName": "Guitar and Bass Hub",
+  "mainBinaryName": "Guitar-and-Bass-Hub",
   "version": "../package.json",
   "identifier": "com.guitarbasshub.desktop",
   "build": {

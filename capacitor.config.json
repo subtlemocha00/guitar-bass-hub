@@ -1,6 +1,6 @@
 {
   "appId": "com.guitarbasshub.app",
-  "appName": "Guitar & Bass Hub",
+  "appName": "Guitar + Bass // Hub",
   "webDir": "dist-capacitor",
   "backgroundColor": "#05021f",
   "plugins": {

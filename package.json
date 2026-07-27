@@ -1,5 +1,7 @@
 {
   "name": "guitar-bass-hub",
+  "productName": "Guitar + Bass // Hub",
+  "description": "Practice hub for guitar and bass: tuner, metronome, fretboard, scales, songs, and backing tracks.",
   "private": true,
   "version": "0.1.0",
   "type": "module",

@@ -89,9 +89,11 @@ function Layout({ children, theme }) {
 				<header className="topbar">
 					<Link to="/" className="topbar-brand">
 						<span className="dot" />
-						{/* Full identity on wide screens; the app's own short name
-						    (matches the PWA short_name "GB//Hub") on narrow ones, so the
-						    brand yields the width the tool buttons need without wrapping. */}
+						{/* Full identity on wide screens; a compressed wordmark on narrow
+						    ones, so the brand yields the width the tool buttons need
+						    without wrapping. This is a layout affordance only — the
+						    application name is "Guitar + Bass // Hub" everywhere it is
+						    declared (title, manifest, Android label, Tauri window). */}
 						<span className="topbar-brand-full">GUITAR + BASS // HUB</span>
 						<span className="topbar-brand-short">GB//HUB</span>
 					</Link>

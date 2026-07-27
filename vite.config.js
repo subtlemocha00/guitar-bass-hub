@@ -148,8 +148,13 @@ export default defineConfig(({ mode }) => {
                 'pwa-maskable-512x512.png',
               ],
               manifest: {
-                name: 'Guitar+Bass//Hub',
-                short_name: 'GB//Hub',
+                // Both carry the full brand name. `short_name` has no technical
+                // character or length limit — launchers just truncate it — so the
+                // brand is spelled out rather than abbreviated. The in-app
+                // narrow-viewport "GB//HUB" wordmark in Layout.jsx is a layout
+                // affordance, not the application name, and is unaffected.
+                name: 'Guitar + Bass // Hub',
+                short_name: 'Guitar + Bass // Hub',
                 description:
                   'Practice hub for guitar and bass: tuner, metronome, fretboard, scales, songs, and backing tracks.',
                 start_url: '.',

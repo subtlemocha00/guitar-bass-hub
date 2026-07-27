@@ -1,4 +1,4 @@
-# Android — Capacitor APK
+# Guitar + Bass // Hub — Android APK
 #
 # Produces a debug APK from the Capacitor Android project so mobile builds are
 # reproducible in CI. Flow mirrors the local one:
@@ -6,9 +6,9 @@
 #
 # A DEBUG APK is built on purpose: it is signed with the standard Android debug
 # keystore, so no signing secrets are required. A release/Play-signed APK/AAB
-# would need an upload keystore + credentials (see docs / the limitations note in
-# the PR) and is intentionally out of scope here.
-name: Android — Capacitor APK
+# would need an upload keystore + credentials and is intentionally out of scope
+# here — see "Known limitations" in docs/release.md.
+name: Guitar + Bass // Hub — Android APK
 
 on:
   workflow_dispatch: {} # manual trigger from the Actions tab
@@ -18,22 +18,34 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   build:
     name: Build debug APK
     runs-on: ubuntu-latest # GitHub's Ubuntu image ships the Android SDK
+    timeout-minutes: 30
+
+    # Job-level env, not step-level, because a step's `if:` is evaluated before
+    # that step's own `env:` exists. The optional-restore step below needs to
+    # read this value from the `env` context, so it has to be declared here.
+    env:
+      ANDROID_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON_BASE64 }}
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21" # Capacitor 8 / AGP require JDK 17+; matches local
@@ -42,29 +54,35 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Write .env from secrets
-        run: |
-          cat > .env <<'EOF'
-          VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-          VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
-          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
-          VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
-          EOF
-
       # Native Google sign-in needs android/app/google-services.json, which is
       # gitignored. Restore it from a base64 secret when present; the gradle build
       # applies the google-services plugin only if the file exists (see
       # android/app/build.gradle), so the APK still builds without it — native
       # Google sign-in just won't be configured.
+      #
+      # The `secrets` context is NOT available in a step `if:` (only github,
+      # needs, strategy, matrix, job, runner, env, vars, steps and inputs are), so
+      # the secret is mapped to job-level env above and tested through `env`. The
+      # value is then read from the environment inside the script rather than
+      # interpolated into it, so no secret text is ever parsed as shell.
       - name: Restore google-services.json (optional)
-        if: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON_BASE64 != '' }}
-        run: echo "${{ secrets.ANDROID_GOOGLE_SERVICES_JSON_BASE64 }}" | base64 -d > android/app/google-services.json
+        if: env.ANDROID_GOOGLE_SERVICES_JSON_BASE64 != ''
+        run: printf '%s' "$ANDROID_GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
 
+      # Firebase config is supplied as environment variables rather than a .env
+      # file — see the equivalent note in web.yml for why.
       - name: Build web assets (Capacitor target)
         run: npm run build:capacitor
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
 
+      # Copies dist-capacitor/ into the native project and refreshes plugins.
+      # Must run after the web build and before gradle.
       - name: Sync Capacitor Android
         run: npx cap sync android
 
@@ -72,9 +90,17 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
         working-directory: android
 
+      # Gradle always emits app-debug.apk. Rename on the way out so the download
+      # is self-describing instead of three identically-named files in a folder.
+      - name: Stage APK
+        run: |
+          mkdir -p artifact
+          cp android/app/build/outputs/apk/debug/app-debug.apk artifact/Guitar-and-Bass-Hub.apk
+
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: android-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Guitar-and-Bass-Hub-APK
+          path: artifact/Guitar-and-Bass-Hub.apk
           if-no-files-found: error
+          retention-days: 30

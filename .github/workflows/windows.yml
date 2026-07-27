@@ -1,4 +1,4 @@
-# Windows — Tauri Installer
+# Guitar + Bass // Hub — Windows Installer
 #
 # Builds the Windows Tauri desktop app and its NSIS installer so desktop releases
 # are reproducible in CI. `npm run tauri:build` runs the frontend build
@@ -7,8 +7,8 @@
 #
 # The installer is UNSIGNED (no Authenticode certificate). Windows SmartScreen
 # will warn on first run. Code signing needs a certificate + credentials and is
-# intentionally out of scope here (see the limitations note in the PR).
-name: Windows — Tauri Installer
+# intentionally out of scope here — see "Known limitations" in docs/release.md.
+name: Guitar + Bass // Hub — Windows Installer
 
 on:
   workflow_dispatch: {} # manual trigger from the Actions tab
@@ -18,16 +18,21 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   build:
     name: Build Tauri installer
     runs-on: windows-latest # MSVC toolchain + WebView2 runtime preinstalled
+    timeout-minutes: 45 # LTO release build is ~6 min warm, far longer cold
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -45,24 +50,48 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Write .env from secrets
-        shell: bash
+      # Firebase config is supplied as environment variables rather than a .env
+      # file — see the equivalent note in web.yml for why. tauri:build runs the
+      # frontend build itself via beforeBuildCommand, and that child process
+      # inherits this environment, so the values reach Vite the same way.
+      # src-tauri/target is restored from cache, so a bundle produced by an
+      # earlier run (under a previous productName, say) can survive into this
+      # one and make the staging glob below ambiguous. Clearing the bundle
+      # directory guarantees the artifact is this build's output.
+      - name: Clear stale bundle output
+        shell: pwsh
         run: |
-          cat > .env <<'EOF'
-          VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-          VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
-          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
-          VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
-          EOF
+          $bundle = 'src-tauri/target/release/bundle'
+          if (Test-Path $bundle) { Remove-Item $bundle -Recurse -Force }
 
       - name: Build Tauri app + NSIS installer
         run: npm run tauri:build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+
+      # Tauri names the NSIS output "<productName>_<version>_x64-setup.exe" and
+      # offers no way to override it, so the standard artifact name is applied
+      # here. Fails loudly if the glob matches anything other than exactly one
+      # file, rather than silently uploading the wrong build.
+      - name: Stage installer
+        shell: pwsh
+        run: |
+          $setup = @(Get-ChildItem -Path 'src-tauri/target/release/bundle/nsis' -Filter '*-setup.exe')
+          if ($setup.Count -ne 1) {
+            throw "Expected exactly 1 NSIS installer, found $($setup.Count)"
+          }
+          New-Item -ItemType Directory -Path artifact | Out-Null
+          Copy-Item $setup[0].FullName 'artifact/Guitar-and-Bass-Hub-Setup.exe'
 
       - name: Upload installer artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: windows-nsis-installer
-          path: src-tauri/target/release/bundle/nsis/*-setup.exe
+          name: Guitar-and-Bass-Hub-Windows
+          path: artifact/Guitar-and-Bass-Hub-Setup.exe
           if-no-files-found: error
+          retention-days: 30

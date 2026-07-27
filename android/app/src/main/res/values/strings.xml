@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Guitar &amp; Bass Hub</string>
-    <string name="title_activity_main">Guitar &amp; Bass Hub</string>
+    <string name="app_name">Guitar + Bass // Hub</string>
+    <string name="title_activity_main">Guitar + Bass // Hub</string>
     <string name="package_name">com.guitarbasshub.app</string>
     <string name="custom_url_scheme">com.guitarbasshub.app</string>
 </resources>
