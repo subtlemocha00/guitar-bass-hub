@@ -60,11 +60,34 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+// google-services.json is REQUIRED for this app, not optional.
+//
+// The google-services plugin turns it into the google_app_id / google_api_key
+// string resources that Firebase's FirebaseInitProvider reads at process start
+// to build the default FirebaseApp. Without those resources the build still
+// succeeds and the APK still CONTAINS the FirebaseAuthentication plugin class
+// and lists it in capacitor.plugins.json — but FirebaseAuth.getInstance()
+// throws during the plugin's load(), Capacitor drops it from the registry, and
+// the JS side reports:
+//
+//     "FirebaseAuthentication" plugin is not implemented on android
+//
+// which points at plugin registration and not at the actual cause. Capacitor's
+// scaffolded version of this block wrapped the whole thing in a try/catch that
+// downgraded a missing file to logger.info — invisible at the default log level,
+// so CI shipped a green build with a broken sign-in. Fail here instead, at the
+// point where the cause is still obvious.
+def servicesJSON = file('google-services.json')
+if (!servicesJSON.exists() || servicesJSON.length() == 0) {
+    throw new GradleException(
+        "android/app/google-services.json is missing or empty.\n" +
+        "\n" +
+        "It is gitignored, so every checkout needs its own copy:\n" +
+        "  - locally: download it from the Firebase console\n" +
+        "      (Project settings -> Your apps -> Android app -> google-services.json)\n" +
+        "  - in CI:   set the ANDROID_GOOGLE_SERVICES_JSON_BASE64 repository secret\n" +
+        "\n" +
+        "See docs/mobile-auth.md and docs/release.md."
+    )
 }
+apply plugin: 'com.google.gms.google-services'

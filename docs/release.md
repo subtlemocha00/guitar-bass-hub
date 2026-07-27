@@ -217,7 +217,7 @@ Each pipeline is strictly ordered, with nothing overlapping that shouldn't:
 ```text
 Web       checkout -> node+npm cache -> npm ci -> vite build (web) -> upload
 Android   checkout -> node+npm cache -> JDK+gradle cache -> npm ci
-                   -> restore google-services.json (optional)
+                   -> restore google-services.json (required)
                    -> vite build (capacitor) -> cap sync android
                    -> gradlew assembleDebug -> stage/rename -> upload
 Windows   checkout -> node+npm cache -> rust toolchain -> rust cache -> npm ci
@@ -229,7 +229,14 @@ The two orderings that actually matter: `cap sync` has to follow the web build,
 because it copies `dist-capacitor/` into the native project, and it has to
 precede Gradle, which packages what was copied. `google-services.json` must be
 restored before Gradle configures, because `android/app/build.gradle` applies
-the `google-services` plugin only if the file exists.
+the `google-services` plugin from it — and now fails the build if it is absent
+(see [Why google-services.json is required](#why-google-servicesjson-is-required)).
+
+The Android build ends with a verification step that asserts, against the APK
+itself, that the Firebase Authentication plugin is listed in
+`capacitor.plugins.json`, that its class is in the dex, and that the
+`google_app_id` resource is present. All three have to hold for native Google
+sign-in to work at runtime.
 
 ### Artifacts
 
@@ -261,25 +268,55 @@ environment variables on the build step instead. The inlined result is identical
 and this avoids writing secrets into the workspace where an artifact upload could
 capture them, and avoids interpolating secret text into a shell script.
 
-**`google-services.json` is restored** from a base64 secret, only when that
-secret is set. The value is read from the environment inside the script rather
-than interpolated into it, for the same reason.
+**`google-services.json` is restored** from a base64 secret and the decoded file
+is validated — it must parse and contain a client for `com.guitarbasshub.app` —
+so a truncated or wrong-project secret fails at that step with a clear message
+rather than five minutes later inside Gradle. The value is read from the
+environment inside the script rather than interpolated into it, for the same
+reason as above.
+
+#### Why google-services.json is required
+
+The Android build **fails** without it. It used to be treated as optional, which
+was wrong and produced a green build with a broken APK:
+
+The `google-services` Gradle plugin is what turns `google-services.json` into the
+`google_app_id` / `google_api_key` string resources that Firebase's
+`FirebaseInitProvider` reads at process start to construct the default
+`FirebaseApp`. Without them, everything upstream still looks correct — `cap sync`
+finds the plugin, `capacitor.plugins.json` lists it, Gradle compiles its class
+into the APK — but at runtime `FirebaseAuth.getInstance()` throws inside
+`FirebaseAuthenticationPlugin.load()`, `Bridge` catches the resulting
+`PluginLoadException` and drops the plugin from the registry, and the JS side
+reports:
+
+```text
+"FirebaseAuthentication" plugin is not implemented on android
+```
+
+which points at plugin registration rather than at the missing config. Both the
+Gradle guard and the APK verification step exist to stop that ever shipping
+silently again.
 
 ### Required repository secrets
 
-All optional — every build succeeds without them, but the resulting artifact
-cannot sign in until they are set. Add at repo → **Settings** → **Secrets and
-variables** → **Actions** → **New repository secret**.
+Add at repo → **Settings** → **Secrets and variables** → **Actions** → **New
+repository secret**.
 
-| Secret | Used by | Effect if absent |
-| --- | --- | --- |
-| `VITE_FIREBASE_API_KEY` | all three | build inlines an empty Firebase config; the app cannot sign in |
-| `VITE_FIREBASE_AUTH_DOMAIN` | all three | ” |
-| `VITE_FIREBASE_PROJECT_ID` | all three | ” |
-| `VITE_FIREBASE_STORAGE_BUCKET` | all three | ” |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | all three | ” |
-| `VITE_FIREBASE_APP_ID` | all three | ” |
-| `ANDROID_GOOGLE_SERVICES_JSON_BASE64` | Android | the `google-services` plugin is skipped; native Google sign-in is unconfigured |
+| Secret | Used by | Required? | Effect if absent |
+| --- | --- | --- | --- |
+| `VITE_FIREBASE_API_KEY` | all three | recommended | build inlines an empty Firebase config; the app cannot sign in |
+| `VITE_FIREBASE_AUTH_DOMAIN` | all three | recommended | ” |
+| `VITE_FIREBASE_PROJECT_ID` | all three | recommended | ” |
+| `VITE_FIREBASE_STORAGE_BUCKET` | all three | recommended | ” |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | all three | recommended | ” |
+| `VITE_FIREBASE_APP_ID` | all three | recommended | ” |
+| `ANDROID_GOOGLE_SERVICES_JSON_BASE64` | Android | **yes** | the Android workflow fails at the restore step |
+
+The six `VITE_` secrets are not enforced: web and Windows builds are still useful
+artifacts without a Firebase config, and a fork PR never receives secrets at all.
+The Android one is enforced because the failure it causes is silent and
+misleading.
 
 Values come from the Firebase console (Project settings → General → Your apps →
 SDK setup and configuration) — the same ones described in `.env.example` and
@@ -295,14 +332,28 @@ base64 -w0 android/app/google-services.json      # Linux
 base64 -i android/app/google-services.json       # macOS
 ```
 
-Fork pull requests never receive secrets, so a fork PR builds with an empty
-Firebase config. That is expected, and the build still passes.
+```powershell
+# Windows. Do NOT use certutil -encode: it wraps the output in
+# -----BEGIN CERTIFICATE----- headers, which base64 -d cannot decode.
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("android/app/google-services.json"))
+```
+
+Fork pull requests never receive secrets, so a fork PR of the web workflow builds
+with an empty Firebase config. That is expected, and that build still passes —
+the Android workflow does not run on pull requests at all.
 
 ### Caching
 
 npm via `actions/setup-node` (keyed on `package-lock.json`); Gradle via
 `actions/setup-java` (`cache: gradle`); the cargo registry and `src-tauri/target`
 via `Swatinem/rust-cache` (keyed on `Cargo.lock`).
+
+None of these can cache a stale *native* Capacitor project. `cache: gradle`
+stores `~/.gradle` (the dependency cache and wrapper), not the project's `build/`
+directory, and the generated files — `capacitor.plugins.json`,
+`capacitor.settings.gradle`, `app/capacitor.build.gradle`,
+`capacitor-cordova-android-plugins/` — are rewritten by `cap sync` on every run.
+Caching was investigated as a cause of the missing-plugin bug and ruled out.
 
 ### Signing
 

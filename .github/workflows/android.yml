@@ -55,19 +55,36 @@ jobs:
         run: npm ci
 
       # Native Google sign-in needs android/app/google-services.json, which is
-      # gitignored. Restore it from a base64 secret when present; the gradle build
-      # applies the google-services plugin only if the file exists (see
-      # android/app/build.gradle), so the APK still builds without it — native
-      # Google sign-in just won't be configured.
+      # gitignored, so CI restores it from a base64 secret.
       #
-      # The `secrets` context is NOT available in a step `if:` (only github,
-      # needs, strategy, matrix, job, runner, env, vars, steps and inputs are), so
-      # the secret is mapped to job-level env above and tested through `env`. The
-      # value is then read from the environment inside the script rather than
-      # interpolated into it, so no secret text is ever parsed as shell.
-      - name: Restore google-services.json (optional)
-        if: env.ANDROID_GOOGLE_SERVICES_JSON_BASE64 != ''
-        run: printf '%s' "$ANDROID_GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
+      # This is REQUIRED, not optional. Without it the google-services plugin
+      # never generates the google_app_id resource, FirebaseApp fails to
+      # initialise at startup, and Capacitor silently drops the
+      # FirebaseAuthentication plugin — producing a green build whose APK reports
+      # '"FirebaseAuthentication" plugin is not implemented on android' at
+      # runtime. See the long comment in android/app/build.gradle.
+      #
+      # The value is read from the environment inside the script rather than
+      # interpolated into it, so no secret text is ever parsed as shell. The
+      # decoded file is validated here so a truncated or wrong-project secret
+      # fails immediately with a clear message instead of five minutes later
+      # inside Gradle.
+      - name: Restore google-services.json
+        run: |
+          if [ -z "$ANDROID_GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "::error::Repository secret ANDROID_GOOGLE_SERVICES_JSON_BASE64 is not set. Native Google sign-in cannot be built without it. Generate with: base64 -w0 android/app/google-services.json"
+            exit 1
+          fi
+          printf '%s' "$ANDROID_GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
+          node -e '
+            const cfg = require("./android/app/google-services.json");
+            const want = "com.guitarbasshub.app";
+            const names = (cfg.client ?? []).map((c) => c.client_info?.android_client_info?.package_name);
+            if (!names.includes(want)) {
+              console.error(`::error::google-services.json has no client for ${want} (found: ${names.join(", ") || "none"}). Check the secret holds the Android app config for this Firebase project.`);
+              process.exit(1);
+            }
+          '
 
       # Firebase config is supplied as environment variables rather than a .env
       # file — see the equivalent note in web.yml for why.
@@ -89,6 +106,28 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --no-daemon
         working-directory: android
+
+      # Assert the three things that have to be true for native Google sign-in,
+      # checked against the APK itself rather than Gradle's intermediates (whose
+      # paths move between AGP versions). Each failed independently in practice:
+      # the first two passed while the third did not, which is what made the
+      # runtime error point at the wrong thing.
+      - name: Verify native plugins in APK
+        run: |
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          fail=0
+          check() {
+            if unzip -p "$apk" "$2" | grep -aq "$3"; then
+              echo "ok:   $1"
+            else
+              echo "::error::$1 — not found in $apk"
+              fail=1
+            fi
+          }
+          check "FirebaseAuthentication listed in capacitor.plugins.json" assets/capacitor.plugins.json FirebaseAuthenticationPlugin
+          check "FirebaseAuthenticationPlugin class compiled into the APK"  'classes*.dex'               FirebaseAuthenticationPlugin
+          check "google_app_id resource present (FirebaseApp can initialise)" resources.arsc             google_app_id
+          exit $fail
 
       # Gradle always emits app-debug.apk. Rename on the way out so the download
       # is self-describing instead of three identically-named files in a folder.
