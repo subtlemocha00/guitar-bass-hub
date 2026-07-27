@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import Layout from "../components/Layout";
 import BackLink from "../components/BackLink";
 import { externalLinkProps, isExternalUrl } from "../platform/links";
