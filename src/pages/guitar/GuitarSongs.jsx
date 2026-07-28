@@ -36,8 +36,8 @@ function GuitarSongs() {
 						<span className="glitch" data-text="GUITAR::SONGS">GUITAR::SONGS</span>
 					</h1>
 					<p className="songs-sub">
-						{songs.length} tracks tracked. Click a status badge to cycle
-						planned → learning → completed. Notes auto-save.
+						{songs.length} tracks tracked. Select a song to open its tab or
+						set its status. Notes auto-save.
 					</p>
 					<div className="songs-counters">
 						<span className="cnt cnt--c"><span className="dot" /> PLANNED · {planned}</span>

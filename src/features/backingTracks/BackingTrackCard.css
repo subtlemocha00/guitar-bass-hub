@@ -1,11 +1,22 @@
+/* Backing-track card. Mirrors SongCard's centred vertical stack so all four
+   catalogue pages read as the same surface:
+   title -> artist -> pills -> EDIT/DELETE -> SHOW VIDEO -> NOTES drawer.
+
+   The video toggle, player and "Open on YouTube" link are styled by
+   SongCard.css / YouTubeEmbed.css, because this card now renders the shared
+   YouTubeEmbed instead of its own copy — so .bt-card-video is gone with the
+   markup it styled. */
+
 .bt-card {
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	gap: 0.6rem;
-	padding: 0.95rem 1rem 0.85rem 1.1rem;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.95rem 1rem 0.35rem 1.1rem;
 	border: 1px solid var(--line-mid);
 	background: rgba(5, 2, 31, 0.45);
+	cursor: pointer;
 	transition: border-color 0.15s, box-shadow 0.2s, transform 0.12s;
 }
 
@@ -25,27 +36,34 @@
 	box-shadow: 0 0 14px color-mix(in srgb, var(--neon-cyan) 22%, transparent);
 }
 
-.bt-card-head {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-start;
-	gap: 0.75rem;
-}
-
-.bt-card-info {
-	display: flex;
-	flex-direction: column;
-	gap: 0.15rem;
-	min-width: 0;
-}
-
 .bt-card-title {
+	margin: 0;
+	max-width: 100%;
+	text-align: center;
+}
+
+.bt-card-open {
+	display: block;
+	max-width: 100%;
+	padding: 0.1rem 0.2rem;
+	background: transparent;
+	border: 0;
 	font-family: var(--font-display);
 	font-size: 1.1rem;
+	font-weight: 600;
 	letter-spacing: 0.04em;
-	color: var(--text);
-	margin: 0;
 	line-height: 1.25;
+	color: var(--text);
+	cursor: pointer;
+	overflow-wrap: anywhere;
+	transition: color 0.15s;
+}
+.bt-card-open:hover,
+.bt-card:hover .bt-card-open { color: var(--neon-cyan); }
+.bt-card-open:focus-visible {
+	outline: none;
+	color: var(--neon-cyan);
+	box-shadow: 0 0 0 1px var(--neon-cyan);
 }
 
 .bt-card-artist {
@@ -54,12 +72,15 @@
 	letter-spacing: 0.16em;
 	text-transform: uppercase;
 	color: var(--text-mute);
-	margin: 0;
+	margin: -0.2rem 0 0.1rem;
+	text-align: center;
+	overflow-wrap: anywhere;
 }
 
 .bt-card-pills {
 	display: flex;
 	flex-wrap: wrap;
+	justify-content: center;
 	gap: 0.4rem;
 }
 
@@ -78,6 +99,8 @@
 .bt-card-pill--key { color: var(--neon-lime); border-color: color-mix(in srgb, var(--neon-lime) 35%, var(--line-mid)); }
 .bt-card-pill--genre { color: var(--neon-amber); border-color: color-mix(in srgb, var(--neon-amber) 35%, var(--line-mid)); }
 
+/* Read-only inside the NOTES drawer — backing-track notes are edited in the
+   add/edit modal, not in place. */
 .bt-card-notes {
 	font-size: 0.85rem;
 	line-height: 1.5;
@@ -89,8 +112,8 @@
 .bt-card-actions {
 	display: flex;
 	flex-wrap: wrap;
+	justify-content: center;
 	gap: 0.4rem;
-	margin-top: 0.25rem;
 }
 
 .bt-card-btn {
@@ -101,7 +124,8 @@
 	background: transparent;
 	border: 1px solid var(--line-mid);
 	color: var(--text-mute);
-	padding: 0.4rem 0.7rem;
+	min-height: 38px;
+	padding: 0.4rem 0.9rem;
 	cursor: pointer;
 	text-decoration: none;
 	display: inline-flex;
@@ -110,36 +134,17 @@
 	transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-.bt-card-btn:hover {
-	color: var(--text);
+.bt-card-btn:hover,
+.bt-card-btn:focus-visible {
+	outline: none;
+	color: var(--neon-cyan);
 	border-color: var(--neon-cyan);
+	background: rgba(0, 224, 255, 0.08);
 }
 
-.bt-card-btn--open {
-	color: var(--bg-0);
-	background: var(--neon-cyan);
-	border-color: var(--neon-cyan);
-}
-.bt-card-btn--open:hover {
-	color: var(--bg-0);
-	box-shadow: 0 0 10px var(--neon-cyan-glow);
-}
-
-.bt-card-btn--remove:hover {
+.bt-card-btn--remove:hover,
+.bt-card-btn--remove:focus-visible {
 	color: var(--neon-magenta);
 	border-color: var(--neon-magenta);
-}
-
-.bt-card-video {
-	margin-top: 0.5rem;
-	border: 1px solid var(--line-mid);
-	aspect-ratio: 16 / 9;
-	overflow: hidden;
-	background: black;
-}
-
-.bt-card-video iframe {
-	width: 100%;
-	height: 100%;
-	border: 0;
+	background: rgba(255, 42, 109, 0.08);
 }

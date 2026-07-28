@@ -218,6 +218,27 @@ export { subscribeToAppBackground } from "@lifecycle-impl";
  */
 export { initNativeUI } from "@nativeui-impl";
 
+/**
+ * Subscribe to the OS back gesture, so a dismissible surface (a modal, a sheet)
+ * can close instead of the shell navigating away. Returns an unsubscribe
+ * function.
+ *
+ * Selected at BUILD TIME by the `@hardware-back-impl` Vite alias (see
+ * vite.config.js):
+ *   web + Tauri desktop -> ./hardwareBack/webHardwareBack       (no-op)
+ *   Capacitor mobile    -> ./hardwareBack/capacitorHardwareBack (@capacitor/app)
+ *
+ * Aliased rather than an inline `if (isCapacitor)` for the same reason as
+ * @lifecycle-impl: the mobile implementation imports @capacitor/app, whose
+ * registerPlugin() side effect must not leak into the web/Tauri bundles.
+ *
+ * IMPORTANT CONTRACT: subscribe only while the surface is open. On Capacitor a
+ * registered `backButton` listener REPLACES the default back handling for the
+ * whole app, so a permanent subscription would break ordinary back navigation.
+ * See capacitorHardwareBack.js.
+ */
+export { subscribeToHardwareBack } from "@hardware-back-impl";
+
 // Deliberately NOT wrapped: import.meta.env.PROD / BASE_URL. Vite resolves
 // both at build time and they behave identically for every target, so a
 // platform helper would add indirection without a replacement point.

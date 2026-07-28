@@ -71,16 +71,18 @@ export default defineConfig(({ mode }) => {
   // build target — it is compile-time selection, just resolved by the bundler
   // instead of by dead-code elimination.
   //
-  //   @auth-impl      credential acquisition   @capacitor-firebase/authentication
-  //   @storage-impl   persistence driver       @capacitor/preferences
-  //   @lifecycle-impl app-background flush      @capacitor/app
-  //   @links-impl     leaving the app          @capacitor/browser (mobile) /
-  //                                            @tauri-apps/plugin-opener (desktop)
-  //   @nativeui-impl  status-bar theming        @capacitor/status-bar
+  //   @auth-impl          credential acquisition   @capacitor-firebase/authentication
+  //   @storage-impl       persistence driver       @capacitor/preferences
+  //   @lifecycle-impl     app-background flush     @capacitor/app
+  //   @links-impl         leaving the app          @capacitor/browser (mobile) /
+  //                                                @tauri-apps/plugin-opener (desktop)
+  //   @nativeui-impl      status-bar theming       @capacitor/status-bar
+  //   @hardware-back-impl Android back button      @capacitor/app
   //
-  // For the auth/storage/lifecycle/nativeui boundaries, web and Tauri share the
-  // same web implementation (the desktop shell reuses the browser behaviour, and
-  // there is no mobile status bar to theme) and only Capacitor swaps.
+  // For the auth/storage/lifecycle/nativeui/hardware-back boundaries, web and
+  // Tauri share the same web implementation (the desktop shell reuses the
+  // browser behaviour, there is no mobile status bar to theme, and no desktop
+  // target has a hardware back button) and only Capacitor swaps.
   //
   // @links-impl is the odd one out: three genuinely distinct implementations
   // (web window.open, Tauri opener, Capacitor Browser), so it is a three-way
@@ -107,6 +109,9 @@ export default defineConfig(({ mode }) => {
   const nativeUIImpl = isCapacitor
     ? './src/platform/nativeUI/capacitorNativeUI.js'
     : './src/platform/nativeUI/webNativeUI.js'
+  const hardwareBackImpl = isCapacitor
+    ? './src/platform/hardwareBack/capacitorHardwareBack.js'
+    : './src/platform/hardwareBack/webHardwareBack.js'
 
   return {
     base,
@@ -117,6 +122,7 @@ export default defineConfig(({ mode }) => {
         '@lifecycle-impl': fileURLToPath(new URL(lifecycleImpl, import.meta.url)),
         '@links-impl': fileURLToPath(new URL(linksImpl, import.meta.url)),
         '@nativeui-impl': fileURLToPath(new URL(nativeUIImpl, import.meta.url)),
+        '@hardware-back-impl': fileURLToPath(new URL(hardwareBackImpl, import.meta.url)),
       },
     },
     // Separate output directories so the three targets never overwrite each

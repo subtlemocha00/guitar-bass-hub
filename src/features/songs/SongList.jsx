@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useCardActionSheet } from "../../components/useCardActionSheet";
+import SongActionModal from "./SongActionModal";
 import SongCard from "./SongCard";
 import { useSongStatus } from "./useSongStatus";
 import "./SongList.css";
@@ -34,10 +36,19 @@ function compareSongs(a, b, sortKey) {
 function SongList({ songs, filter = "all", sort = "recent", onRemove, onEdit }) {
 	const { statuses, updateStatus } = useSongStatus(songs);
 	const [openSongId, setOpenSongId] = useState(null);
+	const sheet = useCardActionSheet();
 
 	const toggleVideo = (songId) => {
 		setOpenSongId((prev) => (prev === songId ? null : songId));
 	};
+
+	// Re-read the selected song from the live list so an edit made while the
+	// sheet is open is reflected in it. Falls back to the captured copy, which
+	// is what keeps the sheet's content intact during its exit transition (and
+	// if the song is deleted from under it).
+	const sheetSong = sheet.item
+		? songs.find((s) => s.id === sheet.item.id) ?? sheet.item
+		: null;
 
 	const grouped = useMemo(
 		() =>
@@ -77,7 +88,7 @@ function SongList({ songs, filter = "all", sort = "recent", onRemove, onEdit }) 
 										key={song.id}
 										song={song}
 										status={statuses[song.id]}
-										onStatusChange={(next) => updateStatus(song.id, next)}
+										onSelect={() => sheet.openFor(song)}
 										videoOpen={openSongId === song.id}
 										onToggleVideo={() => toggleVideo(song.id)}
 										onRemove={
@@ -96,6 +107,17 @@ function SongList({ songs, filter = "all", sort = "recent", onRemove, onEdit }) 
 						</section>
 					)
 			)}
+
+			{/* One sheet for the whole list, outside the groups: changing a
+			    song's status moves its card to another group (an unmount), and
+			    the sheet has to survive the action it offers. */}
+			<SongActionModal
+				open={sheet.open}
+				song={sheetSong}
+				status={sheetSong ? statuses[sheetSong.id] : undefined}
+				onStatusChange={(next) => updateStatus(sheetSong.id, next)}
+				onClose={sheet.close}
+			/>
 		</div>
 	);
 }

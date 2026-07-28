@@ -1,15 +1,10 @@
 import { useState } from "react";
+import { isSelfHandledClick } from "../../components/cardClick";
+import CollapsibleNotes from "../../components/CollapsibleNotes";
 import ConfirmDialog from "../../components/ConfirmDialog";
-import { externalLinkProps } from "../../platform/links";
-import { STATUSES } from "./songStorage";
 import { useSongNotes } from "./useSongNotes";
 import YouTubeEmbed from "./YouTubeEmbed";
 import "./SongCard.css";
-
-function nextStatus(current) {
-	const idx = STATUSES.indexOf(current);
-	return STATUSES[(idx + 1) % STATUSES.length];
-}
 
 function NotesField({ songId }) {
 	const { note, setNote } = useSongNotes(songId);
@@ -19,107 +14,63 @@ function NotesField({ songId }) {
 			value={note}
 			onChange={(e) => setNote(e.target.value)}
 			placeholder="Notes…"
-			rows={2}
+			rows={3}
 		/>
-	);
-}
-
-function SongInfo({ song }) {
-	const content = (
-		<>
-			<h3 className="song-card-title">{song.title}</h3>
-			<p className="song-card-artist">{song.artist}</p>
-		</>
-	);
-
-	if (!song.tabUrl) {
-		return <div className="song-card-info">{content}</div>;
-	}
-
-	return (
-		<a
-			className="song-card-info song-card-info--link"
-			{...externalLinkProps(song.tabUrl)}
-			title="Open tab in new tab"
-		>
-			{content}
-		</a>
 	);
 }
 
 function SongCard({
 	song,
 	status,
-	onStatusChange,
 	videoOpen,
 	onToggleVideo,
 	onRemove,
 	onEdit,
+	onSelect,
 }) {
 	const [confirmingRemove, setConfirmingRemove] = useState(false);
 
-	const handleCycle = () => onStatusChange(nextStatus(status));
-	const handleEdit = () => {
-		if (onEdit) onEdit();
-	};
 	const confirmRemove = () => {
 		setConfirmingRemove(false);
 		if (onRemove) onRemove();
 	};
 
+	// Anywhere on the card selects it; the title is also a real button so the
+	// card is reachable and operable from the keyboard, not only by pointer.
+	// Selecting opens the action sheet, which SongList owns.
+	const handleCardClick = (e) => {
+		if (isSelfHandledClick(e)) return;
+		onSelect();
+	};
+
 	return (
-		<article className={`song-card song-card--${status}`}>
-			<div className="song-card-head">
-				<SongInfo song={song} />
+		<article
+			className={`song-card song-card--${status}`}
+			onClick={handleCardClick}
+		>
+			<h3 className="song-card-title">
 				<button
 					type="button"
-					className="song-card-status"
-					onClick={handleCycle}
-					aria-label={`Status: ${status}. Click to change.`}
+					className="song-card-open"
+					onClick={onSelect}
+					aria-haspopup="dialog"
 				>
-					{status}
+					{song.title}
 				</button>
-			</div>
+			</h3>
+			<p className="song-card-artist">{song.artist}</p>
 
-			<NotesField songId={song.id} />
-
-			{song.youtubeId ? (
-				<YouTubeEmbed
-					youtubeId={song.youtubeId}
-					title={`${song.title} — ${song.artist}`}
-					videoOpen={videoOpen}
-					onToggleVideo={onToggleVideo}
-				/>
-			) : (
-				<button
-					type="button"
-					className="song-card-video-toggle"
-					style={{ visibility: "hidden" }}
-					disabled
-					aria-hidden="true"
-				>
-					<span className="song-card-video-chevron" aria-hidden="true">
-						▸
-					</span>
-					Show Video
-				</button>
-			)}
-
-			{(onRemove || onEdit) && (
+			{(onEdit || onRemove) && (
 				<div className="song-card-actions">
 					{onEdit && (
-						<button
-							type="button"
-							className="song-card-edit"
-							onClick={handleEdit}
-						>
+						<button type="button" className="song-card-btn" onClick={onEdit}>
 							✎ EDIT
 						</button>
 					)}
 					{onRemove && (
 						<button
 							type="button"
-							className="song-card-remove"
+							className="song-card-btn song-card-btn--remove"
 							onClick={() => setConfirmingRemove(true)}
 						>
 							🗑 DELETE
@@ -127,6 +78,22 @@ function SongCard({
 					)}
 				</div>
 			)}
+
+			{/* Left on the card rather than moved into the sheet: the embed is
+			    already an expand/collapse region, so routing it through a modal
+			    would only add a tap between the user and the video. */}
+			{song.youtubeId && (
+				<YouTubeEmbed
+					youtubeId={song.youtubeId}
+					title={`${song.title} — ${song.artist}`}
+					videoOpen={videoOpen}
+					onToggleVideo={onToggleVideo}
+				/>
+			)}
+
+			<CollapsibleNotes>
+				<NotesField songId={song.id} />
+			</CollapsibleNotes>
 
 			<ConfirmDialog
 				open={confirmingRemove}

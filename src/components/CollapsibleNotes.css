@@ -1,0 +1,80 @@
+/* The NOTES drawer, shared by song cards and backing-track cards. Its own file
+   because CollapsibleNotes is shared across features — same reasoning as
+   ConfirmDialog.css. */
+
+.card-notes {
+	/* Cards centre their controls; the drawer is the one full-width element. */
+	align-self: stretch;
+	width: 100%;
+	border-top: 1px solid var(--line-dim);
+	margin-top: 0.15rem;
+}
+
+.card-notes-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.55rem;
+	width: 100%;
+	/* Comfortable Android touch target without an oversized button. */
+	min-height: 40px;
+	padding: 0.5rem 0.6rem;
+	background: transparent;
+	border: 0;
+	color: var(--text-mute);
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: color 0.15s;
+}
+
+.card-notes-toggle:hover,
+.card-notes-toggle:focus-visible {
+	outline: none;
+	color: var(--neon-cyan);
+}
+
+.card-notes-chevron {
+	color: var(--neon-cyan);
+	font-size: 0.8rem;
+	line-height: 1;
+	transition: transform 0.22s ease;
+}
+
+.card-notes--open .card-notes-chevron {
+	transform: rotate(180deg);
+}
+
+/* 0fr -> 1fr animates to the content's natural height. The inner wrapper does
+   the clipping; the grid row is what actually transitions. */
+.card-notes-panel {
+	display: grid;
+	grid-template-rows: 0fr;
+	visibility: hidden;
+	transition: grid-template-rows 0.22s ease, visibility 0.22s;
+}
+
+.card-notes--open .card-notes-panel {
+	grid-template-rows: 1fr;
+	visibility: visible;
+}
+
+.card-notes-panel-inner {
+	overflow: hidden;
+	min-height: 0;
+}
+
+.card-notes-content {
+	display: flex;
+	flex-direction: column;
+	padding: 0 0.1rem 0.55rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.card-notes-panel,
+	.card-notes-chevron {
+		transition: none;
+	}
+}

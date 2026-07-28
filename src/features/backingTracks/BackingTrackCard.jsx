@@ -1,9 +1,19 @@
 import { useState } from "react";
+import { isSelfHandledClick } from "../../components/cardClick";
+import CollapsibleNotes from "../../components/CollapsibleNotes";
 import ConfirmDialog from "../../components/ConfirmDialog";
-import { WatchOnYouTube } from "../songs/YouTubeEmbed";
+import YouTubeEmbed from "../songs/YouTubeEmbed";
+import TrackPills from "./TrackPills";
 import "./BackingTrackCard.css";
 
-function BackingTrackCard({ track, videoOpen, onToggleVideo, onEdit, onRemove }) {
+function BackingTrackCard({
+	track,
+	videoOpen,
+	onToggleVideo,
+	onEdit,
+	onRemove,
+	onSelect,
+}) {
 	const [confirmingRemove, setConfirmingRemove] = useState(false);
 
 	const confirmRemove = () => {
@@ -11,81 +21,65 @@ function BackingTrackCard({ track, videoOpen, onToggleVideo, onEdit, onRemove })
 		if (onRemove) onRemove();
 	};
 
-	const showActions = onEdit || onRemove;
+	// Matches SongCard: anywhere on the card selects it, the title is also a
+	// real button so the card works from the keyboard, and the action sheet is
+	// owned by the list.
+	const handleCardClick = (e) => {
+		if (isSelfHandledClick(e)) return;
+		onSelect();
+	};
 
 	return (
-		<article className="bt-card">
-			<div className="bt-card-head">
-				<div className="bt-card-info">
-					<h3 className="bt-card-title">{track.title}</h3>
-					<p className="bt-card-artist">{track.artist}</p>
-				</div>
-			</div>
+		<article className="bt-card" onClick={handleCardClick}>
+			<h3 className="bt-card-title">
+				<button
+					type="button"
+					className="bt-card-open"
+					onClick={onSelect}
+					aria-haspopup="dialog"
+				>
+					{track.title}
+				</button>
+			</h3>
+			<p className="bt-card-artist">{track.artist}</p>
 
-			{(track.genre || track.bpm != null || track.trackKey) && (
-				<div className="bt-card-pills">
-					{track.genre && (
-						<span className="bt-card-pill bt-card-pill--genre">{track.genre}</span>
+			<TrackPills track={track} className="bt-card-pills" />
+
+			{(onEdit || onRemove) && (
+				<div className="bt-card-actions">
+					{onEdit && (
+						<button type="button" className="bt-card-btn" onClick={onEdit}>
+							✎ EDIT
+						</button>
 					)}
-					{track.bpm != null && (
-						<span className="bt-card-pill bt-card-pill--bpm">{track.bpm} BPM</span>
-					)}
-					{track.trackKey && (
-						<span className="bt-card-pill bt-card-pill--key">KEY · {track.trackKey}</span>
+					{onRemove && (
+						<button
+							type="button"
+							className="bt-card-btn bt-card-btn--remove"
+							onClick={() => setConfirmingRemove(true)}
+						>
+							🗑 DELETE
+						</button>
 					)}
 				</div>
 			)}
 
-			{track.notes && <p className="bt-card-notes">{track.notes}</p>}
+			{/* Was a hand-rolled toggle + iframe + fallback link, duplicating what
+			    YouTubeEmbed already does for song cards. Same component now, so
+			    both card types get identical embed behaviour and chrome. */}
+			<YouTubeEmbed
+				youtubeId={track.youtubeId}
+				title={`${track.title} — ${track.artist}`}
+				videoOpen={videoOpen}
+				onToggleVideo={onToggleVideo}
+			/>
 
-			<div className="bt-card-actions">
-				{track.youtubeId && onToggleVideo && (
-					<button
-						type="button"
-						className="bt-card-btn bt-card-btn--open"
-						onClick={onToggleVideo}
-						aria-expanded={!!videoOpen}
-					>
-						<span aria-hidden="true">{videoOpen ? "▾" : "▸"}</span>
-						{videoOpen ? "HIDE VIDEO" : "SHOW VIDEO"}
-					</button>
-				)}
-				{showActions && (
-					<>
-						{onEdit && (
-							<button type="button" className="bt-card-btn" onClick={onEdit}>
-								✎ EDIT
-							</button>
-						)}
-						{onRemove && (
-							<button
-								type="button"
-								className="bt-card-btn bt-card-btn--remove"
-								onClick={() => setConfirmingRemove(true)}
-							>
-								🗑 DELETE
-							</button>
-						)}
-					</>
-				)}
-			</div>
-
-			{track.youtubeId && videoOpen && (
-				<>
-					<div className="bt-card-video">
-						<iframe
-							src={`https://www.youtube-nocookie.com/embed/${track.youtubeId}`}
-							title={`${track.title} — ${track.artist}`}
-							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-							allowFullScreen
-							loading="lazy"
-						/>
-					</div>
-					<WatchOnYouTube
-						youtubeId={track.youtubeId}
-						title={`${track.title} — ${track.artist}`}
-					/>
-				</>
+			{/* Read-only here — backing-track notes are edited in the add/edit
+			    modal, so a track with none has nothing to reveal. */}
+			{track.notes && (
+				<CollapsibleNotes>
+					<p className="bt-card-notes">{track.notes}</p>
+				</CollapsibleNotes>
 			)}
 
 			<ConfirmDialog

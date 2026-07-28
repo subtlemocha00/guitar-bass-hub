@@ -561,11 +561,15 @@ a:hover {
 	.add-song-btn,
 	.add-song-close,
 	.confirm-btn,
-	.song-card-status,
-	.song-card-edit,
-	.song-card-remove,
+	.song-card-open,
+	.song-card-btn,
 	.song-card-video-toggle,
+	.bt-card-open,
 	.bt-card-btn,
+	.card-notes-toggle,
+	.card-modal-close,
+	.card-modal-action,
+	.card-modal-select,
 	.setlist-filter-btn,
 	.song-filter-tab,
 	.song-sort-select,
@@ -579,8 +583,9 @@ a:hover {
 		min-height: 44px;
 	}
 
-	/* Square icon button: keep it square at the tap-target size. */
-	.add-song-close {
+	/* Square icon buttons: keep them square at the tap-target size. */
+	.add-song-close,
+	.card-modal-close {
 		min-width: 44px;
 	}
 
