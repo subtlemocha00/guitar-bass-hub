@@ -66,12 +66,15 @@ function BackingTrackCard({
 
 			{/* Was a hand-rolled toggle + iframe + fallback link, duplicating what
 			    YouTubeEmbed already does for song cards. Same component now, so
-			    both card types get identical embed behaviour and chrome. */}
+			    both card types get identical embed behaviour and chrome —
+			    including "Open on YouTube" living in the action sheet rather
+			    than under the player. */}
 			<YouTubeEmbed
 				youtubeId={track.youtubeId}
 				title={`${track.title} — ${track.artist}`}
 				videoOpen={videoOpen}
 				onToggleVideo={onToggleVideo}
+				showWatchLink={false}
 			/>
 
 			{/* Read-only here — backing-track notes are edited in the add/edit

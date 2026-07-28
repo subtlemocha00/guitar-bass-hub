@@ -1,6 +1,8 @@
-import CardActionModal from "../../components/CardActionModal";
-import { externalLinkProps } from "../../platform/links";
+import CardActionModal, {
+	CardActionLink,
+} from "../../components/CardActionModal";
 import { STATUSES } from "./songStorage";
+import { youtubeWatchUrl } from "./youtubeUtils";
 
 const STATUS_LABELS = {
 	planned: "Planned",
@@ -16,8 +18,6 @@ const STATUS_LABELS = {
 function SongActionModal({ song, status, onStatusChange, open, onClose }) {
 	if (!song) return null;
 
-	const tabLinkProps = song.tabUrl ? externalLinkProps(song.tabUrl) : null;
-
 	// A <select> whose value is not among its options goes uncontrolled. The
 	// cycle button this replaced normalised an unknown status the same way.
 	const selected = STATUSES.includes(status) ? status : STATUSES[0];
@@ -31,21 +31,20 @@ function SongActionModal({ song, status, onStatusChange, open, onClose }) {
 		>
 			<p className="card-modal-subtitle">{song.artist}</p>
 
-			{tabLinkProps && (
-				<a
-					className="card-modal-action"
-					{...tabLinkProps}
-					onClick={(e) => {
-						// Spread order means this replaces the handler
-						// externalLinkProps adds on the packaged shells, so call
-						// it explicitly before dismissing.
-						tabLinkProps.onClick?.(e);
-						onClose();
-					}}
-				>
-					<span aria-hidden="true">↗</span> Go to Tab
-				</a>
-			)}
+			<CardActionLink url={song.tabUrl} onClose={onClose}>
+				<span aria-hidden="true">↗</span> Go to Tab
+			</CardActionLink>
+
+			{/* The escape hatch for an embed that fails silently on the card —
+			    see WatchOnYouTube. Secondary, because the tab is what a song in
+			    this list is for. */}
+			<CardActionLink
+				url={youtubeWatchUrl(song.youtubeId)}
+				onClose={onClose}
+				variant="secondary"
+			>
+				<span aria-hidden="true">↗</span> Open on YouTube
+			</CardActionLink>
 
 			<label className="card-modal-field">
 				<span className="card-modal-label">STATUS</span>

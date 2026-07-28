@@ -1,5 +1,6 @@
-import CardActionModal from "../../components/CardActionModal";
-import { externalLinkProps } from "../../platform/links";
+import CardActionModal, {
+	CardActionLink,
+} from "../../components/CardActionModal";
 import { youtubeWatchUrl } from "../songs/youtubeUtils";
 import TrackPills from "./TrackPills";
 
@@ -15,9 +16,6 @@ import TrackPills from "./TrackPills";
 function TrackActionModal({ track, open, onClose }) {
 	if (!track) return null;
 
-	const watchUrl = youtubeWatchUrl(track.youtubeId);
-	const watchLinkProps = watchUrl ? externalLinkProps(watchUrl) : null;
-
 	return (
 		<CardActionModal
 			open={open}
@@ -27,20 +25,11 @@ function TrackActionModal({ track, open, onClose }) {
 		>
 			<p className="card-modal-subtitle">{track.artist}</p>
 
-			{watchLinkProps && (
-				<a
-					className="card-modal-action"
-					{...watchLinkProps}
-					onClick={(e) => {
-						// See SongActionModal: spread order replaces the handler
-						// externalLinkProps adds on the packaged shells.
-						watchLinkProps.onClick?.(e);
-						onClose();
-					}}
-				>
-					<span aria-hidden="true">↗</span> Open on YouTube
-				</a>
-			)}
+			{/* Primary here, unlike on a song sheet: a backing track has no tab,
+			    so YouTube is the destination rather than the fallback. */}
+			<CardActionLink url={youtubeWatchUrl(track.youtubeId)} onClose={onClose}>
+				<span aria-hidden="true">↗</span> Open on YouTube
+			</CardActionLink>
 
 			<TrackPills track={track} className="card-modal-meta" />
 		</CardActionModal>

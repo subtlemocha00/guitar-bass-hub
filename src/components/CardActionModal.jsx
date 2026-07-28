@@ -1,7 +1,41 @@
 import { useEffect, useRef, useState } from "react";
 import { useDialogFocus } from "./useDialogFocus";
+import { externalLinkProps } from "../platform/links";
 import { subscribeToHardwareBack } from "../platform/platform";
 import "./CardActionModal.css";
+
+/**
+ * A destination inside an action sheet — "Go to Tab", "Open on YouTube".
+ * Renders nothing for a missing or unusable URL, so callers can pass a
+ * possibly-null URL without guarding.
+ *
+ * `variant="secondary"` outlines it instead of filling it, for a sheet that
+ * offers two destinations and needs one of them to read as primary.
+ */
+export function CardActionLink({ url, onClose, variant, children }) {
+	if (!url) return null;
+
+	const linkProps = externalLinkProps(url);
+
+	return (
+		<a
+			className={`card-modal-action${
+				variant ? ` card-modal-action--${variant}` : ""
+			}`}
+			{...linkProps}
+			onClick={(e) => {
+				// Spread order means this handler REPLACES the one
+				// externalLinkProps adds on the packaged shells (where a webview's
+				// target="_blank" is dead and the click has to be handed to the
+				// shell), so call it explicitly before dismissing.
+				linkProps.onClick?.(e);
+				onClose();
+			}}
+		>
+			{children}
+		</a>
+	);
+}
 
 // The action sheet a list card opens when it is selected.
 //

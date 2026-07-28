@@ -79,15 +79,18 @@ function SongCard({
 				</div>
 			)}
 
-			{/* Left on the card rather than moved into the sheet: the embed is
-			    already an expand/collapse region, so routing it through a modal
-			    would only add a tap between the user and the video. */}
+			{/* The toggle stays on the card: the embed is already an
+			    expand/collapse region, so routing it through the sheet would only
+			    add a tap between the user and the video. The "Open on YouTube"
+			    escape hatch does live in the sheet, which is why the player here
+			    renders without its own copy. */}
 			{song.youtubeId && (
 				<YouTubeEmbed
 					youtubeId={song.youtubeId}
 					title={`${song.title} — ${song.artist}`}
 					videoOpen={videoOpen}
 					onToggleVideo={onToggleVideo}
+					showWatchLink={false}
 				/>
 			)}
 

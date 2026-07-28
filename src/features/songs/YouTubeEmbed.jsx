@@ -19,12 +19,17 @@ export function VideoToggleButton({ videoOpen, onToggleVideo }) {
 	);
 }
 
-// The universal "Open on YouTube" fallback. Shown beside every embed on every
-// platform, because a YouTube iframe's in-document failure ("Video unavailable",
-// a bot-check, or a webview refusing to play a custom-scheme embed) is invisible
+// The universal "Open on YouTube" fallback. Every embed surface must offer it,
+// because a YouTube iframe's in-document failure ("Video unavailable", a
+// bot-check, or a webview refusing to play a custom-scheme embed) is invisible
 // to the parent frame — the iframe is cross-origin and `onError` does not fire
 // for it, so an automatic fallback is impossible (youtube-native-compatibility.md).
-// Making it always-present is the only reliable escape hatch.
+//
+// WHAT MUST NOT CHANGE is that the escape hatch exists on every surface; WHERE
+// it sits is a layout decision. Song and backing-track cards moved it into
+// their action sheet (see `showWatchLink` on VideoPlayer/YouTubeEmbed) so the
+// card carries one control per row instead of two. Setlist and the blog keep it
+// beside the player, which is why the prop defaults to showing it.
 //
 // It leaves the app through externalLinkProps, the platform/links seam: on web a
 // plain target="_blank"; on Capacitor and Tauri the same anchor's click is routed
@@ -44,7 +49,11 @@ export function WatchOnYouTube({ youtubeId, title }) {
 	);
 }
 
-export function VideoPlayer({ youtubeId, title }) {
+// `showWatchLink` opts a surface out of the inline fallback link — for callers
+// that offer "Open on YouTube" somewhere else, like the cards' action sheet. It
+// defaults to true so no existing surface changes by omission: dropping the
+// escape hatch has to be a deliberate act with somewhere else to put it.
+export function VideoPlayer({ youtubeId, title, showWatchLink = true }) {
 	return (
 		<>
 			<div className="song-card-video">
@@ -56,17 +65,29 @@ export function VideoPlayer({ youtubeId, title }) {
 					loading="lazy"
 				/>
 			</div>
-			<WatchOnYouTube youtubeId={youtubeId} title={title} />
+			{showWatchLink && <WatchOnYouTube youtubeId={youtubeId} title={title} />}
 		</>
 	);
 }
 
-export default function YouTubeEmbed({ youtubeId, title, videoOpen, onToggleVideo }) {
+export default function YouTubeEmbed({
+	youtubeId,
+	title,
+	videoOpen,
+	onToggleVideo,
+	showWatchLink = true,
+}) {
 	if (!youtubeId) return null;
 	return (
 		<>
 			<VideoToggleButton videoOpen={videoOpen} onToggleVideo={onToggleVideo} />
-			{videoOpen && <VideoPlayer youtubeId={youtubeId} title={title} />}
+			{videoOpen && (
+				<VideoPlayer
+					youtubeId={youtubeId}
+					title={title}
+					showWatchLink={showWatchLink}
+				/>
+			)}
 		</>
 	);
 }

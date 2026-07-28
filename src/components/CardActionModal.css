@@ -180,6 +180,24 @@
 	box-shadow: 0 0 14px var(--neon-cyan-glow);
 }
 
+/* A second destination on the same sheet — "Open on YouTube" beside "Go to
+   Tab". Outlined rather than solid so the sheet still has one obvious primary
+   action; two solid neon buttons read as a choice rather than a hierarchy.
+   Backing tracks keep the solid style, because there YouTube IS the primary. */
+.card-modal-action--secondary {
+	color: var(--text-mute);
+	background: transparent;
+	border-color: var(--line-mid);
+}
+
+.card-modal-action--secondary:hover,
+.card-modal-action--secondary:focus-visible {
+	color: var(--neon-cyan);
+	border-color: var(--neon-cyan);
+	background: rgba(0, 224, 255, 0.08);
+	box-shadow: 0 0 10px var(--neon-cyan-glow);
+}
+
 .card-modal-field {
 	display: flex;
 	flex-direction: column;
