@@ -13,8 +13,13 @@
 	background: rgba(1, 1, 43, 0.75);
 	backdrop-filter: blur(4px);
 	display: flex;
-	align-items: center;
-	justify-content: center;
+	/* The OVERLAY scrolls, not the sheet — see .card-modal. Centring is done
+	   with `margin: auto` on the sheet rather than align-items/justify-content,
+	   because auto margins collapse to 0 once the item is taller than the
+	   container: with flex centring, a too-tall sheet overflows equally in both
+	   directions and its top becomes unreachable. */
+	overflow: auto;
+	overscroll-behavior: contain;
 	/* See AddSongModal.css — safe-area aware, 1rem everywhere else. */
 	padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
 		max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
@@ -30,10 +35,22 @@
 .card-modal {
 	width: 100%;
 	max-width: 420px;
-	/* Never taller than the viewport; scrolls internally on a short screen. */
-	max-height: calc(100vh - 2rem);
-	max-height: calc(100dvh - 2rem);
-	overflow-y: auto;
+	/* Centres on both axes AND keeps a too-tall sheet fully reachable — see the
+	   note on .card-modal-overlay. */
+	margin: auto;
+
+	/* The sheet itself NEVER scrolls, so it shows all of its content and carries
+	   no scrollbars of its own.
+
+	   It used to cap its height and scroll internally, which produced a
+	   horizontal AND a vertical scrollbar on every open regardless of how little
+	   was in it: .hud's corner brackets are absolutely positioned at -1px so
+	   they sit outside the border, and a descendant overflowing the bottom/right
+	   edges counts as scrollable overflow. 1px of it was enough. The sheet is
+	   short by design, so the viewport cap belongs on the overlay, where the
+	   brackets are not part of the scrollable area. */
+	overflow: visible;
+
 	padding: 1.4rem 1.5rem 1.35rem;
 	display: flex;
 	flex-direction: column;
@@ -61,8 +78,15 @@
 	gap: 0.75rem;
 }
 
+/* .eyebrow is itself an inline-flex (rule + label), so it needs both permissions
+   to give way on a narrow screen: min-width to shrink below its content, and
+   flex-wrap so the label drops under the rule instead of pushing the close
+   button off the edge. Without these, "// BACKING TRACK" alone overflows a
+   320px viewport. */
 .card-modal-eyebrow {
 	color: var(--neon-cyan);
+	min-width: 0;
+	flex-wrap: wrap;
 }
 
 .card-modal-close {
@@ -92,10 +116,15 @@
 	font-family: var(--font-display);
 	font-size: 1.25rem;
 	font-weight: 600;
-	line-height: 1.25;
+	/* Roomier than a single-line title needs, because a long title now wraps
+	   here rather than being clipped or scrolled. */
+	line-height: 1.3;
 	letter-spacing: 0.03em;
 	color: var(--text);
 	text-align: center;
+	/* Wrap at spaces normally, and break inside a word only when a single word
+	   is wider than the sheet — so nothing can widen the sheet past the
+	   viewport or spill outside it. */
 	overflow-wrap: anywhere;
 }
 
@@ -109,6 +138,9 @@
 	text-transform: uppercase;
 	color: var(--text-mute);
 	text-align: center;
+	/* Band names wrap onto as many lines as they need; the tracking makes a
+	   wrapped line hard to read at a default line-height. */
+	line-height: 1.55;
 	overflow-wrap: anywhere;
 }
 

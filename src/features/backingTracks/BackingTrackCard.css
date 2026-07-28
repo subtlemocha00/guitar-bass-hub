@@ -95,6 +95,15 @@
 	white-space: nowrap;
 }
 
+/* GENRE is the only free-text pill, so it is the only one allowed to wrap — a
+   long one would otherwise run off the card and the action sheet, neither of
+   which scrolls sideways. BPM and KEY are short and generated; keeping them on
+   one line is what makes them read as units. */
+.bt-card-pill--genre {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
 .bt-card-pill--bpm { color: var(--neon-cyan); border-color: color-mix(in srgb, var(--neon-cyan) 35%, var(--line-mid)); }
 .bt-card-pill--key { color: var(--neon-lime); border-color: color-mix(in srgb, var(--neon-lime) 35%, var(--line-mid)); }
 .bt-card-pill--genre { color: var(--neon-amber); border-color: color-mix(in srgb, var(--neon-amber) 35%, var(--line-mid)); }
